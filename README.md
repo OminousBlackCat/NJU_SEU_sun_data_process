@@ -2,4 +2,7 @@
 
 **目前使用的第三方库**:
 
-* astropy
+* numpy
+* matplotlib
+
+* astropy （用于读入FITS格式的图片）
