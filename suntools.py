@@ -44,7 +44,7 @@ def Curve_correction(data, x0, C):
 # 输出: 平场数据
 def Pingchang(data):
     H, W = data.shape
-    mean = np.sum(data, axis=1)
+    mean = np.sum(data, axis=1)/W
     for i in range(H):
         data[i, :] = data[i, :] / mean[i]
     return data
@@ -92,29 +92,46 @@ def RB_repair(data, sun_std):
         data[i, :] = data[i, :] / (k * i + b)
     return data
 
+# 矩阵减法
+def subtract(data_A,data_B):
+    H, W = data_A.shape
+    for i in range(H):
+        for j in range(W):
+            if data_A[i][j]>data_B[i][j]:
+                data_A[i][j]=data_A[i][j]-data_B[i][j]
+            else:
+                data_A[i][j]=0
+    return data_A
 
 if __name__ == "__main__":
-    print(get_Sunstd("teststd.txt"))
+    #print(get_Sunstd("teststd.txt"))
     # print("suntools_test")
     # # data = np.array([[0,1,2],[1,2,3]])
     # # print(RB_repair(data,np.array([6,18])))
-    # filepath_result = "testResult\\"
-    # filepath_test = "testData\\"
-    # sys.path.append('../')
-    # sys.path.append(filepath_test)
-    # filelist = os.listdir(filepath_test)
-    # #print(filelist)
-    # data=np.zeros([376,4608])
-    # for i in range(400):
-    #     image_file = get_pkg_data_filename(filepath_test+filelist[2200+i])
-    #     image_data = fits.getdata(image_file)
-    #     data+=image_data
-    # data/=400
-    # data=Pingchang(data)
-    # data=Curve_correction(data, 2225, 0.01 / (2225 - 770) / (2225 - 770))
-    # image_file = get_pkg_data_filename(filepath_test + filelist[2288])
-    # image_data = fits.getdata(image_file)
-    # image_data=Curve_correction(image_data, 2225, 0.01 / (2225 - 770) / (2225 - 770))
-    # plt.figure()
-    # plt.imshow(image_data/data)
-    # plt.show()
+    filepath_result = "testResult\\"
+    filepath_test = "testData\\"
+    filelist = os.listdir(filepath_test)
+    #print(filelist)
+    image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
+    dark_data = np.array(fits.getdata(image_file))
+
+    data=np.zeros([376,4608])
+    for i in range(400):
+        image_file = get_pkg_data_filename(filepath_test+filelist[2200+i])
+        image_data = np.array(fits.getdata(image_file))
+        data+=image_data
+    data/=400
+    data = Curve_correction(subtract(data,dark_data), 2321.26, 1.92909e-011)
+    data=Pingchang(data)
+    plt.figure()
+    plt.imshow(data, cmap="gray")
+    plt.show()
+    print("Ping is over")
+    image_file = get_pkg_data_filename(filepath_test + filelist[2088])
+    image_data = np.array(fits.getdata(image_file))
+
+
+    image_data=Curve_correction(subtract(image_data,dark_data), 2321.26, 1.92909e-011)
+    plt.figure()
+    plt.imshow(image_data, cmap="gray")
+    plt.show()
