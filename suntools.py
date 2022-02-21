@@ -66,17 +66,18 @@ def linefit(x, y):  # np.polyfit(X, Y, 1)
     b = (sy - k * sx) / N
     return k, b
 
+
 # 标准太阳光谱获取
 # 参数filepath：储存标准光谱的文件路径
 # 输出：文件包含数据
 def get_Sunstd(filepath):
-    print("标准光谱数据地址："+filepath)
-    data=[]
-    with open(filepath) as f :
+    print("标准光谱数据地址：" + filepath)
+    data = []
+    with open(filepath) as f:
         line = f.readline()
-        if len(re.findall(r"\d+\.?\d*",line))>0:
+        if len(re.findall(r"\d+\.?\d*", line)) > 0:
             data.append(float(re.findall(r"\d+\.?\d*", line)[0]))
-        while line :
+        while line:
             line = f.readline()
             if len(re.findall(r"\d+\.?\d*", line)) > 0:
                 data.append(float(re.findall(r"\d+\.?\d*", line)[0]))
@@ -84,9 +85,9 @@ def get_Sunstd(filepath):
 
 
 # 红蓝移矫正
-def RB_repair(data,sun_std):
+def RB_repair(data, sun_std):
     H, W = data.shape
-    k, b = linefit(np.arange(0, H, 1),np.sum(data, axis=1)/sun_std[0:H])
+    k, b = linefit(np.arange(0, H, 1), np.sum(data, axis=1) / sun_std[0:H])
     for i in range(H):
         data[i, :] = data[i, :] / (k * i + b)
     return data
