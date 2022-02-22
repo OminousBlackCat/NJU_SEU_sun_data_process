@@ -109,12 +109,17 @@ def subtract(data_A,data_B):
 #平滑操作
 def Smooth(data):
     H, W = data.shape
-    SmoothData = data
-    win = 3
-    for x in range(H-win):
-        for y in range(W-win):
-            SmoothData[x][y] = np.median(data[x:x+win,y:y+win].reshape(-1))
-    return SmoothData
+    SmoothData = np.zeros((H,W))
+    win = 4
+    for i in range (win):
+        for j in range(win):
+            SmoothData[0:H - win + 1, 0:W - win + 1] += data[i:H - win +i +1, j : W - win + j + 1]
+    SmoothData[0:H - win + 1,0:W - win + 1] /= win*win
+    # kernel = win*win-2
+    # for x in range(H-win):
+    #     for y in range(W-win):
+    #         SmoothData[x][y] = (np.sum(data[x:x+win,y:y+win].reshape(-1)))/kernel
+    return SmoothData/4
 
 if __name__ == "__main__":
 
