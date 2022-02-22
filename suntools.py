@@ -3,7 +3,6 @@ import re
 import os
 import time
 from astropy.io import fits
-import suntools
 import matplotlib.pyplot as plt
 from PIL import Image
 from astropy.utils.data import get_pkg_data_filename
@@ -94,27 +93,10 @@ def RB_repair(data, sun_std):
 
 
 if __name__ == "__main__":
-    print(get_Sunstd("teststd.txt"))
-    # print("suntools_test")
-    # # data = np.array([[0,1,2],[1,2,3]])
-    # # print(RB_repair(data,np.array([6,18])))
-    # filepath_result = "testResult\\"
-    # filepath_test = "testData\\"
-    # sys.path.append('../')
-    # sys.path.append(filepath_test)
-    # filelist = os.listdir(filepath_test)
-    # #print(filelist)
-    # data=np.zeros([376,4608])
-    # for i in range(400):
-    #     image_file = get_pkg_data_filename(filepath_test+filelist[2200+i])
-    #     image_data = fits.getdata(image_file)
-    #     data+=image_data
-    # data/=400
-    # data=Pingchang(data)
-    # data=Curve_correction(data, 2225, 0.01 / (2225 - 770) / (2225 - 770))
-    # image_file = get_pkg_data_filename(filepath_test + filelist[2288])
-    # image_data = fits.getdata(image_file)
-    # image_data=Curve_correction(image_data, 2225, 0.01 / (2225 - 770) / (2225 - 770))
-    # plt.figure()
-    # plt.imshow(image_data/data)
-    # plt.show()
+    image_data = fits.getdata(get_pkg_data_filename("for_flat.fits"))
+    Curve_correction(image_data, 2321.26, 1.92909e-011)
+    mean = np.sum(image_data, axis=0) / image_data.shape[0]
+    for i in range(image_data.shape[0]):
+        for j in range(image_data.shape[1]):
+            image_data[i][j] = image_data[i][j] / mean[j]
+    plt.imsave("test.jpg", image_data)
