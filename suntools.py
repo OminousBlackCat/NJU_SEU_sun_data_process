@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
+from numpy import polyfit, poly1d
 import sys
 
 
@@ -42,7 +43,7 @@ def Curve_correction(data, x0, C):
 # 平场计算
 # 参数data: 图像数据(numpy标准格式, 二维数组)
 # 输出: 平场数据
-def Pingchang(data):
+def GetFlat(data):
     H, W = data.shape
     mean = np.sum(data, axis=1)/W
     for i in range(H):
@@ -62,8 +63,8 @@ def linefit(x, y):  # np.polyfit(X, Y, 1)
         sxx += x[i] * x[i]
         syy += y[i] * y[i]
         sxy += x[i] * y[i]
-    k = (sy * sx / N - sxy) / (sx * sx / N - sxx)
-    b = (sy - k * sx) / N
+    k = (float)(sy * sx / N - sxy) / (sx * sx / N - sxx)
+    b = (float)(sy - k * sx) / N
     return k, b
 
 
@@ -76,18 +77,20 @@ def get_Sunstd(filepath):
     with open(filepath) as f:
         line = f.readline()
         if len(re.findall(r"\d+\.?\d*", line)) > 0:
-            data.append(float(re.findall(r"\d+\.?\d*", line)[0]))
+            data.append(float(re.findall(r"\d+\.?\d*", line)[1]))
         while line:
             line = f.readline()
             if len(re.findall(r"\d+\.?\d*", line)) > 0:
-                data.append(float(re.findall(r"\d+\.?\d*", line)[0]))
+                data.append(float(re.findall(r"\d+\.?\d*", line)[1]))
     return np.array(data)
 
 
 # 红蓝移矫正
 def RB_repair(data, sun_std):
     H, W = data.shape
-    k, b = linefit(np.arange(0, H, 1), np.sum(data, axis=1) / sun_std[0:H])
+    cov = np.polyfit( np.arange(0, H, 1),np. sum(data, axis=1) / W / sun_std[0:H] , 1)
+    k, b = cov[0],cov[1]
+    #print(k,b)
     for i in range(H):
         data[i, :] = data[i, :] / (k * i + b)
     return data
@@ -100,38 +103,51 @@ def subtract(data_A,data_B):
             if data_A[i][j]>data_B[i][j]:
                 data_A[i][j]=data_A[i][j]-data_B[i][j]
             else:
-                data_A[i][j]=0
+                data_A[i][j]=data_B[i][j]-data_A[i][j]
     return data_A
 
+#平滑操作
+def Smooth(data):
+    H, W = data.shape
+    SmoothData = data
+    win = 3
+    for x in range(H-win):
+        for y in range(W-win):
+            SmoothData[x][y] = np.median(data[x:x+win,y:y+win].reshape(-1))
+    return SmoothData
+
 if __name__ == "__main__":
-    #print(get_Sunstd("teststd.txt"))
-    # print("suntools_test")
-    # # data = np.array([[0,1,2],[1,2,3]])
-    # # print(RB_repair(data,np.array([6,18])))
+
     filepath_result = "testResult\\"
     filepath_test = "testData\\"
+    filepath_bash="bass2000.txt"
+    base = np.array(get_Sunstd(filepath_bash),dtype=float)
     filelist = os.listdir(filepath_test)
     #print(filelist)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
-    dark_data = np.array(fits.getdata(image_file))
+    dark_data = np.array(fits.getdata(image_file),dtype=float)
 
-    data=np.zeros([376,4608])
-    for i in range(400):
-        image_file = get_pkg_data_filename(filepath_test+filelist[2200+i])
-        image_data = np.array(fits.getdata(image_file))
-        data+=image_data
-    data/=400
-    data = Curve_correction(subtract(data,dark_data), 2321.26, 1.92909e-011)
-    data=Pingchang(data)
-    plt.figure()
-    plt.imshow(data, cmap="gray")
-    plt.show()
+    image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
+    flat_data = np.array(fits.getdata(image_file), dtype=float)
+
+    data = Curve_correction(flat_data, 2321.26, 1.92909e-011)
+    data=GetFlat(data)
+    # plt.figure()
+    # plt.imshow(data, cmap="gray")
+    # plt.show()
     print("Ping is over")
-    image_file = get_pkg_data_filename(filepath_test + filelist[2088])
-    image_data = np.array(fits.getdata(image_file))
-
-
-    image_data=Curve_correction(subtract(image_data,dark_data), 2321.26, 1.92909e-011)
+    time_start = time.time()
+    image_file = get_pkg_data_filename(filepath_test + filelist[2022])
+    test_data = np.array(fits.getdata(image_file), dtype=float)
+    test_data = Curve_correction(test_data-dark_data, 2321.26, 1.92909e-011)
+    test_data = RB_repair(test_data,base)
+    test_data = test_data/data
+    time_end1 = time.time()
+    test_data = Smooth(test_data)
+    time_end = time.time()
+    print(time_end - time_start)
+    print(time_end - time_end1)
     plt.figure()
-    plt.imshow(image_data, cmap="gray")
+    plt.imshow(test_data, cmap="gray")
     plt.show()
+
