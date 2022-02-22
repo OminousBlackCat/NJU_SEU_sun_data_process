@@ -44,7 +44,7 @@ def Curve_correction(data, x0, C):
 # 输出: 平场数据
 def GetFlat(data):
     H, W = data.shape
-    mean = np.sum(data, axis=1)/W
+    mean = np.sum(data, axis=1) / W
     for i in range(H):
         data[i, :] = data[i, :] / mean[i]
     return data
@@ -87,49 +87,52 @@ def get_Sunstd(filepath):
 # 红蓝移矫正
 def RB_repair(data, sun_std):
     H, W = data.shape
-    cov = np.polyfit( np.arange(0, H, 1),np. sum(data, axis=1) / W / sun_std[0:H] , 1)
-    k, b = cov[0],cov[1]
-    #print(k,b)
+    cov = np.polyfit(np.arange(0, H, 1), np.sum(data, axis=1) / W / sun_std[0:H], 1)
+    k, b = cov[0], cov[1]
+    # print(k,b)
     for i in range(H):
         data[i, :] = data[i, :] / (k * i + b)
     return data
 
+
 # 矩阵减法
-def subtract(data_A,data_B):
+def subtract(data_A, data_B):
     H, W = data_A.shape
     for i in range(H):
         for j in range(W):
-            if data_A[i][j]>data_B[i][j]:
-                data_A[i][j]=data_A[i][j]-data_B[i][j]
+            if data_A[i][j] > data_B[i][j]:
+                data_A[i][j] = data_A[i][j] - data_B[i][j]
             else:
-                data_A[i][j]=data_B[i][j]-data_A[i][j]
+                data_A[i][j] = data_B[i][j] - data_A[i][j]
     return data_A
 
-#平滑操作
+
+# 平滑操作
 def Smooth(data):
     H, W = data.shape
     SmoothData = data
     win = 3
-    for x in range(H-win):
-        for y in range(W-win):
-            SmoothData[x][y] = np.median(data[x:x+win,y:y+win].reshape(-1))
+    for x in range(H - win):
+        for y in range(W - win):
+            SmoothData[x][y] = np.median(data[x:x + win, y:y + win].reshape(-1))
     return SmoothData
+
 
 if __name__ == "__main__":
     filepath_result = "testResult\\"
     filepath_test = "testData\\"
-    filepath_bash="bass2000.txt"
-    base = np.array(get_Sunstd(filepath_bash),dtype=float)
+    filepath_bash = "bass2000.txt"
+    base = np.array(get_Sunstd(filepath_bash), dtype=float)
     filelist = os.listdir(filepath_test)
-    #print(filelist)
+    # print(filelist)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
-    dark_data = np.array(fits.getdata(image_file),dtype=float)
+    dark_data = np.array(fits.getdata(image_file), dtype=float)
 
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
 
     data = Curve_correction(flat_data, 2321.26, 1.92909e-011)
-    data=GetFlat(data)
+    data = GetFlat(data)
     # plt.figure()
     # plt.imshow(data, cmap="gray")
     # plt.show()
@@ -137,9 +140,9 @@ if __name__ == "__main__":
     time_start = time.time()
     image_file = get_pkg_data_filename(filepath_test + filelist[2022])
     test_data = np.array(fits.getdata(image_file), dtype=float)
-    test_data = Curve_correction(test_data-dark_data, 2321.26, 1.92909e-011)
-    test_data = RB_repair(test_data,base)
-    test_data = test_data/data
+    test_data = Curve_correction(test_data - dark_data, 2321.26, 1.92909e-011)
+    test_data = RB_repair(test_data, base)
+    test_data = test_data / data
     time_end1 = time.time()
     test_data = Smooth(test_data)
     time_end = time.time()
@@ -148,4 +151,3 @@ if __name__ == "__main__":
     plt.figure()
     plt.imshow(test_data, cmap="gray")
     plt.show()
-
