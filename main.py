@@ -18,7 +18,7 @@ if mode=='a':
     fits.info(image_file)
     # 读取fits图像数据（2D numpy 数组）
     image_data = fits.getdata(image_file)
-    image_data = suntools.Curve_correction(image_data,2225,0.06/(2225-770)/(2225-770))
+    image_data = suntools.curve_correction(image_data, 2225, 0.06 / (2225 - 770) / (2225 - 770))
 
     plt.figure()
     plt.imshow(image_data, cmap="gray")
@@ -38,7 +38,7 @@ if mode=='b':
     for filename in os.listdir(filePath):
         image_file = get_pkg_data_filename(filePath+"/"+filename)
         image_data = fits.getdata(image_file)
-        data[now,:]=suntools.Curve_correction(image_data, 2225, 0.06 / (2225 - 770) / (2225 - 770))[220,:]
+        data[now,:]= suntools.curve_correction(image_data, 2225, 0.06 / (2225 - 770) / (2225 - 770))[220, :]
         now+=1
         if(now>=N):
             break;

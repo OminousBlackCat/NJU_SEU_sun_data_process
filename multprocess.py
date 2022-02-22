@@ -25,7 +25,7 @@ def read_fits_directory():
 def target_task(filename):
     filePath = data_dir_path + "\\" + filename
     image_data = fits.getdata(get_pkg_data_filename(filePath))
-    image_data = suntools.Curve_correction(image_data, 2225, 0.06 / (2225 - 770) / (2225 - 770))
+    image_data = suntools.curve_correction(image_data, 2225, 0.06 / (2225 - 770) / (2225 - 770))
     plt.imsave(save_dir_path + filename + "result.jpg", image_data)
 
 

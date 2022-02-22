@@ -2,13 +2,9 @@ import numpy as np
 import re
 import os
 import time
-from astropy.io import fits
 import matplotlib.pyplot as plt
-from PIL import Image
 from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
-from numpy import polyfit, poly1d
-import sys
 
 
 # 谱线矫正
@@ -16,38 +12,38 @@ import sys
 # 参数x0: 曲线矫正对称轴
 # 参数C: 曲线矫正二次系数
 # 输出：矫正后的图像数据
-def Curve_correction(data, x0, C):
-    H, W = data.shape
+def curve_correction(imgData, x0, C):
+    H, W = imgData.shape
     # print(H,W)
     for x in range(W):
         stdx = np.arange(0, H, 1)
         stdx = stdx / (C * (x - x0) * (x - x0) + 1)
-        stdy = data[:, x]
+        stdy = imgData[:, x]
         now = 1
         for y in range(H):
             while now < H - 1 and stdx[now] < y:
                 now += 1
             # data[y][x] = max(stdy[now],stdy[now-1])
             if y > stdx[now]:
-                data[y][x] = stdx[now]
+                imgData[y][x] = stdx[now]
             else:
                 if stdx[now] - stdx[now - 1] < 2:
-                    data[y][x] = stdy[now - 1]
+                    imgData[y][x] = stdy[now - 1]
                 else:
-                    data[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                    imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                             y - stdx[now - 1])
-    return data
+    return imgData
 
 
 # 平场计算
-# 参数data: 图像数据(numpy标准格式, 二维数组)
+# 参数flatData: 平场图像(numpy标准格式, 二维数组)
 # 输出: 平场数据
-def GetFlat(data):
-    H, W = data.shape
+def getFlat(flatData):
+    H, W = flatData.shape
     mean = np.sum(data, axis=1) / W
     for i in range(H):
-        data[i, :] = data[i, :] / mean[i]
-    return data
+        flatData[i, :] = flatData[i, :] / flatData[i]
+    return flatData
 
 
 # 红蓝移补偿参考线拟合
@@ -85,14 +81,14 @@ def get_Sunstd(filepath):
 
 
 # 红蓝移矫正
-def RB_repair(data, sun_std):
-    H, W = data.shape
-    cov = np.polyfit(np.arange(0, H, 1), np.sum(data, axis=1) / W / sun_std[0:H], 1)
+def RB_repair(imgData, sun_std):
+    H, W = imgData.shape
+    cov = np.polyfit(np.arange(0, H, 1), np.sum(imgData, axis=1) / W / sun_std[0:H], 1)
     k, b = cov[0], cov[1]
     # print(k,b)
     for i in range(H):
-        data[i, :] = data[i, :] / (k * i + b)
-    return data
+        imgData[i, :] = imgData[i, :] / (k * i + b)
+    return imgData
 
 
 # 矩阵减法
@@ -107,28 +103,30 @@ def subtract(data_A, data_B):
     return data_A
 
 
-# 平滑操作
-def Smooth(data):
-    H, W = data.shape
-    SmoothData = np.zeros((H,W))
-    win = 4
-    for i in range (win):
-        for j in range(win):
-            SmoothData[0:H - win + 1, 0:W - win + 1] += data[i:H - win +i +1, j : W - win + j + 1]
-    SmoothData[0:H - win + 1,0:W - win + 1] /= win*win
+# 图像平滑操作
+# 参数
+def smooth(imgData, winSize=5):
+    H, W = imgData.shape
+    offset = int(winSize / 2)
+    SmoothData = np.zeros((H + offset * 2, W + offset * 2))
+    for i in range(offset, offset + H):
+        for j in range(offset, offset + W):
+            SmoothData[i][j] = int(imgData[i - offset][j - offset])
+    for i in range(offset, offset + H):
+        for j in range(offset, offset + W):
+            SmoothData[i][j] = np.sum(SmoothData[i - offset: i - offset + winSize, j - offset: j - offset + winSize]) / (winSize * winSize)
     # kernel = win*win-2
     # for x in range(H-win):
     #     for y in range(W-win):
     #         SmoothData[x][y] = (np.sum(data[x:x+win,y:y+win].reshape(-1)))/kernel
-    return SmoothData/4
+    return SmoothData[offset: offset + H, offset: offset + W]
 
 
 if __name__ == "__main__":
-    filepath_result = "testResult\\"
-    filepath_test = "testData\\"
-    filepath_bash = "bass2000.txt"
+    filepath_result = "data/"
+    filepath_test = "data/"
+    filepath_bash = "data/bass2000.txt"
     base = np.array(get_Sunstd(filepath_bash), dtype=float)
-    filelist = os.listdir(filepath_test)
     # print(filelist)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     dark_data = np.array(fits.getdata(image_file), dtype=float)
@@ -136,20 +134,20 @@ if __name__ == "__main__":
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
 
-    data = Curve_correction(flat_data, 2321.26, 1.92909e-011)
-    data = GetFlat(data)
+    data = curve_correction(flat_data, 2321.26, 1.92909e-011)
+    data = getFlat(data)
     # plt.figure()
     # plt.imshow(data, cmap="gray")
     # plt.show()
     print("Ping is over")
     time_start = time.time()
-    image_file = get_pkg_data_filename(filepath_test + filelist[2022])
+    image_file = get_pkg_data_filename(filepath_test + "RSM20211222T060131-0008-2529.fts")
     test_data = np.array(fits.getdata(image_file), dtype=float)
-    test_data = Curve_correction(test_data - dark_data, 2321.26, 1.92909e-011)
+    test_data = curve_correction(test_data - dark_data, 2321.26, 1.92909e-011)
     test_data = RB_repair(test_data, base)
     test_data = test_data / data
     time_end1 = time.time()
-    test_data = Smooth(test_data)
+    test_data = smooth(test_data)
     time_end = time.time()
     print(time_end - time_start)
     print(time_end - time_end1)
