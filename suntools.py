@@ -3,7 +3,6 @@ import re
 import os
 import time
 from astropy.io import fits
-import suntools
 import matplotlib.pyplot as plt
 from PIL import Image
 from astropy.utils.data import get_pkg_data_filename
@@ -122,7 +121,6 @@ def Smooth(data):
     return SmoothData/4
 
 if __name__ == "__main__":
-
     filepath_result = "testResult\\"
     filepath_test = "testData\\"
     filepath_bash="bass2000.txt"
