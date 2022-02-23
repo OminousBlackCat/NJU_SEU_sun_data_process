@@ -5,7 +5,8 @@ import time
 import matplotlib.pyplot as plt
 from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
-
+from PIL import Image
+import scipy.signal as signal
 
 # 谱线矫正
 # 参数data: 图像数据(numpy标准格式, 二维数组)
@@ -132,13 +133,14 @@ def MeanSmooth(imgData, winSize=4):
 # 图像中值平滑操作
 # 参数
 def MedSmooth(imgData, winSize=4):
-    H, W = imgData.shape
-    offset = int(winSize / 2)
-    SmoothData = np.zeros((H + offset * 2, W + offset * 2))
-    for i in range(H-winSize):
-        for j in range(W-winSize):
-            SmoothData[offset+i][offset+j]=np.median(imgData[i:i+winSize,j:j+winSize])
-    return SmoothData[offset: offset + H, offset: offset + W]
+    imgData = signal.medfilt(imgData, kernel_size=3)
+    # H, W = imgData.shape
+    # offset = int(winSize / 2)
+    # SmoothData = np.zeros((H + offset * 2, W + offset * 2))
+    # for i in range(H-winSize):
+    #     for j in range(W-winSize):
+    #         SmoothData[offset+i][offset+j]=np.median(imgData[i:i+winSize,j:j+winSize])
+    return imgData
 
 
 if __name__ == "__main__":
