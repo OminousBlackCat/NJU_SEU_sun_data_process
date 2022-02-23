@@ -2,6 +2,7 @@ import numpy as np
 import re
 import os
 import time
+import matplotlib
 import matplotlib.pyplot as plt
 from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
@@ -85,8 +86,8 @@ def get_Sunstd(filepath):
     ansY = []
     for i in range(400):
         while(dataX[now]<i):
-            now+=1
-        ansY.append(dataY[now-1]+(dataY[now]-dataY[now-1])/(dataX[now]-dataX[now-1])*(i-dataX[now-1]))
+            now += 1
+        ansY.append(dataY[now-1] + (dataY[now] - dataY[now-1]) / (dataX[now] - dataX[now-1]) * (i - dataX[now-1]))
     ansY = np.array(ansY)
     return ansY/np.max(ansY)
 
@@ -144,8 +145,9 @@ def MedSmooth(imgData, winSize=4):
 
 
 if __name__ == "__main__":
+    matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
     filepath_result = "data/"
-    filepath_test = "testdata/"
+    filepath_test = "testData/"
     filepath_bash = "bass2000.txt"
     base = get_Sunstd(filepath_bash)
     # print(base)
@@ -154,24 +156,48 @@ if __name__ == "__main__":
 
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
-    data = curve_correction(flat_data, 2321.26, 1.92909e-011)
+
+    filelist = os.listdir(filepath_test)
+
+    # flat_data = np.zeros(dark_data.shape)
+    # for i in range (200):
+    #     image_file = get_pkg_data_filename(filepath_test + filelist[2712+i])
+    #     flat_data += np.array(fits.getdata(image_file), dtype=float)
+    # data = curve_correction(flat_data/400 - dark_data, 2321.26, 1.92909e-011)
     # data = smooth(data)
+    data = curve_correction(flat_data , 2321.26, 1.92909e-011)
     data = getFlat(data)
     # plt.figure()
     # plt.imshow(data, cmap="gray")
     # plt.show()
-    plt.figure()
-    plt.imshow(data, cmap="gray")
-    plt.show()
+    # plt.figure()
+    # plt.imshow(data, cmap="gray")
+    # plt.show()
     print("Ping is over")
+    plt.figure()
     time_start = time.time()
-    image_file = get_pkg_data_filename(filepath_test + "RSM20211222T060131-0008-2529.fts")
+    image_file = get_pkg_data_filename(filepath_test + filelist[1700])
     test_data = np.array(fits.getdata(image_file), dtype=float)
+    plt.subplot(5, 1, 1)
+    plt.imshow(test_data - dark_data, cmap="gray")
+    plt.title('去暗场')
     test_data = curve_correction(test_data - dark_data, 2321.26, 1.92909e-011)
-    test_data = RB_repair(test_data, base)
+    plt.subplot(5, 1, 2)
+    plt.imshow(test_data, cmap="gray")
+    plt.title('谱线矫正')
     test_data = test_data / data
+    plt.subplot(5, 1, 3)
+    plt.imshow(test_data, cmap="gray")
+    plt.title('去平场')
+    test_data = RB_repair(test_data, base)
+    plt.subplot(5, 1, 4)
+    plt.imshow(test_data, cmap="gray")
+    plt.title('红蓝翼矫正')
     time_end1 = time.time()
     test_data = MedSmooth(test_data)
+    plt.subplot(5, 1, 5)
+    plt.imshow(test_data, cmap="gray")
+    plt.title('滤波')
     time_end = time.time()
     print(time_end - time_start)
     print(time_end - time_end1)
