@@ -115,28 +115,29 @@ def subtract(data_A, data_B):
     return data_A
 
 
-# 图像平滑操作
+# 图像均值平滑操作
 # 参数
-def smooth(imgData, winSize=9):
+def MeanSmooth(imgData, winSize=4):
     H, W = imgData.shape
     offset = int(winSize / 2)
     OffsetData = np.zeros((H + offset * 2, W + offset * 2))
     SmoothData = np.zeros((H + offset * 2, W + offset * 2))
-    # for i in range(offset, offset + H):
-    #     for j in range(offset, offset + W):
-    #         SmoothData[i][j] = int(imgData[i - offset][j - offset])
     OffsetData[offset:offset+H,offset:offset+W] = imgData[0:H,0:W]
-
-    # for i in range(offset, offset + H):
-    #     for j in range(offset, offset + W):
-    #         SmoothData[i][j] = np.sum(SmoothData[i - offset: i - offset + winSize, j - offset: j - offset + winSize]) / (winSize * winSize)
     for i in range(winSize):
         for j in range(winSize):
             SmoothData[offset:offset+H,offset:offset+W] += OffsetData[i : H + i,j:W + j]
-    # kernel = win*win-2
-    # for x in range(H-win):
-    #     for y in range(W-win):
-    #         SmoothData[x][y] = (np.sum(data[x:x+win,y:y+win].reshape(-1)))/kernel
+    return SmoothData[offset: offset + H, offset: offset + W]/winSize/winSize
+
+
+# 图像中值平滑操作
+# 参数
+def MedSmooth(imgData, winSize=4):
+    H, W = imgData.shape
+    offset = int(winSize / 2)
+    SmoothData = np.zeros((H + offset * 2, W + offset * 2))
+    for i in range(H-winSize):
+        for j in range(W-winSize):
+            SmoothData[offset+i][offset+j]=np.median(imgData[i:i+winSize,j:j+winSize])
     return SmoothData[offset: offset + H, offset: offset + W]
 
 
@@ -168,7 +169,7 @@ if __name__ == "__main__":
     test_data = RB_repair(test_data, base)
     test_data = test_data / data
     time_end1 = time.time()
-    test_data = smooth(test_data)
+    test_data = MedSmooth(test_data)
     time_end = time.time()
     print(time_end - time_start)
     print(time_end - time_end1)
