@@ -130,6 +130,20 @@ def MeanSmooth(imgData, winSize=4):
             SmoothData[offset:offset+H,offset:offset+W] += OffsetData[i : H + i,j:W + j]
     return SmoothData[offset: offset + H, offset: offset + W]/winSize/winSize
 
+def DivFlat(imgData,flatData):
+    H, W = imgData.shape
+    flatList = np.sum(flatData,axis=0)
+    maxFlatindex = np.argmax(flatList)
+    imgList = np.sum(imgData,axis=0)
+    maxImgindex = np.argmax(imgList)
+    offset = maxImgindex - maxFlatindex
+    print(offset)
+    if offset < 0:
+        offset *= -1
+        flatData[0:H - offset, 0:W - offset] = flatData[offset:H,offset:W]
+    else:
+        flatData[offset:H,offset:W] = flatData[0:H - offset, 0:W - offset]
+    return imgData/flatData
 
 # 图像中值平滑操作
 # 参数
@@ -165,7 +179,7 @@ if __name__ == "__main__":
     #     flat_data += np.array(fits.getdata(image_file), dtype=float)
     # data = curve_correction(flat_data/400 - dark_data, 2321.26, 1.92909e-011)
     # data = smooth(data)
-    data = curve_correction(flat_data , 2321.26, 1.92909e-011)
+    data = curve_correction(flat_data , 2321.26, 1.92909e-011/0.024202301/0.024202301)
     data = getFlat(data)
     # plt.figure()
     # plt.imshow(data, cmap="gray")
@@ -176,31 +190,34 @@ if __name__ == "__main__":
     print("Ping is over")
     plt.figure()
     time_start = time.time()
-    image_file = get_pkg_data_filename(filepath_test + filelist[1700])
+    image_file = get_pkg_data_filename(filepath_test + filelist[3000])
     test_data = np.array(fits.getdata(image_file), dtype=float)
     plt.subplot(5, 1, 1)
-    plt.imshow(test_data - dark_data, cmap="gray")
-    plt.title('去暗场')
-    test_data = curve_correction(test_data - dark_data, 2321.26, 1.92909e-011)
+    plt.imshow(test_data - dark_data, cmap="gray",aspect='auto')
+    #plt.title('去暗场')
+    test_data = curve_correction(test_data - dark_data, 2321.26, 1.92909e-011/0.024202301/0.024202301)
     plt.subplot(5, 1, 2)
-    plt.imshow(test_data, cmap="gray")
-    plt.title('谱线矫正')
-    test_data = test_data / data
+    plt.imshow(test_data, cmap="gray",aspect='auto')
+    #plt.title('谱线矫正')
+    H, W = data.shape
+    # data[2:H,2:W] = data[0:H-2,0:W-2]
+    test_data = DivFlat(test_data,data)
     plt.subplot(5, 1, 3)
-    plt.imshow(test_data, cmap="gray")
-    plt.title('去平场')
+    plt.imshow(test_data, cmap="gray",aspect='auto')
+    #plt.title('去平场')
     test_data = RB_repair(test_data, base)
     plt.subplot(5, 1, 4)
-    plt.imshow(test_data, cmap="gray")
-    plt.title('红蓝翼矫正')
+    plt.imshow(test_data, cmap="gray",aspect='auto')
+    #plt.title('红蓝翼矫正')
     time_end1 = time.time()
-    test_data = MedSmooth(test_data)
+    #test_data = MedSmooth(test_data)
     plt.subplot(5, 1, 5)
-    plt.imshow(test_data, cmap="gray")
-    plt.title('滤波')
+    plt.imshow(test_data, cmap="gray",aspect='auto')
+    #plt.title('滤波')
     time_end = time.time()
     print(time_end - time_start)
     print(time_end - time_end1)
     plt.figure()
-    plt.imshow(test_data, cmap="gray")
+    plt.figsize = (5, 3)
+    plt.imshow(test_data, cmap="gray",aspect='auto')
     plt.show()
