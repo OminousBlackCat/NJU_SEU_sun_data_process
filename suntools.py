@@ -18,6 +18,8 @@ def curve_correction(imgData, x0, C):
     H, W = imgData.shape
     # print(H,W)
     # 260 116分开做
+    bad_H=260
+    bad_Fe=116
     for x in range(W):
         stdx = np.arange(0, 260, 1)
         stdx = ((stdx * 0.024202301 + 6562.82)  / (C * (x - x0) * (x - x0) + 1) - 6562.82) / 0.024202301
@@ -29,6 +31,8 @@ def curve_correction(imgData, x0, C):
             # data[y][x] = max(stdy[now],stdy[now-1])
             if y > stdx[now]:
                 imgData[y][x] = stdx[now]
+                if y<bad_H:
+                    bad_H = y
             else:
                 if stdx[now] - stdx[now - 1] < 2:
                     imgData[y][x] = stdy[now - 1]
@@ -45,13 +49,17 @@ def curve_correction(imgData, x0, C):
             # data[y][x] = max(stdy[now],stdy[now-1])
             if y > stdx[now]:
                 imgData[y+260][x] = stdx[now]
+                if y<bad_Fe:
+                    bad_Fe = y
             else:
                 if stdx[now] - stdx[now - 1] < 2:
                     imgData[y+260][x] = stdy[now - 1]
                 else:
                     imgData[y+260][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                             y - stdx[now - 1])
-    return imgData
+    imgData[bad_H:bad_H+116] = imgData[260:376]
+    #print(bad_H,bad_Fe)# 230 80
+    return imgData[0:bad_H+bad_Fe]
 
 
 # 平场计算
@@ -134,23 +142,45 @@ def MeanSmooth(imgData, winSize=4):
 
 def DivFlat(imgData,flatData):
     H, W = imgData.shape
-    flatList = np.sum(flatData,axis=0)
+    # flatList = np.sum(flatData,axis=0)
+    # maxFlatindex = np.argmax(flatList)
+    # imgList = np.sum(imgData,axis=0)
+    # maxImgindex = np.argmax(imgList)
+    # offset = maxImgindex - maxFlatindex
+    # 230 80
+    # print(offset)
+    imgHa = imgData[0:230]
+    flatHa = flatData[0:230]
+    flatList = np.sum(flatHa, axis=0)
     maxFlatindex = np.argmax(flatList)
-    imgList = np.sum(imgData,axis=0)
+    imgList = np.sum(imgHa, axis=0)
     maxImgindex = np.argmax(imgList)
     offset = maxImgindex - maxFlatindex
-    print(offset)
     if offset < 0:
         offset *= -1
-        flatData[0:H - offset, 0:W - offset] = flatData[offset:H,offset:W]
+        flatHa[0:230 - offset, 0:W - offset] = flatHa[offset:230,offset:W]
     else:
-        flatData[offset:H,offset:W] = flatData[0:H - offset, 0:W - offset]
+        flatHa[offset:230,offset:W] = flatHa[0:230 - offset, 0:W - offset]
+    imgFe = imgData[230:]
+    flatFe = flatData[230:]
+    flatList = np.sum(flatFe, axis=0)
+    maxFlatindex = np.argmax(flatList)
+    imgList = np.sum(imgFe, axis=0)
+    maxImgindex = np.argmax(imgList)
+    offset = maxImgindex - maxFlatindex
+    if offset < 0:
+        offset *= -1
+        flatFe[0:80 - offset, 0:W - offset] = flatFe[offset:80, offset:W]
+    else:
+        flatFe[offset:80, offset:W] = flatFe[0:80 - offset, 0:W - offset]
+    flatData[0:230] = flatHa
+    flatData[230:] = flatFe
     return imgData/flatData
 
 # 图像中值平滑操作
 # 参数
 def MedSmooth(imgData, winSize=4):
-    imgData = signal.medfilt(imgData, kernel_size=3)
+    imgData = signal.medfilt(imgData, kernel_size=5)
     # H, W = imgData.shape
     # offset = int(winSize / 2)
     # SmoothData = np.zeros((H + offset * 2, W + offset * 2))
@@ -162,7 +192,7 @@ def MedSmooth(imgData, winSize=4):
 
 if __name__ == "__main__":
     matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
-    filepath_result = "data/"
+    filepath_result = "testResult/"
     filepath_test = "testData/"
     filepath_bash = "bass2000.txt"
     base = get_Sunstd(filepath_bash)
@@ -212,7 +242,7 @@ if __name__ == "__main__":
     plt.imshow(test_data, cmap="gray",aspect='auto')
     #plt.title('红蓝翼矫正')
     time_end1 = time.time()
-    #test_data = MedSmooth(test_data)
+    test_data = MedSmooth(test_data)
     plt.subplot(5, 1, 5)
     plt.imshow(test_data, cmap="gray",aspect='auto')
     #plt.title('滤波')
@@ -220,6 +250,12 @@ if __name__ == "__main__":
     print(time_end - time_start)
     print(time_end - time_end1)
     plt.figure()
-    plt.figsize = (5, 3)
     plt.imshow(test_data, cmap="gray",aspect='auto')
     plt.show()
+    plt.figure()
+    plt.imshow(data, cmap="gray", aspect='auto')
+    plt.show()
+
+    grey = fits.PrimaryHDU(test_data)
+    greyHDU = fits.HDUList([grey])
+    greyHDU.writeto(filepath_result+'result.fits')
