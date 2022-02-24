@@ -13,7 +13,7 @@ import config
 read_dir = config.data_dir_path
 out_dir = config.save_dir_path
 multiprocess_count = 1
-if config.multiprocess_count is not 'default':
+if config.multiprocess_count != 'default':
     multiprocess_count = config.multiprocess_count
 else:
     multiprocess_count = mp.cpu_count() - 4
@@ -40,9 +40,10 @@ def read_fits_directory():
 # 定义target task
 # 传入一个文件名，读取此文件名对应的fits文件并对其做曲线矫正
 def target_task(filename):
-    filePath = read_dir + "\\" + filename
-    image_data = fits.getdata(get_pkg_data_filename(filePath))
-    image_data = np.array(fits.getdata(image_data), dtype=float)
+    filePath = read_dir + "/" + filename
+    print('读入文件:' + filePath)
+    file_data = fits.getdata(get_pkg_data_filename(filePath))
+    image_data = np.array(fits.getdata(file_data), dtype=float)
     # 去暗场
     image_data = image_data - dark_img
     # 谱线弯曲矫正
@@ -51,20 +52,16 @@ def target_task(filename):
     image_data = suntools.DivFlat(image_data, flat_img)
     # 红蓝移矫正
     image_data = suntools.RB_repair(image_data, sun_std)
+    # 转为整型
+    image_data = np.array(image_data, dtype=np.int16)
     # 滤波
     image_data = signal.medfilt(image_data, kernel_size=config.filter_kernel_size)
+    # 存储fits
+    primaryHDU = fits.PrimaryHDU(image_data)
+    greyHDU = fits.HDUList([primaryHDU])
+    greyHDU.writeto(out_dir + filename)
 
-    plt.imsave(out_dir + filename + "result.jpg", image_data)
 
-
-# 主函数流程：
-# i.读取参数文件 得到曲线矫正参数
-# ii.读取标准太阳光谱 获得标准太阳光谱数据
-# iii.读取日心中间文件 计算平场
-# iv.从头文件开始对每个文件进行去暗场再进行曲线矫正
-# v.对上一步得到的数据根据标准太阳光谱数据进行红蓝移矫正
-# vi.将得到的数据存入新的fits文件中
-# vii.必要时再对每个新文件进行读取得到整体太阳数据
 def main():
     # 测试消耗时间 时间起点
     time_start = time.time()

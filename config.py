@@ -2,23 +2,23 @@
 
 
 # 读入数据存放的文件夹
-data_dir_path = "C:\\Users\\seu-wxy\\Desktop\\太阳数据\\6-803\\6-803"
+data_dir_path = "data/raw_data"
 
 # 数据输出的存放文件夹
-save_dir_path = "C:\\Users\\seu-wxy\\Desktop\\太阳数据\\save\\"
+save_dir_path = "data/out/"
 
 # 读入的暗场fits文件名, 和py文件需在同级文件夹下
-dark_fits_name = 'dark.fits'
+dark_fits_name = 'data/dark.fits'
 
 # 读入的平场参数文件名, 和py文件需在同级文件夹下
-flat_fits_name = 'for_flat.fits'
+flat_fits_name = 'data/for_flat.fits'
 
 # 读入的标准光谱数据文件名, 和py文件需在同级文件夹下
-sun_std_name = 'bass2000.txt'
+sun_std_name = 'data/bass2000.txt'
 
 # 多核并行数
 # 若为default 则程序自动根据获得的cpu核数设定并行数
-multiprocess_count = 'default'
+multiprocess_count = 8
 
 # 谱线弯曲矫正参数
 # ******此下项目参数在运行程序前应确认是否无误******

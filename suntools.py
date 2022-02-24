@@ -52,7 +52,7 @@ def curve_correction(imgData, x0, C):
                 imgData[y+260][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                             y - stdx[now - 1])
     imgData[bad_H:bad_H+116] = imgData[260:376]
-    print(bad_H,bad_Fe)# 230 80
+    # print(bad_H,bad_Fe)# 230 80
     return imgData[0:bad_H+bad_Fe]
 
 
@@ -71,7 +71,7 @@ def getFlat(flatData):
 # 参数filepath：储存标准光谱的文件路径
 # 输出：文件包含数据
 def get_Sunstd(filepath):
-    print("标准光谱数据地址：" + filepath)
+    # print("标准光谱数据地址：" + filepath)
     dataX = []
     dataY = []
     with open(filepath) as f:
@@ -105,7 +105,7 @@ def RB_repair(imgData, sun_std):
     sun_std[231:231+87] = sun_std[260:260+87]
     stdx[0:231] = np.arange(0, 231, 1) * 0.024202301 + 6562.82
     stdx[231:] = np.arange(0, 87, 1) * 0.024202301 + 6569.22
-    print(H)
+    # print(H)
     cov = np.polyfit(stdx, sun_image / sun_std[0:H], 1)
     k, b = cov[0], cov[1]
     # print(k,b)
