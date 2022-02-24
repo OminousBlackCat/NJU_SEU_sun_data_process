@@ -34,10 +34,7 @@ def curve_correction(imgData, x0, C):
                 if y<bad_H:
                     bad_H = y
             else:
-                if stdx[now] - stdx[now - 1] < 2:
-                    imgData[y][x] = stdy[now - 1]
-                else:
-                    imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                             y - stdx[now - 1])
         stdx = np.arange(0, 116, 1)
         stdx = ((stdx * 0.024202301 + 6569.22)  / (C * (x - x0) * (x - x0) + 1) - 6569.22) / 0.024202301
@@ -52,13 +49,10 @@ def curve_correction(imgData, x0, C):
                 if y<bad_Fe:
                     bad_Fe = y
             else:
-                if stdx[now] - stdx[now - 1] < 2:
-                    imgData[y+260][x] = stdy[now - 1]
-                else:
-                    imgData[y+260][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                imgData[y+260][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                             y - stdx[now - 1])
     imgData[bad_H:bad_H+116] = imgData[260:376]
-    #print(bad_H,bad_Fe)# 230 80
+    print(bad_H,bad_Fe)# 230 80
     return imgData[0:bad_H+bad_Fe]
 
 
@@ -107,11 +101,16 @@ def RB_repair(imgData, sun_std):
     H, W = imgData.shape
     sun_image = np.sum(imgData, axis=1) / W
     sun_image /= np.max(sun_image)
-    cov = np.polyfit(np.arange(0, H, 1), sun_image / sun_std[0:H], 1)
+    stdx = np.zeros(318)
+    sun_std[231:231+87] = sun_std[260:260+87]
+    stdx[0:231] = np.arange(0, 231, 1) * 0.024202301 + 6562.82
+    stdx[231:] = np.arange(0, 87, 1) * 0.024202301 + 6569.22
+    print(H)
+    cov = np.polyfit(stdx, sun_image / sun_std[0:H], 1)
     k, b = cov[0], cov[1]
     # print(k,b)
     for i in range(H):
-        imgData[i, :] = imgData[i, :] / (k * i + b)
+        imgData[i, :] = imgData[i, :] / (k * stdx[i] + b)
     return imgData
 
 
@@ -180,7 +179,7 @@ def DivFlat(imgData,flatData):
 # 图像中值平滑操作
 # 参数
 def MedSmooth(imgData, winSize=4):
-    imgData = signal.medfilt(imgData, kernel_size=5)
+    imgData = signal.medfilt(imgData, kernel_size=3)
     # H, W = imgData.shape
     # offset = int(winSize / 2)
     # SmoothData = np.zeros((H + offset * 2, W + offset * 2))
@@ -200,6 +199,7 @@ if __name__ == "__main__":
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     dark_data = np.array(fits.getdata(image_file), dtype=float)
 
+
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
 
@@ -211,13 +211,16 @@ if __name__ == "__main__":
     #     flat_data += np.array(fits.getdata(image_file), dtype=float)
     # data = curve_correction(flat_data/400 - dark_data, 2321.26, 1.92909e-011)
     # data = smooth(data)
+    # plt.figure()
+    # plt.imshow(flat_data, cmap="gray", aspect='auto')
+    # plt.show()
     data = curve_correction(flat_data , 2321.26, 1.92909e-011)
+    # plt.figure()
+    # plt.imshow(data, cmap="gray",aspect='auto')
+    # plt.show()
     data = getFlat(data)
     # plt.figure()
-    # plt.imshow(data, cmap="gray")
-    # plt.show()
-    # plt.figure()
-    # plt.imshow(data, cmap="gray")
+    # plt.imshow(data, cmap="gray",aspect='auto')
     # plt.show()
     print("Ping is over")
     plt.figure()
@@ -239,6 +242,7 @@ if __name__ == "__main__":
     #plt.title('去平场')
     test_data = RB_repair(test_data, base)
     plt.subplot(5, 1, 4)
+    test_data = np.array(test_data, dtype=np.int16)
     plt.imshow(test_data, cmap="gray",aspect='auto')
     #plt.title('红蓝翼矫正')
     time_end1 = time.time()
@@ -251,9 +255,6 @@ if __name__ == "__main__":
     print(time_end - time_end1)
     plt.figure()
     plt.imshow(test_data, cmap="gray",aspect='auto')
-    plt.show()
-    plt.figure()
-    plt.imshow(data, cmap="gray", aspect='auto')
     plt.show()
 
     grey = fits.PrimaryHDU(test_data)
