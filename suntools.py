@@ -132,6 +132,7 @@ def MeanSmooth(imgData, winSize=4):
             SmoothData[offset:offset+H,offset:offset+W] += OffsetData[i : H + i,j:W + j]
     return SmoothData[offset: offset + H, offset: offset + W]/winSize/winSize
 
+
 def DivFlat(imgData,flatData):
     H, W = imgData.shape
     flatList = np.sum(flatData,axis=0)
@@ -146,6 +147,7 @@ def DivFlat(imgData,flatData):
     else:
         flatData[offset:H,offset:W] = flatData[0:H - offset, 0:W - offset]
     return imgData/flatData
+
 
 # 图像中值平滑操作
 # 参数
@@ -212,7 +214,7 @@ if __name__ == "__main__":
     plt.imshow(test_data, cmap="gray",aspect='auto')
     #plt.title('红蓝翼矫正')
     time_end1 = time.time()
-    #test_data = MedSmooth(test_data)
+    test_data = MedSmooth(test_data)
     plt.subplot(5, 1, 5)
     plt.imshow(test_data, cmap="gray",aspect='auto')
     #plt.title('滤波')
