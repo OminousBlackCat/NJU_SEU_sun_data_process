@@ -25,7 +25,7 @@ dark_img = np.array(fits.getdata(temp_img), dtype=float)
 # 平场需要进行谱线弯曲矫正并计算才可以得到真正的平场
 temp_img = get_pkg_data_filename(config.flat_fits_name)
 flat_img = np.array(fits.getdata(temp_img), dtype=float)
-flat_img = suntools.curve_correction(flat_img, config.curve_cor_x0, config.curve_cor_C)
+flat_img, temp1, temp2 = suntools.curve_correction(flat_img, config.curve_cor_x0, config.curve_cor_C)
 flat_img = suntools.getFlat(flat_img)
 # 读取标准太阳光谱数据
 sun_std = suntools.get_Sunstd(config.sun_std_name)
@@ -42,16 +42,16 @@ def read_fits_directory():
 def target_task(filename):
     filePath = read_dir + "/" + filename
     print('读入文件:' + filePath)
-    file_data = fits.getdata(get_pkg_data_filename(filePath))
+    file_data = get_pkg_data_filename(filePath)
     image_data = np.array(fits.getdata(file_data), dtype=float)
     # 去暗场
     image_data = image_data - dark_img
     # 谱线弯曲矫正
-    image_data = suntools.curve_correction(image_data, config.curve_cor_x0, config.curve_cor_C)
+    image_data, HofH, HofFe = suntools.curve_correction(image_data, config.curve_cor_x0, config.curve_cor_C)
     # 去平场
-    image_data = suntools.DivFlat(image_data, flat_img)
+    image_data = suntools.DivFlat(image_data, flat_img, HofH, HofFe)
     # 红蓝移矫正
-    image_data = suntools.RB_repair(image_data, sun_std)
+    image_data = suntools.RB_repair(image_data, sun_std, HofH, HofFe)
     # 转为整型
     image_data = np.array(image_data, dtype=np.int16)
     # 滤波
