@@ -5,28 +5,31 @@ import time
 import matplotlib.pyplot as plt
 from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
+import config
 
-# cpu核心数量 确定了并行数量
-cpu_core_nums = mp.cpu_count()
-# 数据文件夹
-data_dir_path = "C:\\Users\\seu-wxy\\Desktop\\太阳数据\\6-803\\6-803"
-# 存储文件夹
-save_dir_path = "C:\\Users\\seu-wxy\\Desktop\\太阳数据\\save\\"
+# 读入配置文件 引入参数
+read_dir = config.data_dir_path
+out_dir = config.save_dir_path
+multiprocess_count = 1
+if config.multiprocess_count is not 'default':
+    multiprocess_count = config.multiprocess_count
+else:
+    multiprocess_count = mp.cpu_count() - 4
 
 
 # 读取数据文件夹所有文件
 def read_fits_directory():
-    arr = os.listdir(data_dir_path)
+    arr = os.listdir(read_dir)
     return arr
 
 
 # 定义target task
 # 传入一个文件名，读取此文件名对应的fits文件并对其做曲线矫正
 def target_task(filename):
-    filePath = data_dir_path + "\\" + filename
+    filePath = read_dir + "\\" + filename
     image_data = fits.getdata(get_pkg_data_filename(filePath))
     image_data = suntools.curve_correction(image_data, 2225, 0.06 / (2225 - 770) / (2225 - 770))
-    plt.imsave(save_dir_path + filename + "result.jpg", image_data)
+    plt.imsave(out_dir + filename + "result.jpg", image_data)
 
 
 # 主函数流程：
