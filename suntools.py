@@ -17,13 +17,14 @@ import scipy.signal as signal
 def curve_correction(imgData, x0, C):
     H, W = imgData.shape
     # print(H,W)
+    # 260 116分开做
     for x in range(W):
-        stdx = np.arange(0, H, 1)
-        stdx = stdx / (C * (x - x0) * (x - x0) + 1)
+        stdx = np.arange(0, 260, 1)
+        stdx = ((stdx * 0.024202301 + 6562.82)  / (C * (x - x0) * (x - x0) + 1) - 6562.82) / 0.024202301
         stdy = imgData[:, x]
         now = 1
-        for y in range(H):
-            while now < H - 1 and stdx[now] < y:
+        for y in range(260):
+            while now < 260 - 1 and stdx[now] < y:
                 now += 1
             # data[y][x] = max(stdy[now],stdy[now-1])
             if y > stdx[now]:
@@ -33,6 +34,22 @@ def curve_correction(imgData, x0, C):
                     imgData[y][x] = stdy[now - 1]
                 else:
                     imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                            y - stdx[now - 1])
+        stdx = np.arange(0, 116, 1)
+        stdx = ((stdx * 0.024202301 + 6569.22)  / (C * (x - x0) * (x - x0) + 1) - 6569.22) / 0.024202301
+        stdy = imgData[260:376, x]
+        now = 1
+        for y in range(116):
+            while now < 116 - 1 and stdx[now] < y:
+                now += 1
+            # data[y][x] = max(stdy[now],stdy[now-1])
+            if y > stdx[now]:
+                imgData[y+260][x] = stdx[now]
+            else:
+                if stdx[now] - stdx[now - 1] < 2:
+                    imgData[y+260][x] = stdy[now - 1]
+                else:
+                    imgData[y+260][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                             y - stdx[now - 1])
     return imgData
 
@@ -46,23 +63,6 @@ def getFlat(flatData):
     for i in range(H):
         flatData[i, :] = flatData[i, :] / mean[i]
     return flatData
-
-
-# 红蓝移补偿参考线拟合
-# 参数x,y: numpy数组
-# 输出: 直线参数k,b
-def linefit(x, y):  # np.polyfit(X, Y, 1)
-    N = len(x)
-    sx, sy, sxx, syy, sxy = 0, 0, 0, 0, 0
-    for i in range(N):
-        sx += x[i]
-        sy += y[i]
-        sxx += x[i] * x[i]
-        syy += y[i] * y[i]
-        sxy += x[i] * y[i]
-    k = (float)(sy * sx / N - sxy) / (sx * sx / N - sxx)
-    b = (float)(sy - k * sx) / N
-    return k, b
 
 
 # 标准太阳光谱获取
@@ -81,13 +81,15 @@ def get_Sunstd(filepath):
                 dataY.append(float(line[1]))
             line = f.readline()
     dataX = np.array(dataX)
-    dataX = (dataX - 6559.5804) / 0.024202301
     now = 1
     ansY = []
-    for i in range(400):
-        while(dataX[now]<i):
+    stdx = np.zeros(376)
+    stdx[0:260] = np.arange(0, 260, 1) * 0.024202301 + 6562.82
+    stdx[260:] = np.arange(0, 116, 1) * 0.024202301 + 6569.22
+    for i in range(376):
+        while dataX[now]<stdx[i] and now<len(dataX)-1 :
             now += 1
-        ansY.append(dataY[now-1] + (dataY[now] - dataY[now-1]) / (dataX[now] - dataX[now-1]) * (i - dataX[now-1]))
+        ansY.append(dataY[now-1] + (dataY[now] - dataY[now-1]) / (dataX[now] - dataX[now-1]) * (stdx[i] - dataX[now-1]))
     ansY = np.array(ansY)
     return ansY/np.max(ansY)
 
@@ -179,7 +181,7 @@ if __name__ == "__main__":
     #     flat_data += np.array(fits.getdata(image_file), dtype=float)
     # data = curve_correction(flat_data/400 - dark_data, 2321.26, 1.92909e-011)
     # data = smooth(data)
-    data = curve_correction(flat_data , 2321.26, 1.92909e-011/0.024202301/0.024202301)
+    data = curve_correction(flat_data , 2321.26, 1.92909e-011)
     data = getFlat(data)
     # plt.figure()
     # plt.imshow(data, cmap="gray")
@@ -195,7 +197,7 @@ if __name__ == "__main__":
     plt.subplot(5, 1, 1)
     plt.imshow(test_data - dark_data, cmap="gray",aspect='auto')
     #plt.title('去暗场')
-    test_data = curve_correction(test_data - dark_data, 2321.26, 1.92909e-011/0.024202301/0.024202301)
+    test_data = curve_correction(test_data - dark_data, 2321.26, 1.92909e-011)
     plt.subplot(5, 1, 2)
     plt.imshow(test_data, cmap="gray",aspect='auto')
     #plt.title('谱线矫正')
