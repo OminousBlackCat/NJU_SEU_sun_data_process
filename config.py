@@ -7,6 +7,9 @@ data_dir_path = "data/raw_data"
 # 数据输出的存放文件夹
 save_dir_path = "data/out/"
 
+# 汇总结果存放的文件夹
+sum_dir_path = 'data/sum/'
+
 # 读入的暗场fits文件名, 和py文件需在同级文件夹下
 dark_fits_name = 'data/dark.fits'
 
@@ -18,7 +21,7 @@ sun_std_name = 'data/bass2000.txt'
 
 # 多核并行数
 # 若为default(string) 则程序自动根据获得的cpu核数设定并行数
-multiprocess_count = 2
+multiprocess_count = 14
 
 # 谱线弯曲矫正参数
 # ******此下项目参数在运行程序前应确认是否无误******

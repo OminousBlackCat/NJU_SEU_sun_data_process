@@ -20,6 +20,8 @@ else:
     multiprocess_count = mp.cpu_count() - 4
 
 # 读取暗场文件
+# 此处的数据均未做共享处理，因为共享数据量并不是很大，在LINUX环境下使用multiprocess并fork()将直接复制此些全局变量
+# ***在Windows环境下并不适用!!!!***
 temp_img = get_pkg_data_filename(config.dark_fits_name)
 dark_img = np.array(fits.getdata(temp_img), dtype=float)
 # 平场需要进行谱线弯曲矫正并计算才可以得到真正的平场
@@ -66,7 +68,7 @@ def target_task(filename):
     greyHDU.writeto(out_dir + filename)
     # 进度输出
     remaining_count.value += 1
-    print('当前进度:' + str("{:.2f}".format(((remaining_count.value / file_count.value) * 100)) + '%'))
+    print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value))
 
 
 def main():
@@ -74,7 +76,6 @@ def main():
     time_start = time.time()
     # 获得文件夹列表 读取相关参数
     data_file_lst = read_fits_directory()
-    data_file_lst = data_file_lst[10:20]
     # 并行处理
     pool = mp.Pool(processes=multiprocess_count)
     print('多核并行数:' + str(multiprocess_count))
@@ -82,14 +83,15 @@ def main():
     time_end = time.time()
     print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
     # 汇总处理结果
-    sum_file_path = "data/sum/"
+    sum_file_path = config.sum_dir_path
     now = 0
     N = len(os.listdir(out_dir))
     data = np.zeros((N, 4608))
     for filename in os.listdir(out_dir):
-        image_file = get_pkg_data_filename(sum_file_path + "/" + filename)
+        image_file = get_pkg_data_filename(out_dir + "/" + filename)
         image_data = fits.getdata(image_file)
-        data[now, :] = image_data[0, :]
+        count = int(filename[-8:-4]) - 1
+        data[count, :] = image_data[0, :]
         now += 1
         if now >= N:
             break

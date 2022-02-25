@@ -4,5 +4,5 @@
 
 * numpy
 * matplotlib
-
 * astropy （用于读入FITS格式的图片）
+* scipy（用于中值滤波）
