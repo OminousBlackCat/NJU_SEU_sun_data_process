@@ -93,7 +93,6 @@ def getFlat(flatData):
 # 参数filepath：储存标准光谱的文件路径
 # 输出：文件包含数据
 def get_Sunstd(filepath):
-    print("标准光谱数据地址：" + filepath)
     dataX = []
     dataY = []
     # 获取太阳标准数据

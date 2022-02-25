@@ -18,7 +18,7 @@ sun_std_name = 'data/bass2000.txt'
 
 # 多核并行数
 # 若为default(string) 则程序自动根据获得的cpu核数设定并行数
-multiprocess_count = 14
+multiprocess_count = 2
 
 # 谱线弯曲矫正参数
 # ******此下项目参数在运行程序前应确认是否无误******
