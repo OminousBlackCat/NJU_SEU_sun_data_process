@@ -31,6 +31,11 @@ flat_img = suntools.getFlat(flat_img)
 sun_std = suntools.get_Sunstd(config.sun_std_name)
 
 
+# 全局进度控制
+file_count = 0
+remaining_count = 0
+
+
 # 读取数据文件夹所有文件
 def read_fits_directory():
     arr = os.listdir(read_dir)
@@ -69,6 +74,7 @@ def main():
     data_file_lst = read_fits_directory()
     # 并行处理
     pool = mp.Pool(processes=multiprocess_count)
+    print('multiprocessor count:' + multiprocess_count)
     pool.map(target_task, data_file_lst)
     time_end = time.time()
     print('time cost', (time_end - time_start)/60, 'min')
