@@ -24,9 +24,12 @@ else:
 # ***在Windows环境下并不适用!!!!***
 temp_img = get_pkg_data_filename(config.dark_fits_name)
 dark_img = np.array(fits.getdata(temp_img), dtype=float)
-# 平场需要进行谱线弯曲矫正并计算才可以得到真正的平场
+# 平场需要以日心图片作为基准进行平移矫正 再进行谱线弯曲矫正
 temp_img = get_pkg_data_filename(config.flat_fits_name)
 flat_img = np.array(fits.getdata(temp_img), dtype=float)
+temp_img = get_pkg_data_filename(config.standard_offset_name)
+standard_img = np.array(fits.getdata(temp_img), dtype=float)
+flat_img = suntools.getFlatOffset(flat_img, standard_img)
 flat_img, temp1, temp2 = suntools.curve_correction(flat_img, config.curve_cor_x0, config.curve_cor_C)
 flat_img = suntools.getFlat(flat_img)
 # 读取标准太阳光谱数据
@@ -50,6 +53,8 @@ def target_task(filename):
     filePath = read_dir + "/" + filename
     file_data = get_pkg_data_filename(filePath)
     image_data = np.array(fits.getdata(file_data), dtype=float)
+    # 对fe窗口进行平移
+    image_data = suntools.moveImg(image_data, 2)
     # 去暗场
     image_data = image_data - dark_img
     # 谱线弯曲矫正

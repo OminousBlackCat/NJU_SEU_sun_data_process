@@ -19,6 +19,9 @@ flat_fits_name = 'data/for_flat.fits'
 # 读入的标准光谱数据文件名, 和py文件需在同级文件夹下
 sun_std_name = 'data/bass2000.txt'
 
+# 读入的日心数据文件名，作为矫正平场的基准文件名
+standard_offset_name = 'data/raw_data/RSM20211222T060129-0008-2315.fts'
+
 # 多核并行数
 # 若为default(string) 则程序自动根据获得的cpu核数设定并行数
 multiprocess_count = 14
@@ -27,8 +30,18 @@ multiprocess_count = 14
 # ******此下项目参数在运行程序前应确认是否无误******
 # 谱线弯曲矫正x0 参数
 curve_cor_x0 = 2321.26
+
 # 谱线弯曲矫正C 参数
 curve_cor_C = 1.92909e-011
 
-# 滤波窗口大小
+# 中值滤波窗口大小
 filter_kernel_size = 3
+
+# 图像窗口数据 包含ha窗口与fe窗口的长度
+height_Ha = 260
+height_Fe = 116
+
+# 红蓝移修正内 波长相关数据
+HA = 6559.5804
+FE = 6569.22
+K = 0.024202301
