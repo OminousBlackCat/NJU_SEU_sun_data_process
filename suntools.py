@@ -8,6 +8,15 @@ from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
 from PIL import Image
 import scipy.signal as signal
+import config
+
+height_Ha = config.height_Ha
+height_Fe = config.height_Fe
+HA = config.HA
+FE = config.FE
+K = config.K
+
+
 
 
 # 谱线矫正
@@ -19,31 +28,31 @@ def curve_correction(imgData, x0, C):
     # 获取图片高度和宽度
     H, W = imgData.shape
     x0 = x0 - 1
-    # 定义两个窗口的高度 H窗口260行 Fe窗口116行
-    bad_H = 260
-    bad_Fe = 116
+    # 定义两个窗口的高度 H窗口height_Ha行 Fe窗口height_Fe行
+    bad_Ha = height_Ha
+    bad_Fe = height_Fe
 
     # 进行矫正操作
     # 分两个窗口分别操作
     for x in range(W):
         # 对于H窗口进行操作
         # 计算原坐标经过变换之后对应的坐标
-        stdx = np.arange(0, 260, 1)
+        stdx = np.arange(0, height_Ha, 1)
         # 先转成波长 根据波长公式进行变换后反变化回坐标
-        stdx = ((stdx * 0.024202301 + 6562.82) / (C * (x - x0) * (x - x0) + 1) - 6562.82) / 0.024202301
+        stdx = ((stdx * K + HA) / (C * (x - x0) * (x - x0) + 1) - HA) / K
         # 获取原数据值
         stdy = imgData[:, x]
         # 确定插值的坐标
         now = 1
-        for y in range(260):
+        for y in range(height_Ha):
             # 移动到第一个大于该坐标的地方
-            while now < 260 - 1 and stdx[now] < y:
+            while now < height_Ha - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now]:
                 imgData[y][x] = stdx[now]
-                if y < bad_H:
-                    bad_H = y
+                if y < bad_Ha:
+                    bad_Ha = y
             else:
                 # 计算插值
                 imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
@@ -51,29 +60,33 @@ def curve_correction(imgData, x0, C):
 
         # 对于Fe窗口进行操作
         # 计算原坐标经过变换之后对应的坐标
-        stdx = np.arange(0, 116, 1)
+        stdx = np.arange(0, height_Fe, 1)
         # 先转成波长 根据波长公式进行变换后反变化回坐标
-        stdx = ((stdx * 0.024202301 + 6569.22) / (C * (x - x0) * (x - x0) + 1) - 6569.22) / 0.024202301
+        stdx = ((stdx * K + FE) / (C * (x - x0) * (x - x0) + 1) - FE) / K
         # 获取原数据值
-        stdy = imgData[260:376, x]
+        stdy = imgData[height_Ha:height_Fe+height_Ha, x]
         # 确定插值的坐标
         now = 1
-        for y in range(116):
+        for y in range(height_Fe):
             # 移动到第一个大于该坐标的地方
-            while now < 116 - 1 and stdx[now] < y:
+            while now < height_Fe - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now]:
-                imgData[y + 260][x] = stdx[now]
+                imgData[y + height_Ha][x] = stdx[now]
                 if y < bad_Fe:
                     bad_Fe = y
             else:
                 # 计算插值
-                imgData[y + 260][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                imgData[y + height_Ha][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                         y - stdx[now - 1])
+    if bad_Ha < height_Ha - 29:
+        bad_Ha = height_Ha - 29
+    if bad_Fe < height_Fe - 29:
+        bad_Fe = height_Fe - 29
     # 删除坏行 并输出两窗口最后的行数
-    imgData[bad_H:bad_H + 116] = imgData[260:376]
-    return imgData[0:bad_H + bad_Fe], bad_H, bad_Fe
+    imgData[bad_Ha:bad_Ha + height_Fe] = imgData[height_Ha:height_Fe+height_Ha]
+    return imgData[0:bad_Ha + bad_Fe], bad_Ha, bad_Fe
 
 
 # 平场计算
@@ -105,17 +118,18 @@ def get_Sunstd(filepath):
                 dataX.append(float(line[0]))
                 dataY.append(float(line[1]))
             line = f.readline()
+
     # 数据类型转换
     dataX = np.array(dataX)
     now = 1
     ansY = []
-    stdx = np.zeros(376)
+    stdx = np.zeros(height_Fe+height_Ha)
     # 根据窗口转换成需要的数据
     # 坐标变换
-    stdx[0:260] = np.arange(0, 260, 1) * 0.024202301 + 6562.82
-    stdx[260:] = np.arange(0, 116, 1) * 0.024202301 + 6569.22
+    stdx[0:height_Ha] = np.arange(0, height_Ha, 1) * K + HA
+    stdx[height_Ha:] = np.arange(0, height_Fe, 1) * K + FE
     # 插值
-    for i in range(376):
+    for i in range(height_Fe+height_Ha):
         # 找到插值所需的两侧点
         while dataX[now] < stdx[i] and now < len(dataX) - 1:
             now += 1
@@ -129,7 +143,7 @@ def get_Sunstd(filepath):
 
 
 # 红蓝移矫正
-def RB_repair(imgData, sun_std, HofH, HofFe):
+def RB_repair(imgData, sun_std, HofHa, HofFe):
     temp_std = np.array(sun_std)
     # 获取图片尺寸
     H, W = imgData.shape
@@ -139,13 +153,13 @@ def RB_repair(imgData, sun_std, HofH, HofFe):
     #print(np.max(sun_image))
     sun_image /= np.max(sun_image)
     # 提取所需要的对应数据
-    temp_std[HofH:HofH + HofFe] = temp_std[260:260 + HofFe]
+    #temp_std[HofHa:HofHa + HofFe] = temp_std[height_Ha:height_Ha + HofFe]
     stdx = np.zeros(H)
     # 坐标转化为波长
-    stdx[0:HofH] = np.arange(0, HofH, 1) * 0.024202301 + 6562.82
-    stdx[HofH:] = np.arange(0, HofFe, 1) * 0.024202301 + 6569.22
+    stdx[0:HofHa] = np.arange(0, HofHa, 1) * K + HA
+    stdx[HofHa:] = np.arange(0, HofFe, 1) * K + FE
     # 拟合一次函数
-    cov = np.polyfit(stdx, sun_image / temp_std[0:H], 1)
+    cov = np.polyfit(stdx,  sun_image/temp_std[0:H] , 1)
     k, b = cov[0], cov[1]
     # 红蓝翼矫正
     for i in range(H):
@@ -190,15 +204,6 @@ def MedSmooth(imgData, winSize=4):
     return imgData
 
 
-def entireWork(filename, darkDate, flatData, sun_std):
-    image_file = get_pkg_data_filename(filename)
-    imgData = np.array(fits.getdata(image_file), dtype=float)
-    imgData, HofH, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011)
-    imgData = DivFlat(imgData, flatData)
-    imgData = RB_repair(imgData, sun_std, HofH, HofFe)
-    imgData = MedSmooth(imgData)
-    return imgData
-
 # 计算偏差
 def getFlatOffset(flatData,imgData):
     # 获取图片尺寸
@@ -208,19 +213,13 @@ def getFlatOffset(flatData,imgData):
     cx = int(H/2)
     cy = int(W/2)
     # 获取序列
-    img = imgData[50:150,cy - 1000:cy + 1000]
-    flat = flatData[50:150,cy - 1000:cy + 1000]
-    Img = np.zeros((100,20000))
-    Flat = np.zeros((100, 20000))
-    # 图片拉伸
-    for i in range (2000):
-        for j in range(10):
-            Img[:, i * 10 + j] = img[:, i]*(1 - j / 10)+img[:, i]* j / 10
-            Flat[:, i * 10 + j] = flat[:, i] * (1 - j / 10) + flat[:, i] * j / 10
+    img = imgData[cx-int(H/8):cx+int(H/8),cy - int(W/8):cy + int(W/8)]
+    flat = flatData[cx-int(H/8):cx+int(H/8),cy - int(W/8):cy + int(W/8)]
+
 
     # FFT变化
-    imgFFT = np.fft.fft2(Img)
-    flatFFT = np.fft.fft2(Flat)
+    imgFFT = np.fft.fft2(img)
+    flatFFT = np.fft.fft2(flat)
 
     # IFFT
     FR = imgFFT*np.conj(flatFFT)
@@ -232,66 +231,37 @@ def getFlatOffset(flatData,imgData):
 
     # 获取最大值坐标
     pos = np.unravel_index(np.argmax(np.abs(R)),R.shape)
-
     # 计算偏移量
-    mx = int(pos[1] / 10) - 1000
-    my = pos[1] - int(pos[1] / 10) * 10
-    print(mx,my)
-
-    # 偏移操作
-    front = flatData
-    next = flatData
-    if mx < 0 :
-        front[0:260,0:W + mx] = flatData[0:260,-mx:W]
-        next[260:,-mx + 1:W] = flatData[260:,0:W + mx - 1]
-        flatData[0:260] = front[0:260] + (next[0:260] - front[0:260])*my/10
-    else:
-        front[0:260, mx:W] = flatData[0:260, 0:W-mx]
-        next[0:260, mx+1:W] = flatData[0:260, 0:W-mx-1]
-        flatData[0:260] = front[0:260] + (next[0:260] - front[0:260])*my/10
-
-    # 获取序列
-    img = imgData[250:280,cy - 1000:cy + 1000]
-    flat = flatData[250:280,cy - 1000:cy + 1000]
-    Img = np.zeros((30, 20000))
-    Flat = np.zeros((30, 20000))
-    for i in range(2000):
-        for j in range(10):
-            Img[:, i * 10 + j] = img[:, i] * (1 - j / 10) + img[:, i] * j / 10
-            Flat[:, i * 10 + j] = flat[:, i] * (1 - j / 10) + flat[:, i] * j / 10
-
-    # FFT变化
-    imgFFT = np.fft.fft2(Img)
-    flatFFT = np.fft.fft2(Flat)
-
-    # iFFT变化
-    FR = imgFFT*np.conj(flatFFT)
-    R = np.fft.ifft2(FR)
-    R = np.fft.fftshift(R)
-    # plt.figure()
-    # plt.imshow(np.abs(R), cmap="gray", aspect='auto')
-    # plt.show()
-    pos = np.unravel_index(np.argmax(np.abs(R)),R.shape)
-    print(pos)
-
-    # 计算偏移量
-    mx = int(pos[1] / 10) - 1000
-    my = pos[1] - int(pos[1] / 10) * 10
-    print(mx,my)
-    front = flatData
-    next = flatData
+    mx = pos[1]-int(W/8)
+    #print(mx)
 
     # 偏移操作
     if mx < 0 :
-        front[260:,0:W + mx] = flatData[260:,-mx:W]
-        next[260:,-mx + 1:W] = flatData[260:,0:W + mx - 1]
-        flatData[260:] = front[260:] + (next[260:] - front[260:])*my/10
+        flatData[:,0:W + mx] = flatData[:,-mx:W]
     else:
-        front[260:, mx:W] = flatData[260:, 0:W-mx]
-        next[260:, mx+1:W] = flatData[260:, 0:W-mx-1]
-        flatData[260:] = front[260:] + (next[260:] - front[260:])*my/10
+        flatData[:, mx:W] = flatData[:, 0:W-mx]
+
     return flatData
 
+def moveImg(imgdata,offset):
+    if offset < 0 :
+        imgdata[:,0:W + offset] = imgdata[:,-offset:W]
+    else:
+        imgdata[:, offset:W] = imgdata[:, 0:W-offset]
+    return imgdata
+
+def entireWork(filename, darkDate, flatData, sun_std):
+    image_file = get_pkg_data_filename(filename)
+    imgData = np.array(fits.getdata(image_file), dtype=float)
+    imgData = moveImg(imgData,-2)
+    imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011)
+    #print(HofHa, HofFe)
+    # plt.figure()
+    # plt.plot(imgData[:, 2200].reshape(-1))
+    imgData = DivFlat(imgData, flatData)
+    imgDataRB = RB_repair(imgData, sun_std, HofHa, HofFe)
+    imgDataRB = MedSmooth(imgDataRB,3)
+    return imgDataRB,imgData
 
 
 if __name__ == "__main__":
@@ -299,6 +269,7 @@ if __name__ == "__main__":
     filepath_result = "testResult/"
     filepath_test = "testData/"
     filepath_bash = "bass2000.txt"
+
     base = get_Sunstd(filepath_bash)
     # print(base)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
@@ -306,15 +277,17 @@ if __name__ == "__main__":
 
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
+    H, W = flat_data.shape
+    #print(H,W)
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + filelist[2312])
+    image_file = get_pkg_data_filename(filepath_test + filelist[2314])
     img_data = np.array(fits.getdata(image_file), dtype=float)
     flat_data = getFlatOffset(flat_data,img_data)
     flat_data,b,d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
     #print(flat_data)
     flat_data = getFlat(flat_data)
     # filelist = os.listdir(filepath_test)
-    image_file = entireWork(filepath_test + filelist[3000], dark_data, flat_data, base)
+    image_file,imgData = entireWork(filepath_test + filelist[2314], dark_data, flat_data, base)
     # flat_data = np.zeros(dark_data.shape)
     # for i in range (200):
     #     image_file = get_pkg_data_filename(filepath_test + filelist[2712+i])
@@ -338,8 +311,14 @@ if __name__ == "__main__":
 
     # time_end = time.time()
     # print(time_end - time_start)
+
+
+    # plt.plot(image_file[:,2200].reshape(-1))
+    # plt.show()
+
+
     plt.figure()
-    plt.imshow(image_file, cmap="gray", aspect='auto')
+    plt.imshow(image_file,cmap="gray",aspect='auto')
     plt.show()
 
     grey = fits.PrimaryHDU(image_file)

@@ -32,3 +32,12 @@ curve_cor_C = 1.92909e-011
 
 # 滤波窗口大小
 filter_kernel_size = 3
+
+# 窗口数据
+height_Ha = 260
+height_Fe = 116
+
+#波长相关数据
+HA = 6559.5804
+FE = 6569.22
+K = 0.024202301
