@@ -184,16 +184,13 @@ def DivFlat(imgData, flatData, HofH, HofFe):
     # 提取H窗口对应数据
     imgHa = imgData[0:HofH]
     flatHa = tempData[0:HofH]
-    # 计算最大值所在坐标
+    # 计算最亮的条纹所在列数
     flatList = np.sum(flatHa, axis=0)
     maxFlatindex = np.argmax(flatList)
     imgList = np.sum(imgHa, axis=0)
     maxImgindex = np.argmax(imgList)
     # 计算坐标偏差
     offset = maxImgindex - maxFlatindex
-    # 偏差过大直接输出
-    if offset > 20:
-        return imgData / tempData
     # 根据偏差移动对应窗口平场
     if offset < 0:
         offset *= -1
@@ -210,9 +207,6 @@ def DivFlat(imgData, flatData, HofH, HofFe):
     maxImgindex = np.argmax(imgList)
     # 计算坐标偏差
     offset = maxImgindex - maxFlatindex
-    # 偏差过大直接输出
-    if offset > 20:
-        return imgData / tempData
     # 根据偏差移动对应窗口平场
     if offset < 0:
         offset *= -1
@@ -250,9 +244,9 @@ def entireWork(filename, darkDate, flatData, sun_std):
 
 if __name__ == "__main__":
     matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
-    filepath_result = "testResult/"
-    filepath_test = "testData/"
-    filepath_bash = "bass2000.txt"
+    filepath_result = "data/"
+    filepath_test = "data/"
+    filepath_bash = "data/bass2000.txt"
     base = get_Sunstd(filepath_bash)
     # print(base)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
@@ -277,6 +271,9 @@ if __name__ == "__main__":
     # plt.imshow(data, cmap="gray",aspect='auto')
     # plt.show()
     data = getFlat(data)
+    plt.figure()
+    plt.imshow(data, cmap="gray", aspect='auto')
+    plt.show()
     # plt.figure()
     # plt.imshow(data, cmap="gray",aspect='auto')
     # plt.show()
