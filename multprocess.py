@@ -60,7 +60,7 @@ def target_task(filename):
     # 谱线弯曲矫正
     image_data, HofH, HofFe = suntools.curve_correction(image_data, config.curve_cor_x0, config.curve_cor_C)
     # 去平场
-    image_data = suntools.DivFlat(image_data, flat_img, HofH, HofFe)
+    image_data = suntools.DivFlat(image_data, flat_img)
     # 红蓝移矫正
     image_data = suntools.RB_repair(image_data, sun_std, HofH, HofFe)
     # 转为整型
