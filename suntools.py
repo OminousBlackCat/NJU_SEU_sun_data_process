@@ -136,7 +136,7 @@ def RB_repair(imgData, sun_std, HofH, HofFe):
     # 获取波长强度和
     sun_image = np.sum(imgData, axis=1) / W
     # 归一化
-    #print(np.max(sun_image))
+    # print(np.max(sun_image))
     sun_image /= np.max(sun_image)
     # 提取所需要的对应数据
     temp_std[HofH:HofH + HofFe] = temp_std[260:260 + HofFe]
@@ -180,13 +180,13 @@ def MeanSmooth(imgData, winSize=4):
 
 
 def DivFlat(imgData, flatData):
-    return imgData / np.clip(flatData,5e-5,200)
+    return imgData / np.clip(flatData, 5e-5, 200)
 
 
 # 图像中值平滑操作
 # 参数
 def MedSmooth(imgData, winSize=4):
-    imgData = signal.medfilt(imgData, kernel_size=int(winSize/2)*2+1)
+    imgData = signal.medfilt(imgData, kernel_size=int(winSize / 2) * 2 + 1)
     return imgData
 
 
@@ -199,23 +199,24 @@ def entireWork(filename, darkDate, flatData, sun_std):
     imgData = MedSmooth(imgData)
     return imgData
 
+
 # 计算偏差
-def getFlatOffset(flatData,imgData):
+def getFlatOffset(flatData, imgData):
     # 获取图片尺寸
     H, W = imgData.shape
     # 计算中心点
 
-    cx = int(H/2)
-    cy = int(W/2)
+    cx = int(H / 2)
+    cy = int(W / 2)
     # 获取序列
-    img = imgData[50:150,cy - 1000:cy + 1000]
-    flat = flatData[50:150,cy - 1000:cy + 1000]
-    Img = np.zeros((100,20000))
+    img = imgData[50:150, cy - 1000:cy + 1000]
+    flat = flatData[50:150, cy - 1000:cy + 1000]
+    Img = np.zeros((100, 20000))
     Flat = np.zeros((100, 20000))
     # 图片拉伸
-    for i in range (2000):
+    for i in range(2000):
         for j in range(10):
-            Img[:, i * 10 + j] = img[:, i]*(1 - j / 10)+img[:, i]* j / 10
+            Img[:, i * 10 + j] = img[:, i] * (1 - j / 10) + img[:, i] * j / 10
             Flat[:, i * 10 + j] = flat[:, i] * (1 - j / 10) + flat[:, i] * j / 10
 
     # FFT变化
@@ -223,7 +224,7 @@ def getFlatOffset(flatData,imgData):
     flatFFT = np.fft.fft2(Flat)
 
     # IFFT
-    FR = imgFFT*np.conj(flatFFT)
+    FR = imgFFT * np.conj(flatFFT)
     R = np.fft.ifft2(FR)
     R = np.fft.fftshift(R)
     # plt.figure()
@@ -231,28 +232,28 @@ def getFlatOffset(flatData,imgData):
     # plt.show()
 
     # 获取最大值坐标
-    pos = np.unravel_index(np.argmax(np.abs(R)),R.shape)
+    pos = np.unravel_index(np.argmax(np.abs(R)), R.shape)
 
     # 计算偏移量
     mx = int(pos[1] / 10) - 1000
     my = pos[1] - int(pos[1] / 10) * 10
-    print(mx,my)
+    print(mx, my)
 
     # 偏移操作
     front = flatData
     next = flatData
-    if mx < 0 :
-        front[0:260,0:W + mx] = flatData[0:260,-mx:W]
-        next[260:,-mx + 1:W] = flatData[260:,0:W + mx - 1]
-        flatData[0:260] = front[0:260] + (next[0:260] - front[0:260])*my/10
+    if mx < 0:
+        front[0:260, 0:W + mx] = flatData[0:260, -mx:W]
+        next[260:, -mx + 1:W] = flatData[260:, 0:W + mx - 1]
+        flatData[0:260] = front[0:260] + (next[0:260] - front[0:260]) * my / 10
     else:
-        front[0:260, mx:W] = flatData[0:260, 0:W-mx]
-        next[0:260, mx+1:W] = flatData[0:260, 0:W-mx-1]
-        flatData[0:260] = front[0:260] + (next[0:260] - front[0:260])*my/10
+        front[0:260, mx:W] = flatData[0:260, 0:W - mx]
+        next[0:260, mx + 1:W] = flatData[0:260, 0:W - mx - 1]
+        flatData[0:260] = front[0:260] + (next[0:260] - front[0:260]) * my / 10
 
     # 获取序列
-    img = imgData[250:280,cy - 1000:cy + 1000]
-    flat = flatData[250:280,cy - 1000:cy + 1000]
+    img = imgData[250:280, cy - 1000:cy + 1000]
+    flat = flatData[250:280, cy - 1000:cy + 1000]
     Img = np.zeros((30, 20000))
     Flat = np.zeros((30, 20000))
     for i in range(2000):
@@ -265,33 +266,32 @@ def getFlatOffset(flatData,imgData):
     flatFFT = np.fft.fft2(Flat)
 
     # iFFT变化
-    FR = imgFFT*np.conj(flatFFT)
+    FR = imgFFT * np.conj(flatFFT)
     R = np.fft.ifft2(FR)
     R = np.fft.fftshift(R)
     # plt.figure()
     # plt.imshow(np.abs(R), cmap="gray", aspect='auto')
     # plt.show()
-    pos = np.unravel_index(np.argmax(np.abs(R)),R.shape)
+    pos = np.unravel_index(np.argmax(np.abs(R)), R.shape)
     print(pos)
 
     # 计算偏移量
     mx = int(pos[1] / 10) - 1000
     my = pos[1] - int(pos[1] / 10) * 10
-    print(mx,my)
+    print(mx, my)
     front = flatData
     next = flatData
 
     # 偏移操作
-    if mx < 0 :
-        front[260:,0:W + mx] = flatData[260:,-mx:W]
-        next[260:,-mx + 1:W] = flatData[260:,0:W + mx - 1]
-        flatData[260:] = front[260:] + (next[260:] - front[260:])*my/10
+    if mx < 0:
+        front[260:, 0:W + mx] = flatData[260:, -mx:W]
+        next[260:, -mx + 1:W] = flatData[260:, 0:W + mx - 1]
+        flatData[260:] = front[260:] + (next[260:] - front[260:]) * my / 10
     else:
-        front[260:, mx:W] = flatData[260:, 0:W-mx]
-        next[260:, mx+1:W] = flatData[260:, 0:W-mx-1]
-        flatData[260:] = front[260:] + (next[260:] - front[260:])*my/10
+        front[260:, mx:W] = flatData[260:, 0:W - mx]
+        next[260:, mx + 1:W] = flatData[260:, 0:W - mx - 1]
+        flatData[260:] = front[260:] + (next[260:] - front[260:]) * my / 10
     return flatData
-
 
 
 if __name__ == "__main__":
@@ -309,9 +309,9 @@ if __name__ == "__main__":
     filelist = os.listdir(filepath_test)
     image_file = get_pkg_data_filename(filepath_test + filelist[2312])
     img_data = np.array(fits.getdata(image_file), dtype=float)
-    flat_data = getFlatOffset(flat_data,img_data)
-    flat_data,b,d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
-    #print(flat_data)
+    flat_data = getFlatOffset(flat_data, img_data)
+    flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
+    # print(flat_data)
     flat_data = getFlat(flat_data)
     # filelist = os.listdir(filepath_test)
     image_file = entireWork(filepath_test + filelist[3000], dark_data, flat_data, base)
@@ -344,4 +344,4 @@ if __name__ == "__main__":
 
     grey = fits.PrimaryHDU(image_file)
     greyHDU = fits.HDUList([grey])
-    greyHDU.writeto(filepath_result+'result.fits')
+    greyHDU.writeto(filepath_result + 'result.fits')
