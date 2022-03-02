@@ -143,7 +143,7 @@ def get_Sunstd(filepath):
 
 
 # 红蓝移矫正
-def RB_repair(imgData, sun_std, HofHa, HofFe):
+def RB_getdata(imgData, sun_std, HofHa, HofFe):
     temp_std = np.array(sun_std)
     # 获取图片尺寸
     H, W = imgData.shape
@@ -162,10 +162,16 @@ def RB_repair(imgData, sun_std, HofHa, HofFe):
     cov = np.polyfit(stdx,  sun_image/temp_std[0:H] , 1)
     k, b = cov[0], cov[1]
     # 红蓝翼矫正
+    RB_absorb = np.zeros(H)
     for i in range(H):
-        imgData[i, :] = imgData[i, :] / (k * stdx[i] + b)
-    return imgData
+        RB_absorb[i]= k * stdx[i] + b
+    return RB_absorb
 
+def RB_repair(imgData, RB_absorb):
+    H, W = imgData.shape
+    for i in range(H):
+        imgData[i,:] = imgData[i,:] / RB_absorb[i]
+    return imgData
 
 # 矩阵减法
 def subtract(data_A, data_B):
@@ -233,7 +239,7 @@ def getFlatOffset(flatData,imgData):
     pos = np.unravel_index(np.argmax(np.abs(R)),R.shape)
     # 计算偏移量
     mx = pos[1]-int(W/8)
-    #print(mx)
+    print(mx)
 
     # 偏移操作
     if mx < 0 :
@@ -245,9 +251,9 @@ def getFlatOffset(flatData,imgData):
 
 def moveImg(imgdata,offset):
     if offset < 0 :
-        imgdata[:,0:W + offset] = imgdata[:,-offset:W]
+        imgdata[height_Ha:,0:W + offset] = imgdata[height_Ha:,-offset:W]
     else:
-        imgdata[:, offset:W] = imgdata[:, 0:W-offset]
+        imgdata[height_Ha:, offset:W] = imgdata[height_Ha:, 0:W-offset]
     return imgdata
 
 def entireWork(filename, darkDate, flatData, sun_std):
@@ -256,11 +262,13 @@ def entireWork(filename, darkDate, flatData, sun_std):
     imgData = moveImg(imgData,-2)
     imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011)
     #print(HofHa, HofFe)
-    # plt.figure()
-    # plt.plot(imgData[:, 2200].reshape(-1))
     imgData = DivFlat(imgData, flatData)
-    imgDataRB = RB_repair(imgData, sun_std, HofHa, HofFe)
+    plt.figure()
+    plt.plot(imgData[:, 2200].reshape(-1))
+    imgDataRB = RB_repair(imgData,sun_std)
     imgDataRB = MedSmooth(imgDataRB,3)
+    plt.plot(imgDataRB[:, 2200].reshape(-1))
+    plt.show()
     return imgDataRB,imgData
 
 
@@ -286,8 +294,21 @@ if __name__ == "__main__":
     flat_data,b,d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
     #print(flat_data)
     flat_data = getFlat(flat_data)
+
+    filename = filepath_test + filelist[2314]
+    image_file = get_pkg_data_filename(filename)
+    imgData = np.array(fits.getdata(image_file), dtype=float)
+    imgData = moveImg(imgData, -2)
+    imgData, HofHa, HofFe = curve_correction(imgData - dark_data, 2321.26, 1.92909e-011)
+    # print(HofHa, HofFe)
+    imgData = DivFlat(imgData, flat_data)
+    abortion = RB_getdata(imgData, base, HofHa, HofFe)
+
+
+
+
     # filelist = os.listdir(filepath_test)
-    image_file,imgData = entireWork(filepath_test + filelist[2314], dark_data, flat_data, base)
+    image_file,imgData = entireWork(filepath_test + filelist[631], dark_data, flat_data, abortion)
     # flat_data = np.zeros(dark_data.shape)
     # for i in range (200):
     #     image_file = get_pkg_data_filename(filepath_test + filelist[2712+i])
@@ -312,7 +333,7 @@ if __name__ == "__main__":
     # time_end = time.time()
     # print(time_end - time_start)
 
-
+    # plt.figure()
     # plt.plot(image_file[:,2200].reshape(-1))
     # plt.show()
 
