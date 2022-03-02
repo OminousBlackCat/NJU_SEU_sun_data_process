@@ -256,7 +256,7 @@ def moveImg(imgdata,offset):
         imgdata[height_Ha:, offset:W] = imgdata[height_Ha:, 0:W-offset]
     return imgdata
 
-def entireWork(filename, darkDate, flatData, sun_std):
+def entireWork(filename, darkDate, flatData, abortion):
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     imgData = moveImg(imgData,-2)
@@ -265,7 +265,7 @@ def entireWork(filename, darkDate, flatData, sun_std):
     imgData = DivFlat(imgData, flatData)
     plt.figure()
     plt.plot(imgData[:, 2200].reshape(-1))
-    imgDataRB = RB_repair(imgData,sun_std)
+    imgDataRB = RB_repair(imgData,abortion)
     imgDataRB = MedSmooth(imgDataRB,3)
     plt.plot(imgDataRB[:, 2200].reshape(-1))
     plt.show()

@@ -2,7 +2,6 @@ import multiprocessing as mp
 import os
 import suntools
 import time
-import matplotlib.pyplot as plt
 import numpy as np
 from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
@@ -37,6 +36,13 @@ flat_img = suntools.getFlat(flat_img)
 
 # 读取标准太阳光谱数据
 sun_std = suntools.get_Sunstd(config.sun_std_name)
+# 以标准文件作为基准 计算红蓝移吸收系数
+# 需要先对标注文件进行一系列操作 去暗场 去平场 再进行红蓝移修正
+standard_img = suntools.moveImg(standard_img, -2)
+standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
+standard_img = suntools.DivFlat(standard_img, flat_img)
+# 获得标准吸收系数
+abortion = suntools.RB_getdata(standard_img, sun_std, temp1, temp2)
 
 
 # 读取数据文件夹所有文件
@@ -65,7 +71,7 @@ def target_task(filename):
     # 去平场
     image_data = suntools.DivFlat(image_data, flat_img)
     # 红蓝移矫正
-    image_data = suntools.RB_repair(image_data, sun_std, HofH, HofFe)
+    image_data = suntools.RB_repair(image_data, abortion)
     # 滤波
     image_data = signal.medfilt(image_data, kernel_size=config.filter_kernel_size)
     # 转为整型
