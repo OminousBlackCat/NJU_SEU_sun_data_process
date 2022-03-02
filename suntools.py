@@ -255,28 +255,27 @@ def entireWork(filename, darkDate, flatData, sun_std):
 
 if __name__ == "__main__":
     matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
-    filepath_result = "testResult/"
-    filepath_test = "testData/"
-    filepath_bash = "bass2000.txt"
+    filepath_result = config.save_dir_path
+    filepath_test = config.data_dir_path
+    filepath_bash = config.sun_std_name
 
     base = get_Sunstd(filepath_bash)
     # print(base)
-    image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
+    image_file = get_pkg_data_filename(config.dark_fits_name)
     dark_data = np.array(fits.getdata(image_file), dtype=float)
 
-    image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
+    image_file = get_pkg_data_filename(config.flat_fits_name)
     flat_data = np.array(fits.getdata(image_file), dtype=float)
-    H, W = flat_data.shape
-    # print(H,W)
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + filelist[2314])
+    image_file = get_pkg_data_filename(filepath_test + '/' + filelist[2314])
     img_data = np.array(fits.getdata(image_file), dtype=float)
     flat_data = getFlatOffset(flat_data, img_data)
     flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
     # print(flat_data)
     flat_data = getFlat(flat_data)
+    print(flat_data)
     # filelist = os.listdir(filepath_test)
-    image_file = entireWork(filepath_test + filelist[2314], dark_data, flat_data, base)
+    image_file = entireWork(filepath_test + '/' + filelist[2001], dark_data, flat_data, base)
     # flat_data = np.zeros(dark_data.shape)
     # for i in range (200):
     #     image_file = get_pkg_data_filename(filepath_test + filelist[2712+i])

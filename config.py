@@ -20,11 +20,11 @@ flat_fits_name = 'data/for_flat.fits'
 sun_std_name = 'data/bass2000.txt'
 
 # 读入的日心数据文件名，作为矫正平场的基准文件名
-standard_offset_name = 'data/raw_data/RSM20211222T060129-0008-2315.fts'
+standard_offset_name = 'data/raw_data/RSM20211222T060129-0008-2313.fts'
 
 # 多核并行数
 # 若为default(string) 则程序自动根据获得的cpu核数设定并行数
-multiprocess_count = 14
+multiprocess_count = 8
 
 # 谱线弯曲矫正参数
 # ******此下项目参数在运行程序前应确认是否无误******
