@@ -17,8 +17,6 @@ FE = config.FE
 K = config.K
 
 
-
-
 # 谱线矫正
 # 参数data: 图像数据(numpy标准格式, 二维数组)
 # 参数x0: 曲线矫正对称轴
@@ -64,7 +62,7 @@ def curve_correction(imgData, x0, C):
         # 先转成波长 根据波长公式进行变换后反变化回坐标
         stdx = ((stdx * K + FE) / (C * (x - x0) * (x - x0) + 1) - FE) / K
         # 获取原数据值
-        stdy = imgData[height_Ha:height_Fe+height_Ha, x]
+        stdy = imgData[height_Ha:height_Fe + height_Ha, x]
         # 确定插值的坐标
         now = 1
         for y in range(height_Fe):
@@ -78,14 +76,15 @@ def curve_correction(imgData, x0, C):
                     bad_Fe = y
             else:
                 # 计算插值
-                imgData[y + height_Ha][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
-                        y - stdx[now - 1])
+                imgData[y + height_Ha][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (
+                            stdx[now] - stdx[now - 1]) * (
+                                                    y - stdx[now - 1])
     if bad_Ha < height_Ha - 29:
         bad_Ha = height_Ha - 29
     if bad_Fe < height_Fe - 29:
         bad_Fe = height_Fe - 29
     # 删除坏行 并输出两窗口最后的行数
-    imgData[bad_Ha:bad_Ha + height_Fe] = imgData[height_Ha:height_Fe+height_Ha]
+    imgData[bad_Ha:bad_Ha + height_Fe] = imgData[height_Ha:height_Fe + height_Ha]
     return imgData[0:bad_Ha + bad_Fe], bad_Ha, bad_Fe
 
 
@@ -123,13 +122,13 @@ def get_Sunstd(filepath):
     dataX = np.array(dataX)
     now = 1
     ansY = []
-    stdx = np.zeros(height_Fe+height_Ha)
+    stdx = np.zeros(height_Fe + height_Ha)
     # 根据窗口转换成需要的数据
     # 坐标变换
     stdx[0:height_Ha] = np.arange(0, height_Ha, 1) * K + HA
     stdx[height_Ha:] = np.arange(0, height_Fe, 1) * K + FE
     # 插值
-    for i in range(height_Fe+height_Ha):
+    for i in range(height_Fe + height_Ha):
         # 找到插值所需的两侧点
         while dataX[now] < stdx[i] and now < len(dataX) - 1:
             now += 1
@@ -150,28 +149,30 @@ def RB_getdata(imgData, sun_std, HofHa, HofFe):
     # 获取波长强度和
     sun_image = np.sum(imgData, axis=1) / W
     # 归一化
-    #print(np.max(sun_image))
+    # print(np.max(sun_image))
     sun_image /= np.max(sun_image)
     # 提取所需要的对应数据
-    #temp_std[HofHa:HofHa + HofFe] = temp_std[height_Ha:height_Ha + HofFe]
+    # temp_std[HofHa:HofHa + HofFe] = temp_std[height_Ha:height_Ha + HofFe]
     stdx = np.zeros(H)
     # 坐标转化为波长
     stdx[0:HofHa] = np.arange(0, HofHa, 1) * K + HA
     stdx[HofHa:] = np.arange(0, HofFe, 1) * K + FE
     # 拟合一次函数
-    cov = np.polyfit(stdx,  sun_image/temp_std[0:H] , 1)
+    cov = np.polyfit(stdx, sun_image / temp_std[0:H], 1)
     k, b = cov[0], cov[1]
     # 红蓝翼矫正
     RB_absorb = np.zeros(H)
     for i in range(H):
-        RB_absorb[i]= k * stdx[i] + b
+        RB_absorb[i] = k * stdx[i] + b
     return RB_absorb
+
 
 def RB_repair(imgData, RB_absorb):
     H, W = imgData.shape
     for i in range(H):
-        imgData[i,:] = imgData[i,:] / RB_absorb[i]
+        imgData[i, :] = imgData[i, :] / RB_absorb[i]
     return imgData
+
 
 # 矩阵减法
 def subtract(data_A, data_B):
@@ -200,35 +201,34 @@ def MeanSmooth(imgData, winSize=4):
 
 
 def DivFlat(imgData, flatData):
-    return imgData / np.clip(flatData,5e-5,200)
+    return imgData / np.clip(flatData, 5e-5, 200)
 
 
 # 图像中值平滑操作
 # 参数
 def MedSmooth(imgData, winSize=4):
-    imgData = signal.medfilt(imgData, kernel_size=int(winSize/2)*2+1)
+    imgData = signal.medfilt(imgData, kernel_size=int(winSize / 2) * 2 + 1)
     return imgData
 
 
 # 计算偏差
-def getFlatOffset(flatData,imgData):
+def getFlatOffset(flatData, imgData):
     # 获取图片尺寸
     H, W = imgData.shape
     # 计算中心点
 
-    cx = int(H/2)
-    cy = int(W/2)
+    cx = int(H / 2)
+    cy = int(W / 2)
     # 获取序列
-    img = imgData[cx-int(H/8):cx+int(H/8),cy - int(W/8):cy + int(W/8)]
-    flat = flatData[cx-int(H/8):cx+int(H/8),cy - int(W/8):cy + int(W/8)]
-
+    img = imgData[cx - int(H / 8):cx + int(H / 8), cy - int(W / 8):cy + int(W / 8)]
+    flat = flatData[cx - int(H / 8):cx + int(H / 8), cy - int(W / 8):cy + int(W / 8)]
 
     # FFT变化
     imgFFT = np.fft.fft2(img)
     flatFFT = np.fft.fft2(flat)
 
     # IFFT
-    FR = imgFFT*np.conj(flatFFT)
+    FR = imgFFT * np.conj(flatFFT)
     R = np.fft.ifft2(FR)
     R = np.fft.fftshift(R)
     # plt.figure()
@@ -236,40 +236,43 @@ def getFlatOffset(flatData,imgData):
     # plt.show()
 
     # 获取最大值坐标
-    pos = np.unravel_index(np.argmax(np.abs(R)),R.shape)
+    pos = np.unravel_index(np.argmax(np.abs(R)), R.shape)
     # 计算偏移量
-    mx = pos[1]-int(W/8)
+    mx = pos[1] - int(W / 8)
     print(mx)
 
     # 偏移操作
-    if mx < 0 :
-        flatData[:,0:W + mx] = flatData[:,-mx:W]
+    if mx < 0:
+        flatData[:, 0:W + mx] = flatData[:, -mx:W]
     else:
-        flatData[:, mx:W] = flatData[:, 0:W-mx]
+        flatData[:, mx:W] = flatData[:, 0:W - mx]
 
     return flatData
 
-def moveImg(imgdata,offset):
-    if offset < 0 :
-        imgdata[height_Ha:,0:W + offset] = imgdata[height_Ha:,-offset:W]
+
+def moveImg(imgdata, offset):
+    H, W = imgdata.shape
+    if offset < 0:
+        imgdata[height_Ha:, 0:W + offset] = imgdata[height_Ha:, -offset:W]
     else:
-        imgdata[height_Ha:, offset:W] = imgdata[height_Ha:, 0:W-offset]
+        imgdata[height_Ha:, offset:W] = imgdata[height_Ha:, 0:W - offset]
     return imgdata
+
 
 def entireWork(filename, darkDate, flatData, abortion):
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
-    imgData = moveImg(imgData,-2)
+    imgData = moveImg(imgData, -2)
     imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011)
-    #print(HofHa, HofFe)
+    # print(HofHa, HofFe)
     imgData = DivFlat(imgData, flatData)
     plt.figure()
     plt.plot(imgData[:, 2200].reshape(-1))
-    imgDataRB = RB_repair(imgData,abortion)
-    imgDataRB = MedSmooth(imgDataRB,3)
+    imgDataRB = RB_repair(imgData, abortion)
+    imgDataRB = MedSmooth(imgDataRB, 3)
     plt.plot(imgDataRB[:, 2200].reshape(-1))
     plt.show()
-    return imgDataRB,imgData
+    return imgDataRB, imgData
 
 
 if __name__ == "__main__":
@@ -286,13 +289,13 @@ if __name__ == "__main__":
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
     H, W = flat_data.shape
-    #print(H,W)
+    # print(H,W)
     filelist = os.listdir(filepath_test)
     image_file = get_pkg_data_filename(filepath_test + filelist[2314])
     img_data = np.array(fits.getdata(image_file), dtype=float)
-    flat_data = getFlatOffset(flat_data,img_data)
-    flat_data,b,d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
-    #print(flat_data)
+    flat_data = getFlatOffset(flat_data, img_data)
+    flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
+    # print(flat_data)
     flat_data = getFlat(flat_data)
 
     filename = filepath_test + filelist[2314]
@@ -304,11 +307,8 @@ if __name__ == "__main__":
     imgData = DivFlat(imgData, flat_data)
     abortion = RB_getdata(imgData, base, HofHa, HofFe)
 
-
-
-
     # filelist = os.listdir(filepath_test)
-    image_file,imgData = entireWork(filepath_test + filelist[631], dark_data, flat_data, abortion)
+    image_file, imgData = entireWork(filepath_test + filelist[631], dark_data, flat_data, abortion)
     # flat_data = np.zeros(dark_data.shape)
     # for i in range (200):
     #     image_file = get_pkg_data_filename(filepath_test + filelist[2712+i])
@@ -337,11 +337,10 @@ if __name__ == "__main__":
     # plt.plot(image_file[:,2200].reshape(-1))
     # plt.show()
 
-
     plt.figure()
-    plt.imshow(image_file,cmap="gray",aspect='auto')
+    plt.imshow(image_file, cmap="gray", aspect='auto')
     plt.show()
 
     grey = fits.PrimaryHDU(image_file)
     greyHDU = fits.HDUList([grey])
-    greyHDU.writeto(filepath_result+'result.fits')
+    greyHDU.writeto(filepath_result + 'result.fits')

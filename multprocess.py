@@ -105,7 +105,7 @@ def main():
         image_file = get_pkg_data_filename(out_dir + "/" + filename)
         image_data = fits.getdata(image_file)
         count = int(filename[-8:-4]) - 1
-        data[count, :] = image_data[0, :]
+        data[count, :] = image_data[132, :]
         now += 1
         if now >= N:
             break
