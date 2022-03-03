@@ -44,10 +44,20 @@ standard_img = suntools.DivFlat(standard_img, flat_img)
 # 获得标准吸收系数
 abortion = suntools.RB_getdata(standard_img, sun_std, temp1, temp2)
 
+# 检查输出文件夹是否存在 不存在则创建
+if not os.path.exists(out_dir):
+    os.mkdir(out_dir)
+
 
 # 读取数据文件夹所有文件
 def read_fits_directory():
-    arr = os.listdir(read_dir)
+    arr = []
+    try:
+        arr = os.listdir(read_dir)
+        if len(arr) == 0:
+            raise OSError
+    except OSError:
+        print('没有获得原始数据文件，请检查config文件目录')
     return arr
 
 
@@ -104,8 +114,9 @@ def main():
     for filename in os.listdir(out_dir):
         image_file = get_pkg_data_filename(out_dir + "/" + filename)
         image_data = fits.getdata(image_file)
+        # 选取图像文件名的最后四个字符作为index
         count = int(filename[-8:-4]) - 1
-        data[count, :] = image_data[132, :]
+        data[count, :] = image_data[config.sum_row_index, :]
         now += 1
         if now >= N:
             break
