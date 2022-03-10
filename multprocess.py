@@ -124,7 +124,9 @@ def main():
         now += 1
         if now >= N:
             break
+    data[data < 0] = 0
     if config.save_img_form == 'default':
+        data = data / data.max(data.max(axis=1))
         plt.imsave(sum_file_path + 'sum.png', data, cmap=color_map)
     if config.save_img_form == 'fts':
         primaryHDU = fits.PrimaryHDU(data)
