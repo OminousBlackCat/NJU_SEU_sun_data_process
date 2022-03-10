@@ -267,7 +267,7 @@ def get_color_map(fname):
         while line:
             line = re.findall(r"\d+\.?\d*", line)
             if len(line) > 0:
-                colors.append([int(line[0]), int(line[1]), int(line[2])])
+                colors.append([float(line[0]) / 255, float(line[1]) / 255, float(line[2]) / 255])
             line = f.readline()
 
     clrmap = matplotlib.colors.LinearSegmentedColormap.from_list("mycmap", colors)
