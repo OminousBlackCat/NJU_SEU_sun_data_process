@@ -19,6 +19,9 @@ flat_fits_name = 'data/for_flat.fits'
 # 读入的标准光谱数据文件名, 和py文件需在同级文件夹下
 sun_std_name = 'data/bass2000.txt'
 
+# 读入的色谱文件名, 和py文件需在同级文件夹下
+color_camp_name = 'data/color_map.txt'
+
 # 读入的日心数据文件名，作为矫正平场的基准文件名
 standard_offset_name = 'data/raw_data/RSM20211222T060129-0008-2313.fts'
 
@@ -49,3 +52,7 @@ K = 0.024202301
 # 合并图像时所拼的行数
 # 默认为132行（光谱强度最低点）
 sum_row_index = 132
+
+# 输出何种类型的图片
+# 'fts'输出fts格式文件, 'default'则输出以color map为camp的png图片
+save_img_form = 'default'

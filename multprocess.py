@@ -7,6 +7,7 @@ from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
 import scipy.signal as signal
 import config
+import matplotlib.pyplot as plt
 
 
 # 读入配置文件 引入参数
@@ -43,6 +44,9 @@ standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, 
 standard_img = suntools.DivFlat(standard_img, flat_img)
 # 获得标准吸收系数
 abortion = suntools.RB_getdata(standard_img, sun_std, temp1, temp2)
+
+# 读取输出色谱
+color_map = suntools.get_color_map(config.color_camp_name)
 
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(out_dir):
@@ -120,9 +124,12 @@ def main():
         now += 1
         if now >= N:
             break
-    primaryHDU = fits.PrimaryHDU(data)
-    greyHDU = fits.HDUList([primaryHDU])
-    greyHDU.writeto(sum_file_path + 'sum.fts')
+    if config.save_img_form == 'default':
+        plt.imsave(sum_file_path + 'sum.png', data, cmap=color_map)
+    if config.save_img_form == 'fts':
+        primaryHDU = fits.PrimaryHDU(data)
+        greyHDU = fits.HDUList([primaryHDU])
+        greyHDU.writeto(sum_file_path + 'sum.fts')
 
 
 if __name__ == "__main__":

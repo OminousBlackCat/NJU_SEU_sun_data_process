@@ -10,6 +10,7 @@ from PIL import Image
 import scipy.signal as signal
 import config
 
+
 height_Ha = config.height_Ha
 height_Fe = config.height_Fe
 HA = config.HA
@@ -257,6 +258,20 @@ def moveImg(imgdata, offset):
     else:
         imgdata[height_Ha:, offset:W] = imgdata[height_Ha:, 0:W - offset]
     return imgdata
+
+
+def get_color_map(fname):
+    colors = []
+    with open(fname) as f:
+        line = f.readline()
+        while line:
+            line = re.findall(r"\d+\.?\d*", line)
+            if len(line) > 0:
+                colors.append([int(line[0]), int(line[1]), int(line[2])])
+            line = f.readline()
+
+    clrmap = matplotlib.colors.LinearSegmentedColormap.from_list("mycmap", colors)
+    return clrmap
 
 
 def entireWork(filename, darkDate, flatData, abortion):
