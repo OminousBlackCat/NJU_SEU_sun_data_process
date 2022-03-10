@@ -10,12 +10,12 @@ from PIL import Image
 import scipy.signal as signal
 import config
 
-
-height_Ha = config.height_Ha
-height_Fe = config.height_Fe
-HA = config.HA
-FE = config.FE
-K = config.K
+# 定义参数
+height_Ha = config.height_Ha  # ha窗口的长度
+height_Fe = config.height_Fe  # he窗口的长度
+HA = config.HA   # 红蓝移HA参数
+FE = config.FE   # 红蓝移FE参数
+K = config.K     # 红蓝移K参数
 
 
 # 谱线矫正
@@ -251,6 +251,7 @@ def getFlatOffset(flatData, imgData):
     return flatData
 
 
+# 对图像进行横向上的平移
 def moveImg(imgdata, offset):
     H, W = imgdata.shape
     if offset < 0:
@@ -260,6 +261,7 @@ def moveImg(imgdata, offset):
     return imgdata
 
 
+# 从色谱文件中获得输出png的色谱
 def get_color_map(fname):
     colors = []
     with open(fname) as f:
@@ -267,6 +269,7 @@ def get_color_map(fname):
         while line:
             line = re.findall(r"\d+\.?\d*", line)
             if len(line) > 0:
+                # 对颜色值进行归一化
                 colors.append([float(line[0]) / 255, float(line[1]) / 255, float(line[2]) / 255])
             line = f.readline()
 

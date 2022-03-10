@@ -124,11 +124,13 @@ def main():
         now += 1
         if now >= N:
             break
+    # 去除负值
     data[data < 0] = 0
     if config.save_img_form == 'default':
-        data = data / np.amax(data)
+        # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
         plt.imsave(sum_file_path + 'sum.png', data, cmap=color_map)
     if config.save_img_form == 'fts':
+        # 不对data进行任何操作 直接输出为fts文件
         primaryHDU = fits.PrimaryHDU(data)
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(sum_file_path + 'sum.fts')
