@@ -1,13 +1,24 @@
 import multiprocessing as mp
 import os
+import sys
 import suntools
 import time
 import numpy as np
 from astropy.utils.data import get_pkg_data_filename
 from astropy.io import fits
 import scipy.signal as signal
+import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
+
+
+# 读取数据文件夹所有文件
+def read_fits_directory():
+    arr = []
+    arr = os.listdir(read_dir)
+    if len(arr) == 0:
+        raise OSError
+    return arr
 
 
 # 读入配置文件 引入参数
@@ -18,18 +29,57 @@ if config.multiprocess_count != 'default':
     multiprocess_count = config.multiprocess_count
 else:
     multiprocess_count = mp.cpu_count() - 4
+print('多核并行数:' + str(multiprocess_count))
 
 # 此处的数据均未做共享处理，因为共享数据量并不是很大，在LINUX环境下使用multiprocess并fork()将直接复制此些全局变量
+# 预读输入目录
+try:
+    data_file_lst = read_fits_directory()
+except OSError:
+    print('没有获得原始数据文件，请检查config中的读入数据目录')
+    sys.exit("程序终止")
+print('文件总数为: ' + str(len(data_file_lst)))
+
 # 读取暗场文件
-temp_img = get_pkg_data_filename(config.dark_fits_name)
-dark_img = np.array(fits.getdata(temp_img), dtype=float)
+print("正在读取原始暗场文件")
+temp_img = None
+try:
+    temp_img = get_pkg_data_filename(config.dark_fits_name)
+except uEr.URLError:
+    print("Error: 暗场文件未找到, 请检查config文件或存放目录")
+except OSError:
+    print("Error: 暗场文件读取发生错误, 请检查文件读取权限")
+    sys.exit("程序终止")
+if temp_img is not None:
+    dark_img = np.array(fits.getdata(temp_img), dtype=float)
 
 # 平场需要以日心图片作为基准进行平移矫正 再进行谱线弯曲矫正
-temp_img = get_pkg_data_filename(config.flat_fits_name)
-flat_img = np.array(fits.getdata(temp_img), dtype=float)
+try:
+    temp_img = get_pkg_data_filename(config.flat_fits_name)
+except uEr.URLError:
+    print("Error: 原始平场文件未找到, 请检查config文件或存放目录")
+except OSError:
+    print("Error: 原始平场文件读取发生错误, 请检查文件读取权限")
+    sys.exit("程序终止")
+if temp_img is not None:
+    flat_img = np.array(fits.getdata(temp_img), dtype=float)
+
 # 读取经过日心的图片 作为基准
-temp_img = get_pkg_data_filename(config.standard_offset_name)
+# 寻找符合序号的文件
+standard_name = None
+for fileName in data_file_lst:
+    if int(fileName[13:10]) == config.standard_offset_index:
+        standard_name = fileName
+        break
+try:
+    temp_img = get_pkg_data_filename(standard_name)
+except uEr.URLError:
+    print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
+except OSError:
+    print("Error: 标准日心校准文件读取发生错误, 请检查文件读取权限")
+    sys.exit("程序终止")
 standard_img = np.array(fits.getdata(temp_img), dtype=float)
+
 # 先平移矫正 减去暗场 再谱线弯曲矫正
 flat_img = suntools.getFlatOffset(flat_img, standard_img)
 flat_img, temp1, temp2 = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
@@ -51,19 +101,6 @@ color_map = suntools.get_color_map(config.color_camp_name)
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(out_dir):
     os.mkdir(out_dir)
-
-
-# 读取数据文件夹所有文件
-def read_fits_directory():
-    arr = []
-    try:
-        arr = os.listdir(read_dir)
-        if len(arr) == 0:
-            raise OSError
-    except OSError:
-        print('没有获得原始数据文件，请检查config文件目录')
-    return arr
-
 
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))
@@ -103,10 +140,8 @@ def main():
     # 测试消耗时间 时间起点
     time_start = time.time()
     # 获得文件夹列表 读取相关参数
-    data_file_lst = read_fits_directory()
     # 并行处理
     pool = mp.Pool(processes=multiprocess_count)
-    print('多核并行数:' + str(multiprocess_count))
     pool.map(target_task, data_file_lst)
     time_end = time.time()
     print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')

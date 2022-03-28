@@ -1,36 +1,41 @@
 # 存储一些程序需要的必要参数
 
 
-# 读入数据存放的文件夹
+# 读入数据存放的文件夹, 相对路径与绝对路径均可
 data_dir_path = "data/raw_data"
 
-# 数据输出的存放文件夹
+# 数据输出的存放文件夹, 相对路径与绝对路径均可
+# 请确保此文件夹存在并拥有写入权限
 save_dir_path = "data/out/"
 
-# 汇总结果存放的文件夹
+# 日像汇总结果存放的文件夹, 相对路径与绝对路径均可
+# 请确保此文件夹存在并拥有写入权限
 sum_dir_path = 'data/sum/'
 
-# 读入的暗场fits文件名, 和py文件需在同级文件夹下
+# 读入的暗场fits文件路径, 相对路径与绝对路径均可
 dark_fits_name = 'data/dark.fits'
 
-# 读入的平场参数文件名, 和py文件需在同级文件夹下
+# 读入的平场参数文件路径, 相对路径与绝对路径均可
 flat_fits_name = 'data/for_flat.fits'
 
-# 读入的标准光谱数据文件名, 和py文件需在同级文件夹下
+# 读入的标准光谱数据文件路径, 相对路径与绝对路径均可
 sun_std_name = 'data/bass2000.txt'
 
-# 读入的色谱文件名, 和py文件需在同级文件夹下
+# 读入的色谱(作为日像汇总结果png格式的输入)文件路径, 相对路径与绝对路径均可
 color_camp_name = 'data/color_map.txt'
 
-# 读入的日心数据文件名，作为矫正平场的基准文件名
-standard_offset_name = 'data/raw_data/RSM20211222T060129-0008-2313.fts'
-
 # 多核并行数
-# 若为default(string) 则程序自动根据获得的cpu核数设定并行数
-multiprocess_count = 8
+# 若为'default' 则程序自动根据获得的cpu核数设定并行数
+# 默认使用可支配核数-4的并行数量
+multiprocess_count = 'default'
+
+# 读入的日心数据(矫正平场时需要)序号(*******不要使用引号引起来*******)
+standard_offset_index = 2313
+
+# binnning参数
+bin_size = 1
 
 # 谱线弯曲矫正参数
-# ******此下项目参数在运行程序前应确认是否无误******
 # 谱线弯曲矫正x0 参数
 curve_cor_x0 = 2321.26
 
@@ -54,5 +59,5 @@ K = 0.024202301
 sum_row_index = 132
 
 # 输出何种类型的图片
-# 'fts'输出fts格式文件, 'default'则输出以color map为camp的png图片
+# 'fts'输出fts格式灰度文件, 'default'则输出以color map为camp的png图片
 save_img_form = 'default'
