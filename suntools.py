@@ -18,6 +18,7 @@ FE = config.FE  # 红蓝移FE参数
 K = config.K  # 红蓝移K参数
 bin = config.bin_count
 
+
 # 谱线矫正
 # 参数data: 图像数据(numpy标准格式, 二维数组)
 # 参数x0: 曲线矫正对称轴
@@ -158,9 +159,9 @@ def RB_getdata(imgData, sun_std, HofHa, HofFe):
     sun_image /= np.max(sun_image)
     # 提取所需要的对应数据
     for i in range(HofHa):
-        ans[i] = (temp_std[i * bin] + temp_std[i * bin + bin -1])/2
+        ans[i] = (temp_std[i * bin] + temp_std[i * bin + bin - 1]) / 2
     for i in range(HofFe):
-        ans[HofHa + i] = (temp_std[i * bin + height_Ha] + temp_std[i * bin + height_Ha + bin - 1])/2
+        ans[HofHa + i] = (temp_std[i * bin + height_Ha] + temp_std[i * bin + height_Ha + bin - 1]) / 2
     stdx = np.zeros(H)
     # 坐标转化为波长
     stdx[0:HofHa] = np.arange(0, HofHa, 1) * K * bin + HA
@@ -262,9 +263,9 @@ def getFlatOffset(flatData, imgData):
 def moveImg(imgdata, offset):
     H, W = imgdata.shape
     if offset < 0:
-        imgdata[int(height_Ha / bin):, 0:W + int(offset/2)] = imgdata[int(height_Ha / bin):, -int(offset/2):W]
+        imgdata[int(height_Ha / bin):, 0:W + int(offset / 2)] = imgdata[int(height_Ha / bin):, -int(offset / 2):W]
     else:
-        imgdata[int(height_Ha / bin):, int(offset/2):W] = imgdata[int(height_Ha / bin):, 0:W - int(offset/2)]
+        imgdata[int(height_Ha / bin):, int(offset / 2):W] = imgdata[int(height_Ha / bin):, 0:W - int(offset / 2)]
     return imgdata
 
 

@@ -86,7 +86,6 @@ standard_img = np.array(temp_img[0].data, dtype=float)
 # 先平移矫正 减去暗场 再谱线弯曲矫正
 flat_img = suntools.getFlatOffset(flat_img, standard_img)
 dark_img = suntools.change(dark_img)
-flat_img = suntools.change(flat_img)
 flat_img, temp1, temp2 = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
 flat_img = suntools.getFlat(flat_img)
 
