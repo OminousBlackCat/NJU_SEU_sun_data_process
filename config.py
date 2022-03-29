@@ -32,6 +32,10 @@ multiprocess_count = 'default'
 # 每张太阳像包含多少行(一组数据包含多少文件)(一般不需要改动此参数)
 sun_row_count = 4625
 
+# 是否bin
+# 修改此参数的时候记得修改sun_row_index
+bin_count = 1
+
 # 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
 standard_offset_index = 2313
 
@@ -56,6 +60,7 @@ K = 0.024202301
 
 # 合并图像时所拼的行数
 # 默认为132行（光谱强度最低点）
+# 此参数要伴随bin一起更改
 sum_row_index = 132
 
 # 输出何种类型的图片

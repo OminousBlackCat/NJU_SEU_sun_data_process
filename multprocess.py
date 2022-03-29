@@ -172,7 +172,7 @@ def main():
     N = len(os.listdir(out_dir))
     data = []
     for i in range(int(N / 2 / config.sun_row_count)):
-        data.append(np.zeros((config.sun_row_count, 4608), dtype=np.int16))
+        data.append(np.zeros((config.sun_row_count, standard_img.shape[1]), dtype=np.int16))
     for filename in os.listdir(out_dir):
         image_file = get_pkg_data_filename(out_dir + "/" + filename)
         if filename[-7: -5] != 'HA':
