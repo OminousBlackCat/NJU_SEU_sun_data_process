@@ -11,16 +11,6 @@ import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
 
-
-# 读取数据文件夹所有文件
-def read_fits_directory():
-    arr = []
-    arr = os.listdir(read_dir)
-    if len(arr) == 0:
-        raise OSError
-    return arr
-
-
 # 读入配置文件 引入参数
 read_dir = config.data_dir_path
 out_dir = config.save_dir_path
@@ -30,6 +20,16 @@ if config.multiprocess_count != 'default':
 else:
     multiprocess_count = mp.cpu_count() - 4
 print('多核并行数:' + str(multiprocess_count))
+
+
+# 读取数据文件夹所有文件
+def read_fits_directory():
+    arr = []
+    arr = os.listdir(read_dir)
+    if len(arr) == 0:
+        raise OSError
+    return arr
+
 
 # 此处的数据均未做共享处理，因为共享数据量并不是很大，在LINUX环境下使用multiprocess并fork()将直接复制此些全局变量
 # 预读输入目录
@@ -41,9 +41,9 @@ except OSError:
 print('文件总数为: ' + str(len(data_file_lst)))
 
 # 读取暗场文件
-print("正在读取原始暗场文件")
 temp_img = None
 try:
+    print("正在读取原始暗场文件")
     temp_img = get_pkg_data_filename(config.dark_fits_name)
 except uEr.URLError:
     print("Error: 暗场文件未找到, 请检查config文件或存放目录")
@@ -55,6 +55,7 @@ if temp_img is not None:
 
 # 平场需要以日心图片作为基准进行平移矫正 再进行谱线弯曲矫正
 try:
+    print("正在读取原始平场文件")
     temp_img = get_pkg_data_filename(config.flat_fits_name)
 except uEr.URLError:
     print("Error: 原始平场文件未找到, 请检查config文件或存放目录")
@@ -68,13 +69,15 @@ if temp_img is not None:
 # 寻找符合序号的文件
 standard_name = None
 for fileName in data_file_lst:
-    if int(fileName[13:10]) == config.standard_offset_index:
+    if int(fileName[24:28]) == config.standard_offset_index:
         standard_name = fileName
         break
 try:
-    temp_img = get_pkg_data_filename(standard_name)
+    print("正在读取标准日心文件")
+    temp_img = get_pkg_data_filename(read_dir + '/' + standard_name)
 except uEr.URLError:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
+    sys.exit("程序终止")
 except OSError:
     print("Error: 标准日心校准文件读取发生错误, 请检查文件读取权限")
     sys.exit("程序终止")
@@ -110,6 +113,15 @@ remaining_count = mp.Value('i', 0)
 # 定义target task
 # 传入一个文件名，读取此文件名对应的fits文件并对其做曲线矫正
 def target_task(filename):
+    # 一个标准文件名 如下:
+    # RSM 2021   12     22T060105   -   0008-     0001       .fts
+    # 012 3456   78     901234567   8   90123     4567       8901
+    #     [year] [mon]  [day_seq]       [index]   [position]
+    file_year = filename[3:7]
+    file_mon = filename[7:9]
+    file_day_seq = filename[9:18]
+    file_index = filename[19:23]
+    file_position = filename[24:28]
     filePath = read_dir + "/" + filename
     file_data = get_pkg_data_filename(filePath)
     image_data = np.array(fits.getdata(file_data), dtype=float)
@@ -127,10 +139,16 @@ def target_task(filename):
     image_data = signal.medfilt(image_data, kernel_size=config.filter_kernel_size)
     # 转为整型
     image_data = np.array(image_data, dtype=np.int16)
-    # 存储fits
-    primaryHDU = fits.PrimaryHDU(image_data)
+    # 存储FE窗口的fits文件
+    primaryHDU = fits.PrimaryHDU(image_data[HofH: HofH + HofFe])
     greyHDU = fits.HDUList([primaryHDU])
-    greyHDU.writeto(out_dir + filename)
+    greyHDU.writeto(
+        out_dir + "RSM" + file_year + "-" + file_mon + "-" + file_day_seq + "_" + file_index + "_" + file_position + "_" + "FE.fits")
+    # 存储HA窗口的fits文件
+    primaryHDU = fits.PrimaryHDU(image_data[0: HofH])
+    greyHDU = fits.HDUList([primaryHDU])
+    greyHDU.writeto(
+        out_dir + "RSM" + file_year + "-" + file_mon + "-" + file_day_seq + "_" + file_index + "_" + file_position + "_" + "HA.fits")
     # 进度输出
     remaining_count.value += 1
     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value))
@@ -141,34 +159,48 @@ def main():
     time_start = time.time()
     # 获得文件夹列表 读取相关参数
     # 并行处理
+    print('开启多核并行处理...')
     pool = mp.Pool(processes=multiprocess_count)
     pool.map(target_task, data_file_lst)
     time_end = time.time()
     print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
+
     # 汇总处理结果
+    print("准备写入汇总，生成日像...")
     sum_file_path = config.sum_dir_path
     now = 0
     N = len(os.listdir(out_dir))
-    data = np.zeros((N, 4608), dtype=np.int16)
+    data = []
+    for i in range(int(N / 2 / config.sun_row_count)):
+        data.append(np.zeros((config.sun_row_count, 4608), dtype=np.int16))
     for filename in os.listdir(out_dir):
         image_file = get_pkg_data_filename(out_dir + "/" + filename)
+        if filename[-7: -5] != 'HA':
+            continue
         image_data = fits.getdata(image_file)
         # 选取图像文件名的最后四个字符作为index
-        count = int(filename[-8:-4]) - 1
-        data[count, :] = image_data[config.sum_row_index, :]
+        sun_index = int(filename[-17: -14])
+        count = int(filename[-12: -8]) - 1
+        data[sun_index][count, :] = image_data[config.sum_row_index, :]
         now += 1
         if now >= N:
             break
     # 去除负值
-    data[data < 0] = 0
+    for d in data:
+        d[d < 0] = 0
     if config.save_img_form == 'default':
         # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
-        plt.imsave(sum_file_path + 'sum.png', data, cmap=color_map)
+        for i in range(len(data)):
+            plt.imsave(sum_file_path + 'sum' + str(i) + ".png", data[i], cmap=color_map)
     if config.save_img_form == 'fts':
         # 不对data进行任何操作 直接输出为fts文件
-        primaryHDU = fits.PrimaryHDU(data)
-        greyHDU = fits.HDUList([primaryHDU])
-        greyHDU.writeto(sum_file_path + 'sum.fts')
+        for i in range(len(data)):
+            primaryHDU = fits.PrimaryHDU(data[i])
+            greyHDU = fits.HDUList([primaryHDU])
+            greyHDU.writeto(sum_file_path + 'sum' + str(i) + '.fts')
+
+    # 程序结束
+    print('已完成！')
 
 
 if __name__ == "__main__":

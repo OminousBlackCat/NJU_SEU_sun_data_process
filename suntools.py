@@ -13,9 +13,9 @@ import config
 # 定义参数
 height_Ha = config.height_Ha  # ha窗口的长度
 height_Fe = config.height_Fe  # he窗口的长度
-HA = config.HA   # 红蓝移HA参数
-FE = config.FE   # 红蓝移FE参数
-K = config.K     # 红蓝移K参数
+HA = config.HA  # 红蓝移HA参数
+FE = config.FE  # 红蓝移FE参数
+K = config.K  # 红蓝移K参数
 
 
 # 谱线矫正
@@ -24,29 +24,29 @@ K = config.K     # 红蓝移K参数
 # 参数C: 曲线矫正二次系数
 # 参数bin: 模式参数
 # 输出：矫正后的图像数据
-def curve_correction(imgData, x0, C, bin = 1):
+def curve_correction(imgData, x0, C, bin=1):
     # 获取图片高度和宽度
     H, W = imgData.shape
     x0 = x0 - 1
     # 定义两个窗口的高度 H窗口height_Ha行 Fe窗口height_Fe行
-    bad_Ha = height_Ha/bin
-    bad_Fe = height_Fe/bin
+    bad_Ha = height_Ha / bin
+    bad_Fe = height_Fe / bin
 
     # 进行矫正操作
     # 分两个窗口分别操作
     for x in range(W):
         # 对于H窗口进行操作
         # 计算原坐标经过变换之后对应的坐标
-        stdx = np.arange(0, int(height_Ha/bin), 1)
+        stdx = np.arange(0, int(height_Ha / bin), 1)
         # 先转成波长 根据波长公式进行变换后反变化回坐标
-        stdx = ((stdx * K * bin + HA) / (C * (x - x0/bin) * (x - x0/bin) * bin * bin + 1) - HA) / K / bin
+        stdx = ((stdx * K * bin + HA) / (C * (x - x0 / bin) * (x - x0 / bin) * bin * bin + 1) - HA) / K / bin
         # 获取原数据值
         stdy = imgData[:, x]
         # 确定插值的坐标
         now = 1
-        for y in range(int(height_Ha/bin)):
+        for y in range(int(height_Ha / bin)):
             # 移动到第一个大于该坐标的地方
-            while now < int(height_Ha/bin) - 1 and stdx[now] < y:
+            while now < int(height_Ha / bin) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now]:
@@ -60,33 +60,34 @@ def curve_correction(imgData, x0, C, bin = 1):
 
         # 对于Fe窗口进行操作
         # 计算原坐标经过变换之后对应的坐标
-        stdx = np.arange(0, int(height_Fe/bin), 1)
+        stdx = np.arange(0, int(height_Fe / bin), 1)
         # 先转成波长 根据波长公式进行变换后反变化回坐标
-        stdx = ((stdx * K * bin + FE) / (C * (x - x0/bin) * (x - x0/bin) * bin * bin + 1) - FE) / K / bin
+        stdx = ((stdx * K * bin + FE) / (C * (x - x0 / bin) * (x - x0 / bin) * bin * bin + 1) - FE) / K / bin
         # 获取原数据值
-        stdy = imgData[int(height_Ha/bin):int(height_Fe/bin) + int(height_Ha/bin), x]
+        stdy = imgData[int(height_Ha / bin):int(height_Fe / bin) + int(height_Ha / bin), x]
         # 确定插值的坐标
         now = 1
-        for y in range(int(height_Fe/bin)):
+        for y in range(int(height_Fe / bin)):
             # 移动到第一个大于该坐标的地方
-            while now < int(height_Fe/bin) - 1 and stdx[now] < y:
+            while now < int(height_Fe / bin) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now]:
-                imgData[y + int(height_Ha/bin)][x] = stdx[now]
+                imgData[y + int(height_Ha / bin)][x] = stdx[now]
                 if y < bad_Fe:
                     bad_Fe = y
             else:
                 # 计算插值
-                imgData[y + int(height_Ha/bin)][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (
-                            stdx[now] - stdx[now - 1]) * (
-                                                    y - stdx[now - 1])
-    if bad_Ha < int(height_Ha/bin) - int(29/bin):
-        bad_Ha = int(height_Ha/bin) - int(29/bin)
-    if bad_Fe < int(height_Fe/bin) - int(29/bin):
-        bad_Fe = int(height_Fe/bin) - int(29/bin)
+                imgData[y + int(height_Ha / bin)][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (
+                        stdx[now] - stdx[now - 1]) * (
+                                                               y - stdx[now - 1])
+    if bad_Ha < int(height_Ha / bin) - int(29 / bin):
+        bad_Ha = int(height_Ha / bin) - int(29 / bin)
+    if bad_Fe < int(height_Fe / bin) - int(29 / bin):
+        bad_Fe = int(height_Fe / bin) - int(29 / bin)
     # 删除坏行 并输出两窗口最后的行数
-    imgData[bad_Ha:bad_Ha + int(height_Fe/bin)] = imgData[int(height_Ha/bin):int(height_Fe/bin) + int(height_Ha/bin)]
+    imgData[bad_Ha:bad_Ha + int(height_Fe / bin)] = imgData[
+                                                    int(height_Ha / bin):int(height_Fe / bin) + int(height_Ha / bin)]
     return imgData[0:bad_Ha + bad_Fe], bad_Ha, bad_Fe
 
 
@@ -145,7 +146,7 @@ def get_Sunstd(filepath):
 
 # 红蓝移矫正
 # 参数bin: 模式参数
-def RB_getdata(imgData, sun_std, HofHa, HofFe, bin = 1):
+def RB_getdata(imgData, sun_std, HofHa, HofFe, bin=1):
     temp_std = np.array(sun_std)
     ans = np.zeros(HofHa + HofFe)
     # 获取图片尺寸
@@ -258,12 +259,12 @@ def getFlatOffset(flatData, imgData):
 
 
 # 对图像进行横向上的平移
-def moveImg(imgdata, offset, bin = 1):
+def moveImg(imgdata, offset, bin=1):
     H, W = imgdata.shape
     if offset < 0:
-        imgdata[int(height_Ha/bin):, 0:W + offset] = imgdata[int(height_Ha/bin):, -offset:W]
+        imgdata[int(height_Ha / bin):, 0:W + offset] = imgdata[int(height_Ha / bin):, -offset:W]
     else:
-        imgdata[int(height_Ha/bin):, offset:W] = imgdata[int(height_Ha/bin):, 0:W - offset]
+        imgdata[int(height_Ha / bin):, offset:W] = imgdata[int(height_Ha / bin):, 0:W - offset]
     return imgdata
 
 
@@ -282,30 +283,34 @@ def get_color_map(fname):
     clrmap = matplotlib.colors.LinearSegmentedColormap.from_list("mycmap", colors)
     return clrmap
 
-def change(img,bin = 1):
-    if bin==1:
+
+def change(img, bin=1):
+    if bin == 1:
         return img
     H, W = img.shape
-    ans= np.zeros([int(H/2),int(W/2)])
-    for i in range(int(H/2)):
-        for j in range(int(W/2)):
-            ans[i][j] = (img[i*2][j*2] + img[i*2+1][j*2] + img[i*2][j*2+1] + img[i*2+1][j*2+1])/4
+    ans = np.zeros([int(H / 2), int(W / 2)])
+    for i in range(int(H / 2)):
+        for j in range(int(W / 2)):
+            ans[i][j] = (img[i * 2][j * 2] + img[i * 2 + 1][j * 2] + img[i * 2][j * 2 + 1] + img[i * 2 + 1][
+                j * 2 + 1]) / 4
     return ans
+
 
 def getBin(imgData):
     H, W = imgData.shape
     print(H, W, height_Ha + height_Fe)
-    if H >= height_Ha+height_Fe:
+    if H >= height_Ha + height_Fe:
         return 1
     return 2
+
 
 def entireWork(filename, darkDate, flatData, abortion):
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     imgData = change(imgData, bin=1)
     bin = getBin(imgData)
-    imgData = moveImg(imgData, int(-2/bin),bin = bin)
-    imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011,bin = bin)
+    imgData = moveImg(imgData, int(-2 / bin), bin=bin)
+    imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011, bin=bin)
 
     # print(HofHa, HofFe)
     imgData = DivFlat(imgData, flatData)
@@ -343,26 +348,23 @@ if __name__ == "__main__":
     flat_data = change(flat_data, bin=bin)
     dark_data = change(dark_data, bin=bin)
     flat_data = getFlatOffset(flat_data, img_data)
-    flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011, bin = bin)
+    flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011, bin=bin)
     # print(flat_data)
     flat_data = getFlat(flat_data)
-
-
-
 
     filename = filepath_test + filelist[2314]
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     imgData = change(imgData, bin=1)
-    imgData = moveImg(imgData, -1,  bin = 1)
-    imgData, HofHa, HofFe = curve_correction(imgData - dark_data, 2321.26, 1.92909e-011, bin = 1)
+    imgData = moveImg(imgData, -1, bin=1)
+    imgData, HofHa, HofFe = curve_correction(imgData - dark_data, 2321.26, 1.92909e-011, bin=1)
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
     # print(HofHa, HofFe)
     imgData = DivFlat(imgData, flat_data)
     base = get_Sunstd(filepath_bash)
-    abortion = RB_getdata(imgData, base, HofHa, HofFe,  bin = 1)
+    abortion = RB_getdata(imgData, base, HofHa, HofFe, bin=1)
 
     # filelist = os.listdir(filepath_test)
     image_file, imgData = entireWork(filepath_test + filelist[1631], dark_data, flat_data, abortion)

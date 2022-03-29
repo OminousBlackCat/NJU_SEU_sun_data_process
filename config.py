@@ -29,11 +29,11 @@ color_camp_name = 'data/color_map.txt'
 # 默认使用可支配核数-4的并行数量
 multiprocess_count = 'default'
 
-# 读入的日心数据(矫正平场时需要)序号(*******不要使用引号引起来*******)
-standard_offset_index = 2313
+# 每张太阳像包含多少行(一组数据包含多少文件)(一般不需要改动此参数)
+sun_row_count = 4625
 
-# binnning参数
-bin_size = 1
+# 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
+standard_offset_index = 2313
 
 # 谱线弯曲矫正参数
 # 谱线弯曲矫正x0 参数
