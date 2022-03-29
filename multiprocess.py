@@ -4,7 +4,7 @@ import sys
 import suntools
 import time
 import numpy as np
-from astropy.utils.data import get_pkg_data_fileobj
+from astropy.io import fits
 from astropy.io import fits
 import scipy.signal as signal
 import urllib.error as uEr
@@ -44,26 +44,26 @@ print('文件总数为: ' + str(len(data_file_lst)))
 temp_img = None
 try:
     print("正在读取原始暗场文件")
-    temp_img = get_pkg_data_fileobj(config.dark_fits_name)
+    temp_img = fits.open(config.dark_fits_name)
 except uEr.URLError:
     print("Error: 暗场文件未找到, 请检查config文件或存放目录")
 except OSError:
     print("Error: 暗场文件读取发生错误, 请检查文件读取权限")
     sys.exit("程序终止")
 if temp_img is not None:
-    dark_img = np.array(fits.getdata(temp_img), dtype=float)
+    dark_img = np.array(temp_img[0].data, dtype=float)
 
 # 平场需要以日心图片作为基准进行平移矫正 再进行谱线弯曲矫正
 try:
     print("正在读取原始平场文件")
-    temp_img = get_pkg_data_fileobj(config.flat_fits_name)
+    temp_img = fits.open(config.flat_fits_name)
 except uEr.URLError:
     print("Error: 原始平场文件未找到, 请检查config文件或存放目录")
 except OSError:
     print("Error: 原始平场文件读取发生错误, 请检查文件读取权限")
     sys.exit("程序终止")
 if temp_img is not None:
-    flat_img = np.array(fits.getdata(temp_img), dtype=float)
+    flat_img = np.array(temp_img[0].data, dtype=float)
 
 # 读取经过日心的图片 作为基准
 # 寻找符合序号的文件
@@ -74,17 +74,19 @@ for fileName in data_file_lst:
         break
 try:
     print("正在读取标准日心文件")
-    temp_img = get_pkg_data_fileobj(read_dir + '/' + standard_name)
+    temp_img = fits.open(read_dir + '/' + standard_name)
 except uEr.URLError:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
 except OSError:
     print("Error: 标准日心校准文件读取发生错误, 请检查文件读取权限")
     sys.exit("程序终止")
-standard_img = np.array(fits.getdata(temp_img), dtype=float)
+standard_img = np.array(temp_img[0].data, dtype=float)
 
 # 先平移矫正 减去暗场 再谱线弯曲矫正
 flat_img = suntools.getFlatOffset(flat_img, standard_img)
+dark_img = suntools.change(dark_img)
+flat_img = suntools.change(flat_img)
 flat_img, temp1, temp2 = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
 flat_img = suntools.getFlat(flat_img)
 
@@ -123,8 +125,8 @@ def target_task(filename):
     file_index = filename[19:23]
     file_position = filename[24:28]
     filePath = read_dir + "/" + filename
-    file_data = get_pkg_data_fileobj(filePath)
-    image_data = np.array(fits.getdata(file_data), dtype=float)
+    file_data = fits.open(filePath)
+    image_data = np.array(file_data[0].data, dtype=float)
     # 对fe窗口进行平移
     image_data = suntools.moveImg(image_data, -2)
     # 去暗场
@@ -174,10 +176,10 @@ def main():
     for i in range(int(N / 2 / config.sun_row_count)):
         data.append(np.zeros((config.sun_row_count, standard_img.shape[1]), dtype=np.int16))
     for filename in os.listdir(out_dir):
-        image_file = get_pkg_data_fileobj(out_dir + "/" + filename)
+        image_file = fits.open(out_dir + "/" + filename)
         if filename[-7: -5] != 'HA':
             continue
-        image_data = fits.getdata(image_file)
+        image_data = image_file[0].data
         # 选取图像文件名的最后四个字符作为index
         sun_index = int(filename[-17: -14])
         count = int(filename[-12: -8]) - 1
