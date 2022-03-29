@@ -34,7 +34,7 @@ sun_row_count = 4625
 
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
-bin_count = 1
+bin_count = 2
 
 # 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
 standard_offset_index = 2313
