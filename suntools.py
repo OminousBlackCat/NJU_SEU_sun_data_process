@@ -262,9 +262,9 @@ def getFlatOffset(flatData, imgData):
 def moveImg(imgdata, offset, bin=1):
     H, W = imgdata.shape
     if offset < 0:
-        imgdata[int(height_Ha / bin):, 0:W + offset] = imgdata[int(height_Ha / bin):, -offset:W]
+        imgdata[int(height_Ha / bin):, 0:W + int(offset/2)] = imgdata[int(height_Ha / bin):, -int(offset/2):W]
     else:
-        imgdata[int(height_Ha / bin):, offset:W] = imgdata[int(height_Ha / bin):, 0:W - offset]
+        imgdata[int(height_Ha / bin):, int(offset/2):W] = imgdata[int(height_Ha / bin):, 0:W - int(offset/2)]
     return imgdata
 
 
