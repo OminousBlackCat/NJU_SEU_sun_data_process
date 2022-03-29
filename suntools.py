@@ -39,7 +39,7 @@ def curve_correction(imgData, x0, C, bin = 1):
         # 计算原坐标经过变换之后对应的坐标
         stdx = np.arange(0, int(height_Ha/bin), 1)
         # 先转成波长 根据波长公式进行变换后反变化回坐标
-        stdx = ((stdx * K * bin + HA) / (C * (x - x0) * (x - x0) + 1) - HA) / K / bin
+        stdx = ((stdx * K * bin + HA) / (C * (x - x0/bin) * (x - x0/bin) * bin * bin + 1) - HA) / K / bin
         # 获取原数据值
         stdy = imgData[:, x]
         # 确定插值的坐标
@@ -62,7 +62,7 @@ def curve_correction(imgData, x0, C, bin = 1):
         # 计算原坐标经过变换之后对应的坐标
         stdx = np.arange(0, int(height_Fe/bin), 1)
         # 先转成波长 根据波长公式进行变换后反变化回坐标
-        stdx = ((stdx * K * bin + FE) / (C * (x - x0) * (x - x0) + 1) - FE) / K / bin
+        stdx = ((stdx * K * bin + FE) / (C * (x - x0/bin) * (x - x0/bin) * bin * bin + 1) - FE) / K / bin
         # 获取原数据值
         stdy = imgData[int(height_Ha/bin):int(height_Fe/bin) + int(height_Ha/bin), x]
         # 确定插值的坐标
@@ -147,6 +147,7 @@ def get_Sunstd(filepath):
 # 参数bin: 模式参数
 def RB_getdata(imgData, sun_std, HofHa, HofFe, bin = 1):
     temp_std = np.array(sun_std)
+    ans = np.zeros(HofHa + HofFe)
     # 获取图片尺寸
     H, W = imgData.shape
     # 获取波长强度和
@@ -155,13 +156,16 @@ def RB_getdata(imgData, sun_std, HofHa, HofFe, bin = 1):
     # print(np.max(sun_image))
     sun_image /= np.max(sun_image)
     # 提取所需要的对应数据
-    # temp_std[HofHa:HofHa + HofFe] = temp_std[height_Ha:height_Ha + HofFe]
+    for i in range(HofHa):
+        ans[i] = temp_std[i * bin]
+    for i in range(HofFe):
+        ans[HofHa + i] = temp_std[i * bin + height_Ha]
     stdx = np.zeros(H)
     # 坐标转化为波长
     stdx[0:HofHa] = np.arange(0, HofHa, 1) * K * bin + HA
     stdx[HofHa:] = np.arange(0, HofFe, 1) * K * bin + FE
     # 拟合一次函数
-    cov = np.polyfit(stdx, sun_image / temp_std[0:H], 1)
+    cov = np.polyfit(stdx, sun_image / ans[0:H], 1)
     k, b = cov[0], cov[1]
     # 红蓝翼矫正
     RB_absorb = np.zeros(H)
@@ -281,15 +285,16 @@ def get_color_map(fname):
 def change(img,bin = 1):
     if bin==1:
         return img
-    H, W = imgData.shape
-    ans= np.zeros((H,W))
+    H, W = img.shape
+    ans= np.zeros([int(H/2),int(W/2)])
     for i in range(int(H/2)):
         for j in range(int(W/2)):
-            ans[i][j] = ans[i*2][j*2] + ans[i*2+1][j*2] + ans[i*2][j*2+1] + ans[i*2+1][j*2+1]
+            ans[i][j] = (img[i*2][j*2] + img[i*2+1][j*2] + img[i*2][j*2+1] + img[i*2+1][j*2+1])/4
     return ans
 
 def getBin(imgData):
     H, W = imgData.shape
+    print(H, W, height_Ha + height_Fe)
     if H >= height_Ha+height_Fe:
         return 1
     return 2
@@ -297,11 +302,14 @@ def getBin(imgData):
 def entireWork(filename, darkDate, flatData, abortion):
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
+    imgData = change(imgData, bin=1)
     bin = getBin(imgData)
-    imgData = moveImg(imgData, -2,bin = bin)
+    imgData = moveImg(imgData, int(-2/bin),bin = bin)
     imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011,bin = bin)
+
     # print(HofHa, HofFe)
     imgData = DivFlat(imgData, flatData)
+
     plt.figure()
     plt.plot(imgData[:, 2200].reshape(-1))
     imgDataRB = RB_repair(imgData, abortion)
@@ -317,7 +325,6 @@ if __name__ == "__main__":
     filepath_test = "testData/"
     filepath_bash = "bass2000.txt"
 
-    base = get_Sunstd(filepath_bash)
     # print(base)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     dark_data = np.array(fits.getdata(image_file), dtype=float)
@@ -326,29 +333,36 @@ if __name__ == "__main__":
     flat_data = np.array(fits.getdata(image_file), dtype=float)
 
     H, W = flat_data.shape
-    # print(H,W)
     filelist = os.listdir(filepath_test)
     image_file = get_pkg_data_filename(filepath_test + filelist[2314])
     img_data = np.array(fits.getdata(image_file), dtype=float)
+    img_data = change(img_data, bin=1)
     bin = getBin(img_data)
+    print(bin)
+
     flat_data = change(flat_data, bin=bin)
+    dark_data = change(dark_data, bin=bin)
     flat_data = getFlatOffset(flat_data, img_data)
     flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011, bin = bin)
     # print(flat_data)
     flat_data = getFlat(flat_data)
 
 
-    dark_data = change(dark_data,bin = bin)
 
 
     filename = filepath_test + filelist[2314]
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
-    imgData = moveImg(imgData, -2,  bin = bin)
-    imgData, HofHa, HofFe = curve_correction(imgData - dark_data, 2321.26, 1.92909e-011, bin = bin)
+    imgData = change(imgData, bin=1)
+    imgData = moveImg(imgData, -1,  bin = 1)
+    imgData, HofHa, HofFe = curve_correction(imgData - dark_data, 2321.26, 1.92909e-011, bin = 1)
+    plt.figure()
+    plt.imshow(imgData, cmap="gray", aspect='auto')
+    plt.show()
     # print(HofHa, HofFe)
     imgData = DivFlat(imgData, flat_data)
-    abortion = RB_getdata(imgData, base, HofHa, HofFe,  bin = bin)
+    base = get_Sunstd(filepath_bash)
+    abortion = RB_getdata(imgData, base, HofHa, HofFe,  bin = 1)
 
     # filelist = os.listdir(filepath_test)
     image_file, imgData = entireWork(filepath_test + filelist[1631], dark_data, flat_data, abortion)
