@@ -152,29 +152,34 @@ def target_task(filename):
         out_dir + "RSM" + file_year + "-" + file_mon + "-" + file_day_seq + "_" + file_index + "_" + file_position + "_" + "HA.fits")
     # 进度输出
     remaining_count.value += 1
+    greyHDU.close()
+    file_data.close()
     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value))
 
 
 def main():
     # 测试消耗时间 时间起点
-    time_start = time.time()
-    # 获得文件夹列表 读取相关参数
-    # 并行处理
-    print('开启多核并行处理...')
-    pool = mp.Pool(processes=multiprocess_count)
-    pool.map(target_task, data_file_lst)
-    time_end = time.time()
-    print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
+    # time_start = time.time()
+    # # 获得文件夹列表 读取相关参数
+    # # 并行处理
+    # print('开启多核并行处理...')
+    # pool = mp.Pool(processes=multiprocess_count)
+    # pool.map(target_task, data_file_lst)
+    # time_end = time.time()
+    # print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
 
     # 汇总处理结果
     print("准备写入汇总，生成日像...")
     sum_file_path = config.sum_dir_path
     now = 0
-    N = len(os.listdir(out_dir))
+    file_list = os.listdir(out_dir)
+    N = len(file_list)
     data = []
-    for i in range(int(N / 2 / config.sun_row_count)):
+    for i in range(round(N / 2 / config.sun_row_count)):
         data.append(np.zeros((config.sun_row_count, standard_img.shape[1]), dtype=np.int16))
-    for filename in os.listdir(out_dir):
+    for i in range(N):
+        filename = file_list[i]
+        print('生成的文件总数为:' + str(N) + '/' + '当前读取文件序号:' + str(i))
         image_file = fits.open(out_dir + "/" + filename)
         if filename[-7: -5] != 'HA':
             continue
@@ -183,19 +188,19 @@ def main():
         sun_index = int(filename[-17: -14])
         count = int(filename[-12: -8]) - 1
         data[sun_index][count, :] = image_data[config.sum_row_index, :]
-        now += 1
-        if now >= N:
-            break
+        image_file.close()
     # 去除负值
     for d in data:
         d[d < 0] = 0
     if config.save_img_form == 'default':
         # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
         for i in range(len(data)):
+            print('输出png...')
             plt.imsave(sum_file_path + 'sum' + str(i) + ".png", data[i], cmap=color_map)
     if config.save_img_form == 'fts':
         # 不对data进行任何操作 直接输出为fts文件
         for i in range(len(data)):
+            print('输出fits...')
             primaryHDU = fits.PrimaryHDU(data[i])
             greyHDU = fits.HDUList([primaryHDU])
             greyHDU.writeto(sum_file_path + 'sum' + str(i) + '.fts')
