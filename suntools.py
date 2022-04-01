@@ -210,7 +210,7 @@ def MeanSmooth(imgData, winSize=4):
 
 
 def DivFlat(imgData, flatData):
-    return imgData / np.clip(flatData, 5e-5, 200)
+    return imgData / np.clip(flatData, 0.1, 200)
 
 
 # 图像中值平滑操作
@@ -218,6 +218,16 @@ def DivFlat(imgData, flatData):
 def MedSmooth(imgData, winSize=4):
     imgData = signal.medfilt(imgData, kernel_size=int(winSize / 2) * 2 + 1)
     return imgData
+
+def amplify(Data):
+    H, W = Data.shape
+    amplify_size = 10
+    Data1 = np.zeros((H,(W-1)*amplify_size+1))
+    for j in range(W-1):
+        for k in range(amplify_size):
+            Data1[:,j*amplify_size+k] = Data[:,j]*(1 - k/amplify_size) + Data[:,j + 1]*(k/amplify_size)
+    Data1[:, (W-1)*amplify_size] = Data[:,W - 1]
+    return Data1
 
 
 # 计算偏差
@@ -229,33 +239,45 @@ def getFlatOffset(flatData, imgData):
     cx = int(H / 2)
     cy = int(W / 2)
     # 获取序列
-    img = imgData[cx - int(H / 8):cx + int(H / 8), cy - int(W / 8):cy + int(W / 8)]
-    flat = flatData[cx - int(H / 8):cx + int(H / 8), cy - int(W / 8):cy + int(W / 8)]
-
+    # img = imgData[cx :cx + int(H / 4), cy - int(W / 8):cy + int(W / 8)]
+    # flat = flatData[cx :cx + int(H / 4), cy - int(W / 8):cy + int(W / 8)]
+    img = imgData[HofHa - int(H / 8):HofHa + int(H / 8), cy - int(W / 8):cy + int(W / 8) + 1]
+    flat = flatData[HofHa - int(H / 8):HofHa + int(H / 8), cy - int(W / 8):cy + int(W / 8) + 1]
+    img = amplify(img)
+    flat = amplify(flat)
     # FFT变化
     imgFFT = np.fft.fft2(img)
     flatFFT = np.fft.fft2(flat)
 
+    # plt.figure()
+    # plt.plot(img[50, :].reshape(-1))
+    # plt.plot(flat[50, :].reshape(-1))
+    # plt.show()
+    print(np.unravel_index(np.argmax(np.abs(img[10, :650])), img[10, :650].shape))
+    print(np.unravel_index(np.argmax(np.abs(flat[10, :650])), flat[10, :650].shape))
     # IFFT
     FR = imgFFT * np.conj(flatFFT)
     R = np.fft.ifft2(FR)
     R = np.fft.fftshift(R)
+    h,w = img.shape
     # plt.figure()
     # plt.imshow(np.abs(R), cmap="gray", aspect='auto')
     # plt.show()
 
     # 获取最大值坐标
     pos = np.unravel_index(np.argmax(np.abs(R)), R.shape)
+    print(pos)
     # 计算偏移量
-    mx = pos[1] - int(W / 8)
-    print(mx)
+    mx = int((pos[1] - int((w+1) / 2))/10)
+    my = (pos[1] - int((w+1) / 2)) - mx * 10
+    print(mx,my)
 
     # 偏移操作
     if mx < 0:
-        flatData[:, 0:W + mx] = flatData[:, -mx:W]
+        my *= -1
+        flatData[:, 0:W + mx - 1] = flatData[:, -mx:W - 1]*(1 - my/10) + flatData[:, -mx + 1:W]*(my/10)
     else:
-        flatData[:, mx:W] = flatData[:, 0:W - mx]
-
+        flatData[:, mx:W] = flatData[:, 0:W - mx]*(1 - my/10) + flatData[:, 1:W - mx + 1]*my/10
     return flatData
 
 
@@ -263,9 +285,9 @@ def getFlatOffset(flatData, imgData):
 def moveImg(imgdata, offset):
     H, W = imgdata.shape
     if offset < 0:
-        imgdata[int(height_Ha / bin):, 0:W + int(offset / 2)] = imgdata[int(height_Ha / bin):, -int(offset / 2):W]
+        imgdata[int(height_Ha / bin) + 1:, 0:W + int(offset / bin)] = imgdata[int(height_Ha / bin) + 1:, -int(offset / bin):W]
     else:
-        imgdata[int(height_Ha / bin):, int(offset / 2):W] = imgdata[int(height_Ha / bin):, 0:W - int(offset / 2)]
+        imgdata[int(height_Ha / bin) + 1:, int(offset / bin):W] = imgdata[int(height_Ha / bin) + 1:, 0:W - int(offset / bin)]
     return imgdata
 
 
@@ -310,13 +332,17 @@ def entireWork(filename, darkDate, flatData, abortion):
     imgData = np.array(fits.getdata(image_file), dtype=float)
     imgData = change(imgData)
     bin = getBin(imgData)
-    imgData = moveImg(imgData, int(-2 / bin))
+    imgData = moveImg(imgData, -2 )
     imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011)
-
+    plt.figure()
+    plt.imshow(imgData, cmap="gray", aspect='auto')
+    plt.show()
     # print(HofHa, HofFe)
     imgData = DivFlat(imgData, flatData)
-
-    plt.figure()
+    # plt.figure()
+    # plt.imshow(imgData, cmap="gray", aspect='auto')
+    # plt.show()
+    # plt.figure()
     plt.plot(imgData[:, 2200].reshape(-1))
     imgDataRB = RB_repair(imgData, abortion)
     imgDataRB = MedSmooth(imgDataRB, 3)
@@ -337,27 +363,28 @@ if __name__ == "__main__":
 
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
-
+#RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
     H, W = flat_data.shape
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + filelist[2314])
+    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T215555-0013-2367-测试.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
     img_data = change(img_data)
     # bin = getBin(img_data)
     print(bin)
-
+    img_data = moveImg(img_data, -2)
     flat_data = change(flat_data)
     dark_data = change(dark_data)
-    flat_data = getFlatOffset(flat_data, img_data)
     flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
+    img_data, HofHa, HofFe = curve_correction(img_data - dark_data, 2321.26, 1.92909e-011)
+    flat_data = getFlatOffset(flat_data, img_data)
     # print(flat_data)
     flat_data = getFlat(flat_data)
 
-    filename = filepath_test + filelist[2314]
+    filename = filepath_test + 'RSM20211222T215555-0013-2367-测试.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     imgData = change(imgData)
-    imgData = moveImg(imgData, -1)
+    imgData = moveImg(imgData, -2)
     imgData, HofHa, HofFe = curve_correction(imgData - dark_data, 2321.26, 1.92909e-011)
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
@@ -367,38 +394,15 @@ if __name__ == "__main__":
     base = get_Sunstd(filepath_bash)
     abortion = RB_getdata(imgData, base, HofHa, HofFe)
 
+    plt.figure()
+    plt.imshow(flat_data, cmap="gray", aspect='auto')
+    plt.show()
+
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + filelist[1631], dark_data, flat_data, abortion)
-    # flat_data = np.zeros(dark_data.shape)
-    # for i in range (200):
-    #     image_file = get_pkg_data_filename(filepath_test + filelist[2712+i])
-    #     flat_data += np.array(fits.getdata(image_file), dtype=float)
-    # data = curve_correction(flat_data/400 - dark_data, 2321.26, 1.92909e-011)
-    # data = smooth(data)
-    # plt.figure()
-    # plt.imshow(flat_data, cmap="gray", aspect='auto')
-    # plt.show()
-    # data, H, F = curve_correction(flat_data, 2321.26, 1.92909e-011)
-    # plt.figure()
-    # plt.imshow(data, cmap="gray",aspect='auto')
-    # plt.show()
-    # data = getFlat(data)
-    # plt.figure()
-    # plt.imshow(data, cmap="gray",aspect='auto')
-    # plt.show()
-    # print("Ping is over")
-    # time_start = time.time()
-    # image_file = entireWork(filepath_test + filelist[3000], dark_data, data, base)
-
-    # time_end = time.time()
-    # print(time_end - time_start)
-
-    # plt.figure()
-    # plt.plot(image_file[:,2200].reshape(-1))
-    # plt.show()
-
+    image_file, imgData = entireWork(filepath_test + 'RSM20211222T215555-0013-2367-测试.fts', dark_data, flat_data, abortion)
+    #
     plt.figure()
     plt.imshow(image_file, cmap="gray", aspect='auto')
     plt.show()
 
-    grey = fits.PrimaryHDU(image_file)
+    # grey = fits.PrimaryHDU(image_file)
