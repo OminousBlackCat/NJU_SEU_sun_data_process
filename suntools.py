@@ -241,8 +241,8 @@ def getFlatOffset(flatData, imgData):
     # 获取序列
     # img = imgData[cx :cx + int(H / 4), cy - int(W / 8):cy + int(W / 8)]
     # flat = flatData[cx :cx + int(H / 4), cy - int(W / 8):cy + int(W / 8)]
-    img = imgData[HofHa - int(H / 8):HofHa, cy - int(W / 8):cy + int(W / 8) + 1]
-    flat = flatData[HofHa - int(H / 8):HofHa, cy - int(W / 8):cy + int(W / 8) + 1]
+    img = imgData[HofHa - int(H / 8):HofHa + int(H / 8), cy - int(W / 8):cy + int(W / 8) + 1]
+    flat = flatData[HofHa - int(H / 8):HofHa + int(H / 8), cy - int(W / 8):cy + int(W / 8) + 1]
     img = amplify(img)
     flat = amplify(flat)
     # FFT变化
@@ -285,9 +285,9 @@ def getFlatOffset(flatData, imgData):
 def moveImg(imgdata, offset):
     H, W = imgdata.shape
     if offset < 0:
-        imgdata[int(height_Ha / bin):, 0:W + int(offset / 2)] = imgdata[int(height_Ha / bin):, -int(offset / 2):W]
+        imgdata[int(height_Ha / bin) + 1:, 0:W + int(offset / bin)] = imgdata[int(height_Ha / bin) + 1:, -int(offset / bin):W]
     else:
-        imgdata[int(height_Ha / bin):, int(offset / 2):W] = imgdata[int(height_Ha / bin):, 0:W - int(offset / 2)]
+        imgdata[int(height_Ha / bin) + 1:, int(offset / bin):W] = imgdata[int(height_Ha / bin) + 1:, 0:W - int(offset / bin)]
     return imgdata
 
 
@@ -332,7 +332,7 @@ def entireWork(filename, darkDate, flatData, abortion):
     imgData = np.array(fits.getdata(image_file), dtype=float)
     imgData = change(imgData)
     bin = getBin(imgData)
-    imgData = moveImg(imgData, int(-1 / bin))
+    imgData = moveImg(imgData, -2 )
     imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011)
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
@@ -371,7 +371,7 @@ if __name__ == "__main__":
     img_data = change(img_data)
     # bin = getBin(img_data)
     print(bin)
-    img_data = moveImg(img_data, -1)
+    img_data = moveImg(img_data, -2)
     flat_data = change(flat_data)
     dark_data = change(dark_data)
     flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
@@ -384,7 +384,7 @@ if __name__ == "__main__":
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     imgData = change(imgData)
-    imgData = moveImg(imgData, -1)
+    imgData = moveImg(imgData, -2)
     imgData, HofHa, HofFe = curve_correction(imgData - dark_data, 2321.26, 1.92909e-011)
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
