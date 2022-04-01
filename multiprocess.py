@@ -54,6 +54,7 @@ except OSError:
 if temp_img is not None:
     dark_img = np.array(temp_img[0].data, dtype=float)
     dark_img = suntools.change(dark_img)
+temp_img.close()
 
 # 平场需要以日心图片作为基准进行平移矫正 再进行谱线弯曲矫正
 flat_img = None
@@ -68,6 +69,7 @@ except OSError:
     sys.exit("程序终止")
 if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
+temp_img.close()
 
 # 读取经过日心的图片 作为基准
 # 创建一个list 获取每个序列的基准 并以此基准获得矫正后的平场与吸收系数
@@ -86,18 +88,18 @@ try:
         print("矫正平场中...")
         temp_img = fits.open(read_dir + '/' + standard_name)
         standard_img = np.array(temp_img[0].data, dtype=float)
+        standard_img = suntools.moveImg(standard_img, -2)
+        standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
+                                                               config.curve_cor_C)
         # 先平移矫正 减去暗场 再谱线弯曲矫正
-        flatTemp = suntools.getFlatOffset(flat_img, standard_img)
         flatTemp, temp1, temp2 = suntools.curve_correction(flatTemp - dark_img, config.curve_cor_x0, config.curve_cor_C)
+        flatTemp = suntools.getFlatOffset(flat_img, standard_img)
         flatTemp = suntools.getFlat(flatTemp)
         print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
         print("获得标准太阳光谱数据中...")
         # 以标准文件作为基准 计算红蓝移吸收系数
         # 需要先对标注文件进行一系列操作 去暗场 去平场 再进行红蓝移修正
-        standard_img = suntools.moveImg(standard_img, -2)
-        standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
-                                                               config.curve_cor_C)
-        standard_img = suntools.DivFlat(standard_img, flat_img)
+        standard_img = suntools.DivFlat(standard_img, flatTemp)
         # 获得标准吸收系数
         abortion = suntools.RB_getdata(standard_img, sun_std, temp1, temp2)
         flat_abortion_list.append({
@@ -105,6 +107,7 @@ try:
             'flatData': flatTemp,
             'abortionData': abortion
         })
+        temp_img.close()
 except uEr.URLError:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")

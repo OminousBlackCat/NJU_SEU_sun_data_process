@@ -210,7 +210,7 @@ def MeanSmooth(imgData, winSize=4):
 
 
 def DivFlat(imgData, flatData):
-    return imgData / np.clip(flatData, 0.1, 200)
+    return imgData / np.clip(flatData, 0.01, 200)
 
 
 # 图像中值平滑操作
