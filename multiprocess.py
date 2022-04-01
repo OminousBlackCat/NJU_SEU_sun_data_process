@@ -182,7 +182,7 @@ def target_task(filename):
     greyHDU.close()
     file_data.close()
     file_data = None
-    print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value))
+    print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
 
 
 def main():
@@ -194,7 +194,7 @@ def main():
     pool = mp.Pool(processes=multiprocess_count)
     pool.map(target_task, data_file_lst)
     time_end = time.time()
-    print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
+    print('\n并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
 
     # 汇总处理结果
     print("准备写入汇总，生成日像...")
@@ -204,7 +204,7 @@ def main():
     data = []
     for i in range(N):
         filename = file_list[i]
-        print('生成的文件总数为:' + str(N) + '/' + '当前读取文件序号:' + str(i))
+        print('\b' * (9 + len(str(N)) + 1 + 9 + len(str(i))) + '生成的文件总数为:' + str(N) + '/' + '当前读取文件序号:' + str(i), end='')
         image_file = fits.open(out_dir + "/" + filename)
         if filename[-7: -5] != 'HA':
             continue
