@@ -11,13 +11,15 @@ import scipy.signal as signal
 import config
 
 # 定义参数
+bin = config.bin_count
 height_Ha = config.height_Ha  # ha窗口的长度
 height_Fe = config.height_Fe  # he窗口的长度
 HA = config.HA  # 红蓝移HA参数
 FE = config.FE  # 红蓝移FE参数
 K = config.K  # 红蓝移K参数
-bin = config.bin_count
-
+K = K * bin
+x0 = config.curve_cor_x0
+C = config.curve_cor_C
 
 # 谱线矫正
 # 参数data: 图像数据(numpy标准格式, 二维数组)
@@ -40,7 +42,7 @@ def curve_correction(imgData, x0, C):
         # 计算原坐标经过变换之后对应的坐标
         stdx = np.arange(0, int(height_Ha / bin), 1)
         # 先转成波长 根据波长公式进行变换后反变化回坐标
-        stdx = ((stdx * K + HA) / (C * (x - x0) * (x - x0) + 1) - HA) / K
+        stdx = ((stdx * K  + HA) / (C * (x - x0) * (x - x0) + 1) - HA) / K
         # 获取原数据值
         stdy = imgData[:, x]
         # 确定插值的坐标
@@ -63,7 +65,7 @@ def curve_correction(imgData, x0, C):
         # 计算原坐标经过变换之后对应的坐标
         stdx = np.arange(0, int(height_Fe / bin), 1)
         # 先转成波长 根据波长公式进行变换后反变化回坐标
-        stdx = ((stdx * K + FE) / (C * (x - x0) * (x - x0) + 1) - FE) / K
+        stdx = ((stdx * K  + FE) / (C * (x - x0) * (x - x0) + 1) - FE) / K
         # 获取原数据值
         stdy = imgData[int(height_Ha / bin):int(height_Fe / bin) + int(height_Ha / bin), x]
         # 确定插值的坐标
@@ -86,9 +88,10 @@ def curve_correction(imgData, x0, C):
         bad_Ha = int(height_Ha / bin) - int(29 / bin)
     if bad_Fe < int(height_Fe / bin) - int(29 / bin):
         bad_Fe = int(height_Fe / bin) - int(29 / bin)
+    print(bad_Ha,bad_Fe)
     # 删除坏行 并输出两窗口最后的行数
-    imgData[bad_Ha:bad_Ha + int(height_Fe / bin)] = imgData[
-                                                    int(height_Ha / bin):int(height_Fe / bin) + int(height_Ha / bin)]
+    imgData[bad_Ha + 1:bad_Ha + int(height_Fe / bin)] = imgData[
+                                                    int(height_Ha / bin) + 1:int(height_Fe / bin) + 1 + int(height_Ha / bin)]
     return imgData[0:bad_Ha + bad_Fe], bad_Ha, bad_Fe
 
 
@@ -164,8 +167,8 @@ def RB_getdata(imgData, sun_std, HofHa, HofFe):
         ans[HofHa + i] = (temp_std[i * bin + height_Ha] + temp_std[i * bin + height_Ha + bin - 1]) / 2
     stdx = np.zeros(H)
     # 坐标转化为波长
-    stdx[0:HofHa] = np.arange(0, HofHa, 1) * K * bin + HA
-    stdx[HofHa:] = np.arange(0, HofFe, 1) * K * bin + FE
+    stdx[0:HofHa] = np.arange(0, HofHa, 1) * K  + HA
+    stdx[HofHa:] = np.arange(0, HofFe, 1) * K  + FE
     # 拟合一次函数
     cov = np.polyfit(stdx, sun_image / ans[0:H], 1)
     k, b = cov[0], cov[1]
@@ -332,10 +335,9 @@ def getBin(imgData):
 def entireWork(filename, darkDate, flatData, abortion):
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
-    imgData = change(imgData)
-    bin = getBin(imgData)
+    #imgData = change(imgData)
     imgData = moveImg(imgData, -2 )
-    imgData, HofHa, HofFe = curve_correction(imgData - darkDate, 2321.26, 1.92909e-011)
+    imgData, HofHa, HofFe = curve_correction(imgData - darkDate, x0, C)
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
@@ -366,28 +368,29 @@ if __name__ == "__main__":
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
 #RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
+    #RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T215555-0013-2367-测试.fts')
+    image_file = get_pkg_data_filename(filepath_test + 'RSM20220120T062539-0017-1256.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
-    img_data = change(img_data)
+    #img_data = change(img_data)
     # bin = getBin(img_data)
     print(bin)
     img_data = moveImg(img_data, -2)
     flat_data = change(flat_data)
     dark_data = change(dark_data)
-    flat_data, b, d = curve_correction(flat_data - dark_data, 2321.26, 1.92909e-011)
-    img_data, HofHa, HofFe = curve_correction(img_data - dark_data, 2321.26, 1.92909e-011)
+    flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
+    img_data, HofHa, HofFe = curve_correction(img_data - dark_data, x0, C)
     flat_data = getFlatOffset(flat_data, img_data)
     # print(flat_data)
     flat_data = getFlat(flat_data)
 
-    filename = filepath_test + 'RSM20211222T215555-0013-2367-测试.fts'
+    filename = filepath_test + 'RSM20220120T062539-0017-1256.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
-    imgData = change(imgData)
+    #imgData = change(imgData)
     imgData = moveImg(imgData, -2)
-    imgData, HofHa, HofFe = curve_correction(imgData - dark_data, 2321.26, 1.92909e-011)
+    imgData, HofHa, HofFe = curve_correction(imgData - dark_data, x0, C)
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
@@ -401,7 +404,7 @@ if __name__ == "__main__":
     plt.show()
 
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + 'RSM20211222T215555-0013-2367-测试.fts', dark_data, flat_data, abortion)
+    image_file, imgData = entireWork(filepath_test + 'RSM20220120T062539-0017-1256.fts', dark_data, flat_data, abortion)
     #
     plt.figure()
     plt.imshow(image_file, cmap="gray", aspect='auto')
