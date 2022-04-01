@@ -232,6 +232,8 @@ def amplify(Data):
 
 # 计算偏差
 def getFlatOffset(flatData, imgData):
+    HofHa = int(height_Ha / bin)
+    HofFe = int(height_Fe / bin)
     # 获取图片尺寸
     H, W = imgData.shape
     # 计算中心点
@@ -273,11 +275,11 @@ def getFlatOffset(flatData, imgData):
     print(mx,my)
 
     # 偏移操作
-    if mx < 0:
+    if mx * 10 + my < 0:
         my *= -1
         flatData[:, 0:W + mx - 1] = flatData[:, -mx:W - 1]*(1 - my/10) + flatData[:, -mx + 1:W]*(my/10)
     else:
-        flatData[:, mx:W] = flatData[:, 0:W - mx]*(1 - my/10) + flatData[:, 1:W - mx + 1]*my/10
+        flatData[:, mx:W-1] = flatData[:, 0:W - mx-1]*(1 - my/10) + flatData[:, 1:W - mx]*my/10
     return flatData
 
 
