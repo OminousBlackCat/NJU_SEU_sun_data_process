@@ -69,6 +69,7 @@ except OSError:
     sys.exit("程序终止")
 if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
+    flat_img, temp1, temp2 = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
 temp_img.close()
 
 # 读取经过日心的图片 作为基准
@@ -92,7 +93,6 @@ try:
         standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
                                                                config.curve_cor_C)
         # 先平移矫正 减去暗场 再谱线弯曲矫正
-        flatTemp, temp1, temp2 = suntools.curve_correction(flatTemp - dark_img, config.curve_cor_x0, config.curve_cor_C)
         flatTemp = suntools.getFlatOffset(flat_img, standard_img)
         flatTemp = suntools.getFlat(flatTemp)
         print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
@@ -181,6 +181,7 @@ def target_task(filename):
     remaining_count.value += 1
     greyHDU.close()
     file_data.close()
+    file_data = None
     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value))
 
 
