@@ -17,7 +17,7 @@ height_Fe = config.height_Fe  # he窗口的长度
 HA = config.HA  # 红蓝移HA参数
 FE = config.FE  # 红蓝移FE参数
 K = config.K  # 红蓝移K参数
-K = K * bin
+# K = K * bin
 x0 = config.curve_cor_x0
 C = config.curve_cor_C
 
@@ -88,7 +88,7 @@ def curve_correction(imgData, x0, C):
         bad_Ha = int(height_Ha / bin) - int(29 / bin)
     if bad_Fe < int(height_Fe / bin) - int(29 / bin):
         bad_Fe = int(height_Fe / bin) - int(29 / bin)
-    print(bad_Ha,bad_Fe)
+    # print(bad_Ha,bad_Fe)
     # 删除坏行 并输出两窗口最后的行数
     imgData[bad_Ha + 1:bad_Ha + int(height_Fe / bin)] = imgData[
                                                     int(height_Ha / bin) + 1:int(height_Fe / bin) + 1 + int(height_Ha / bin)]
