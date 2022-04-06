@@ -2,7 +2,7 @@
 
 
 # 读入数据存放的文件夹, 相对路径与绝对路径均可
-data_dir_path = "data/raw_data"
+data_dir_path = "data/raw_data_test"
 
 # 数据输出的存放文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
@@ -16,7 +16,7 @@ sum_dir_path = 'data/sum/'
 dark_fits_name = 'data/dark.fits'
 
 # 读入的平场参数文件路径, 相对路径与绝对路径均可
-flat_fits_name = 'data/for_flat.fits'
+flat_fits_name = 'data/for_flat_binning2.fits'
 
 # 读入的标准光谱数据文件路径, 相对路径与绝对路径均可
 sun_std_name = 'data/bass2000.txt'
@@ -37,7 +37,7 @@ sun_row_count = 4625
 bin_count = 2
 
 # 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
-standard_offset_index = 2313
+standard_offset_index = 1256
 
 # 谱线弯曲矫正参数
 # 谱线弯曲矫正x0 参数

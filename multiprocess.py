@@ -54,6 +54,7 @@ except OSError:
 if temp_img is not None:
     dark_img = np.array(temp_img[0].data, dtype=float)
     dark_img = suntools.change(dark_img)
+temp_img.close()
 
 # 平场需要以日心图片作为基准进行平移矫正 再进行谱线弯曲矫正
 flat_img = None
@@ -68,6 +69,8 @@ except OSError:
     sys.exit("程序终止")
 if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
+    flat_img, temp1, temp2 = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
+temp_img.close()
 
 # 读取经过日心的图片 作为基准
 # 创建一个list 获取每个序列的基准 并以此基准获得矫正后的平场与吸收系数
@@ -86,18 +89,17 @@ try:
         print("矫正平场中...")
         temp_img = fits.open(read_dir + '/' + standard_name)
         standard_img = np.array(temp_img[0].data, dtype=float)
+        standard_img = suntools.moveImg(standard_img, -2)
+        standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
+                                                               config.curve_cor_C)
         # 先平移矫正 减去暗场 再谱线弯曲矫正
         flatTemp = suntools.getFlatOffset(flat_img, standard_img)
-        flatTemp, temp1, temp2 = suntools.curve_correction(flatTemp - dark_img, config.curve_cor_x0, config.curve_cor_C)
         flatTemp = suntools.getFlat(flatTemp)
         print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
         print("获得标准太阳光谱数据中...")
         # 以标准文件作为基准 计算红蓝移吸收系数
         # 需要先对标注文件进行一系列操作 去暗场 去平场 再进行红蓝移修正
-        standard_img = suntools.moveImg(standard_img, -2)
-        standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
-                                                               config.curve_cor_C)
-        standard_img = suntools.DivFlat(standard_img, flat_img)
+        standard_img = suntools.DivFlat(standard_img, flatTemp)
         # 获得标准吸收系数
         abortion = suntools.RB_getdata(standard_img, sun_std, temp1, temp2)
         flat_abortion_list.append({
@@ -105,6 +107,7 @@ try:
             'flatData': flatTemp,
             'abortionData': abortion
         })
+        temp_img.close()
 except uEr.URLError:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
@@ -178,7 +181,8 @@ def target_task(filename):
     remaining_count.value += 1
     greyHDU.close()
     file_data.close()
-    print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value))
+    file_data = None
+    print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
 
 
 def main():
@@ -190,7 +194,7 @@ def main():
     pool = mp.Pool(processes=multiprocess_count)
     pool.map(target_task, data_file_lst)
     time_end = time.time()
-    print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
+    print('\n并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
 
     # 汇总处理结果
     print("准备写入汇总，生成日像...")
@@ -200,7 +204,7 @@ def main():
     data = []
     for i in range(N):
         filename = file_list[i]
-        print('生成的文件总数为:' + str(N) + '/' + '当前读取文件序号:' + str(i))
+        print('\b' * (9 + len(str(N)) + 1 + 9 + len(str(i))) + '生成的文件总数为:' + str(N) + '/' + '当前读取文件序号:' + str(i), end='')
         image_file = fits.open(out_dir + "/" + filename)
         if filename[-7: -5] != 'HA':
             continue
