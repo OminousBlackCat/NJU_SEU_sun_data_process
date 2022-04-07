@@ -10,6 +10,15 @@ from PIL import Image
 import math
 import scipy.signal as signal
 import config
+import astropy
+import jplephem
+import datetime
+import numpy as np
+from math import *
+from astropy.io import fits
+from astropy.time import Time
+from astropy import coordinates
+
 
 # 定义参数
 bin_count = config.bin_count
@@ -407,6 +416,103 @@ def GetCircle(image):
     R_x = (((R_y - y2) * (R_y - y2) - (R_y - y1) * (R_y - y1))/(x1 - x2) - x1 - x2) / -2
     print(R_x,R_y)
     return R_x,R_y,math.sqrt((R_y - y2) * (R_y - y2) + (R_x - x2) * (R_x - x2))
+
+def rotation_matrix3(xyz, theta):
+    # theta in radian
+    if xyz == 'x':
+        R = np.array([[1, 0, 0], [0, cos(theta), sin(theta)], [0, -sin(theta), cos(theta)]])
+    if xyz == 'y':
+        R = np.array([[cos(theta), 0, -sin(theta)], [0, 1, 0], [sin(theta), 0, cos(theta)]])
+    if xyz == 'z':
+        R = np.array([[cos(theta), sin(theta), 0], [-sin(theta), cos(theta), 0], [0, 0, 1]])
+    return R
+
+def getB0P0(q0,q1,q2,q3,strtime):
+    t = Time(strtime)
+
+    sun_6 = astropy.coordinates.get_body_barycentric_posvel('sun', t, ephemeris='de430')
+    earth_6 = astropy.coordinates.get_body_barycentric_posvel('earth', t, ephemeris='de430')
+
+    sun_pos = sun_6[0]
+    earth_pos = earth_6[0]
+
+    # position is in ICRF (aberration not corrected)
+    earth2sun_rx = sun_pos.x.value - earth_pos.x.value
+    earth2sun_ry = sun_pos.y.value - earth_pos.y.value
+    earth2sun_rz = sun_pos.z.value - earth_pos.z.value
+    earth2sun_pos = np.array([[earth2sun_rx], [earth2sun_ry], [earth2sun_rz]])
+
+    normalize_factor = sqrt(earth2sun_pos[0] ** 2 + earth2sun_pos[1] ** 2 + earth2sun_pos[2] ** 2)
+    earth2sun_pos_normalize = earth2sun_pos / normalize_factor  # the satellite position to the sun position (point from satellite to sun)
+    g1 = 2 * (q1 * q3 - q0 * q2)
+    g2 = 2 * (q2 * q3 + q0 * q1)
+    g3 = q0 ** 2 - q1 ** 2 - q2 ** 2 + q3 ** 2
+    g4 = 2 * (q1 * q2 + q0 * q3)
+    g5 = q0 ** 2 + q1 ** 2 - q2 ** 2 - q3 ** 2
+
+    rad2deg = 180 / pi
+
+    # theta, psi, gamma in degrees
+    theta = atan(g2 / g3) * rad2deg
+    if g3 < 0:
+        theta = theta + 180
+
+    psi = atan(g4 / g5) * rad2deg
+    if g5 < 0:
+        psi = psi + 180
+
+    cosgamma = g2 / sin(theta / rad2deg)
+    if abs(sin(theta / rad2deg)) < 0.5:
+        cosgamma = g3 / cos(theta / rad2deg)
+    singamma = -g1
+    gamma = atan(singamma / cosgamma) * rad2deg
+    if cosgamma < 0:
+        gamma = gamma + 180
+
+    print('ephemeris:\n', earth2sun_pos_normalize)
+
+    deg2rad = pi / 180
+    Chase_arr_b = np.array([[0], [1], [0]])  # Chase y-axis pointing in Chase coordinates
+    R1 = np.dot(rotation_matrix3('x', -theta * deg2rad), Chase_arr_b)
+    R2 = np.dot(rotation_matrix3('y', -gamma * deg2rad), R1)
+    R3 = np.dot(rotation_matrix3('z', -psi * deg2rad), R2)
+    Chase_arr_E = R3  # Chase pointing in Equatorial coordinates
+    print('quaternion:\n', Chase_arr_E)
+
+    arr_mul = np.multiply(earth2sun_pos_normalize, Chase_arr_E)
+    print('bias:\n', acos(arr_mul[0] + arr_mul[1] + arr_mul[2]) * 180 / pi * 60 * 60, 'arcsec')
+
+    # the direction of the solar rotation axis in J2000
+    alpha0 = 286.13
+    delta0 = 63.87
+    R_a0d0 = np.array([[cos(alpha0 * deg2rad) * cos(delta0 * deg2rad)], [sin(alpha0 * deg2rad) * cos(delta0 * deg2rad)],
+                       [sin(delta0 * deg2rad)]])
+
+    vn = np.multiply(earth2sun_pos_normalize, R_a0d0)
+    sigvn = float(vn[0]) + float(vn[1]) + float(vn[2])
+    B0 = 90 - acos(sigvn) / deg2rad
+    B0 = -B0
+
+    R_E0 = R_a0d0
+    R1 = np.dot(rotation_matrix3('z', psi / rad2deg), R_E0)
+    R2 = np.dot(rotation_matrix3('y', gamma / rad2deg), R1)
+    R3 = np.dot(rotation_matrix3('x', theta / rad2deg), R2)
+    R_b0 = R3
+
+    # solar rotation axis projection to the sky plane (xz plane)
+    R_b0xz = np.array([[float(R_b0[0])], [float(R_b0[2])]])
+
+    # picture top vector
+    # R_top = np.array([[0], [1]])
+
+    # the angle between R_top and R_b0xz, different with p0 by a constant
+    p0 = atan(R_b0xz[0] / R_b0xz[1]) * 180 / pi
+    if R_b0xz[1] < 0:
+        p0 = 180 + p0
+
+    # instrument rotation clockwise
+    INST_ROT = -p0
+    return B0,p0,INST_ROT
 
 def test():
     matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
