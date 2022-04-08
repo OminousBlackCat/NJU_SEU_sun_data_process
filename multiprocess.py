@@ -174,11 +174,13 @@ if_first_print = mp.Value('b', True)
 
 # 全局共享内存
 # 需要创建一个四维数组
-# 三维 xyz 分别为文件序号(扫描序号) 狭缝宽度 与 波长深度
+# 三维 xyz 分别为文件序号(扫描序号) 波长深度 狭缝宽度
 # 每个单独文件对应的是 yz平面的一个二维数组
+# TODO: 是否需要将shape调转顺序？
 GLOBAL_ARRAY_X_COUNT = config.sun_row_count
 GLOBAL_ARRAY_Y_COUNT = sample_from_standard.shape[0]
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
+print('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
 # 创建共享内存 大小为 x*y*z*sizeof(int16)
 GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
 
@@ -258,7 +260,7 @@ def main():
                                                           GLOBAL_ARRAY_Z_COUNT)
         print("SHAPE为：" + str(global_shared_array.shape))
         for i in range(global_shared_array.shape[0]):
-            sum_data[i] = global_shared_array[i, :, config.sum_row_index].reshape(sample_from_standard.shape[0])
+            sum_data[i] = global_shared_array[i, config.sum_row_index, :].reshape(sample_from_standard.shape[1])
         sum_data[sum_data < 0] = 0
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
@@ -275,14 +277,14 @@ def main():
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
         file_day_seq = temp_dict['standard_filename'][9:18]
-        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: config.height_Ha]
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, 0: config.height_Ha, :]
                                      .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, config.height_Ha)))
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']) + '_HA.fits')
         greyHDU.close()
         print('生成FE文件中...')
-        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, config.height_Ha:]
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, config.height_Ha:, :]
                                      .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, config.height_Fe)))
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
@@ -290,7 +292,7 @@ def main():
         greyHDU.close()
 
     time_end = time.time()
-    print('\n并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
+    print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
     print('程序结束！')
 
 
