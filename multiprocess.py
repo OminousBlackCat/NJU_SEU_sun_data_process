@@ -11,6 +11,7 @@ import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
 import ctypes as c
+import sys
 
 # 读入配置文件 引入参数
 read_dir = config.data_dir_path
@@ -168,8 +169,8 @@ for h in FE_list:
 
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))
-if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
+if_first_print = mp.Value('b', True)
 
 # 全局共享内存
 # 需要创建一个四维数组
@@ -195,13 +196,10 @@ def target_task(filename):
     file_data = fits.open(filePath)
     image_data = np.array(file_data[0].data, dtype=float)
     # 对fe窗口进行平移
-    print('平移')
     image_data = suntools.moveImg(image_data, -2)
     # 去暗场
-    print('去暗场')
     image_data = image_data - dark_img
     # 谱线弯曲矫正
-    print('弯曲矫正')
     image_data, HofH, HofFe = suntools.curve_correction(image_data, config.curve_cor_x0, config.curve_cor_C)
     # 搜索list
     currentFlat = None
@@ -215,30 +213,27 @@ def target_task(filename):
         print("文件：" + filename + "未找到平场数据与吸收系数, 请检查文件夹")
         return
     # 去平场
-    print('去平场')
     image_data = suntools.DivFlat(image_data, currentFlat)
     # 红蓝移矫正
-    print('红蓝移矫正')
     image_data = suntools.RB_repair(image_data, currentAbortion)
     # 滤波
-    print('滤波')
     image_data = signal.medfilt(image_data, kernel_size=config.filter_kernel_size)
     # 转为整型
-    print('转为整型')
     image_data = np.array(image_data, dtype=np.int16)
     global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
     global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)
-    global_shared_array[int(file_position) - 1, :, :] = image_data
-    print('写入共享内存')
+    global_shared_array[int(file_position) - 1] = image_data
     # 进度输出
     remaining_count.value += 1
     file_data.close()
     if if_first_print.value:
         print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        sys.stdout.flush()
         if_first_print.value = False
     else:
-        print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
-            remaining_count.value) + '/' + str(file_count.value), end='')
+        print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
+        print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        sys.stdout.flush()
 
 
 def main():
@@ -255,14 +250,15 @@ def main():
         pool.map(target_task, temp_dict['file_list'])
         pool.close()
         pool.join()
-        print('扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
+        print('\n扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
         print('生成完整日像中...')
-        sum_data = np.zeros((config.sun_row_count, sample_from_standard.shape[1]))
+        sum_data = np.zeros((config.sun_row_count, sample_from_standard.shape[0]))
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
+        print("SHAPE为：" + str(global_shared_array.shape))
         for i in range(global_shared_array.shape[0]):
-            sum_data[i, :] = global_shared_array[i, :, config.sum_row_index]
+            sum_data[i] = global_shared_array[i, :, config.sum_row_index].reshape(sample_from_standard.shape[0])
         sum_data[sum_data < 0] = 0
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
@@ -279,13 +275,15 @@ def main():
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
         file_day_seq = temp_dict['standard_filename'][9:18]
-        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: config.height_Ha])
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: config.height_Ha]
+                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, config.height_Ha)))
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']) + '_HA.fits')
         greyHDU.close()
         print('生成FE文件中...')
-        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, config.height_Ha:])
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, config.height_Ha:]
+                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, config.height_Fe)))
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']) + '_FE.fits')
