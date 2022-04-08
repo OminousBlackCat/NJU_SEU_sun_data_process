@@ -370,7 +370,9 @@ def entireWork(filename, darkDate, flatData, abortion):
     plt.show()
     return imgDataRB, imgData
 
+# 通过灰度图拟合图中的圆
 def GetCircle(image):
+    # 通过卷积，使用Sobel算子提取边界
     conv1 = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
     conv2 = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
     conv3 = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
@@ -378,11 +380,10 @@ def GetCircle(image):
     gradient_X = signal.convolve2d(image, conv2, "valid")
     gradient = np.abs(gradient_X) + np.abs(gradient_Y)
     gradient_max = np.max(gradient)
-    plt.figure()
-    plt.imshow(gradient, cmap="gray")
-    plt.show()
+
+    # 提取圆左右两侧对称点，从而计算圆心第二维坐标
     H,W = gradient.shape
-    print(H,W)
+    # print(H,W)
     border = []
     r_y = []
     for x in range(H):
@@ -401,8 +402,11 @@ def GetCircle(image):
         r_y.append((y1+y0)/2)
     # print(r_y)
     L = len(r_y)
+    # 通过中位数计算圆第二维坐标
     R_y = np.median(np.array(r_y)[int(0.2*L) : int(0.8*L)])
     #print(R_y)
+
+    # 通过圆第二维坐标筛选对称点，选取其中三个点计算圆坐标和直径
     candidate = []
     gradient = np.clip(gradient, 0, 0)
     for points in border:
@@ -417,6 +421,7 @@ def GetCircle(image):
     print(R_x,R_y)
     return R_x,R_y,math.sqrt((R_y - y2) * (R_y - y2) + (R_x - x2) * (R_x - x2))
 
+# 辅助计算软件的运算
 def rotation_matrix3(xyz, theta):
     # theta in radian
     if xyz == 'x':
@@ -427,6 +432,8 @@ def rotation_matrix3(xyz, theta):
         R = np.array([[cos(theta), sin(theta), 0], [-sin(theta), cos(theta), 0], [0, 0, 1]])
     return R
 
+
+# 计算需求数据，输入来自于头文件
 def getB0P0(q0,q1,q2,q3,strtime):
     t = Time(strtime)
 
@@ -469,7 +476,7 @@ def getB0P0(q0,q1,q2,q3,strtime):
     if cosgamma < 0:
         gamma = gamma + 180
 
-    print('ephemeris:\n', earth2sun_pos_normalize)
+    # print('ephemeris:\n', earth2sun_pos_normalize)
 
     deg2rad = pi / 180
     Chase_arr_b = np.array([[0], [1], [0]])  # Chase y-axis pointing in Chase coordinates
@@ -477,10 +484,10 @@ def getB0P0(q0,q1,q2,q3,strtime):
     R2 = np.dot(rotation_matrix3('y', -gamma * deg2rad), R1)
     R3 = np.dot(rotation_matrix3('z', -psi * deg2rad), R2)
     Chase_arr_E = R3  # Chase pointing in Equatorial coordinates
-    print('quaternion:\n', Chase_arr_E)
+    # print('quaternion:\n', Chase_arr_E)
 
     arr_mul = np.multiply(earth2sun_pos_normalize, Chase_arr_E)
-    print('bias:\n', acos(arr_mul[0] + arr_mul[1] + arr_mul[2]) * 180 / pi * 60 * 60, 'arcsec')
+    # print('bias:\n', acos(arr_mul[0] + arr_mul[1] + arr_mul[2]) * 180 / pi * 60 * 60, 'arcsec')
 
     # the direction of the solar rotation axis in J2000
     alpha0 = 286.13
