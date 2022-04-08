@@ -24,12 +24,16 @@ sun_std_name = 'data/bass2000.txt'
 # 读入的色谱(作为日像汇总结果png格式的输入)文件路径, 相对路径与绝对路径均可
 color_camp_name = 'data/color_map.txt'
 
+# 读入的HA头部与FE头部参数文件 注意是txt格式 一般不做修改
+HA_header_file = 'data/HA_header'
+FE_header_file = 'data/FE_header'
+
 # 多核并行数
 # 若为'default' 则程序自动根据获得的cpu核数设定并行数
 # 默认使用可支配核数-4的并行数量
 multiprocess_count = 'default'
 
-# 每张太阳像包含多少行(一组数据包含多少文件)(一般不需要改动此参数)
+# 一个扫描序列最多包含多少行(一组数据包含多少文件)(一般不需要改动此参数)
 sun_row_count = 4625
 
 # 是否bin

@@ -1,5 +1,6 @@
 import multiprocessing as mp
 import os
+import header
 import sys
 import suntools
 import time
@@ -9,6 +10,7 @@ import scipy.signal as signal
 import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
+import ctypes as c
 
 # 读入配置文件 引入参数
 read_dir = config.data_dir_path
@@ -38,6 +40,44 @@ except OSError:
     print('没有获得原始数据文件，请检查config中的读入数据目录')
     sys.exit("程序终止")
 print('文件总数为: ' + str(len(data_file_lst)))
+
+
+# 将读入的文件按照序列分成不同的组
+global_multiprocess_list = []
+for i in range(len(data_file_lst)):
+    filename = data_file_lst[i]
+    # 选取图像文件名的最后四个字符作为index
+    temp_index = int(filename[-17: -13])
+    # 在list中寻找对应的dict
+    ifFind = False
+    for j in range(len(global_multiprocess_list)):
+        if global_multiprocess_list[j]['scan_index'] == temp_index:
+            global_multiprocess_list[j]['file_list'].append(filename)
+            global_multiprocess_list[j]['file_count'] += 1
+            ifFind = True
+            if int(filename[24:28]) == config.standard_offset_index:
+                global_multiprocess_list[j]['standard_filename'] = filename
+            break
+    if not ifFind:
+        global_multiprocess_list.append({
+            'scan_index': temp_index,       # 扫描序号
+            'file_list': [],                # 文件名列表
+            'file_count': 0,                # 包含的文件数
+            'standard_filename': '',        # 标准日心文件名
+            'flat_data': None,              # 此序列的校正后平场数据
+            'abortion_data': None           # 此序列的校正后红蓝移数据
+        })
+        global_multiprocess_list[len(global_multiprocess_list) - 1]['file_list'].append(filename)
+        global_multiprocess_list[len(global_multiprocess_list) - 1]['file_count'] += 1
+        if int(filename[24:28]) == config.standard_offset_index:
+            global_multiprocess_list[len(global_multiprocess_list) - 1]['standard_filename'] = filename
+
+# 剔除不完整序列
+for i in range(len(global_multiprocess_list)):
+    if global_multiprocess_list[i]['file_count'] < config.sun_row_count - 300 or global_multiprocess_list[i]['standard_filename'] is None:
+        print('文件夹中包含不完整序列, 序列序号为:' + str(global_multiprocess_list[i]['scan_index']))
+        print('本次数据处理将不此序列进行处理.....')
+        global_multiprocess_list.remove(global_multiprocess_list[i])
 
 # 读取暗场文件
 temp_img = None
@@ -73,41 +113,34 @@ if temp_img is not None:
 temp_img.close()
 
 # 读取经过日心的图片 作为基准
-# 创建一个list 获取每个序列的基准 并以此基准获得矫正后的平场与吸收系数
-standard_list = []
-flat_abortion_list = []
 # 读取标准太阳光谱数据
 sun_std = suntools.get_Sunstd(config.sun_std_name)
-for fileName in data_file_lst:
-    if int(fileName[24:28]) == config.standard_offset_index:
-        standard_list.append(fileName)
+sample_from_standard = None
 try:
-    print("正在获取当前文件夹内的所有基准文件, 选择序号为:" + str(config.standard_offset_index))
-    print("当前文件夹内共有：" + str(len(standard_list)) + "个序列...")
-    # 使用获得的所有基准文件 矫正平场 获得flat_list 与 abortion_list
-    for standard_name in standard_list:
-        print("矫正平场中...")
+    for temp_dict in global_multiprocess_list:
+        # 对每个序列进行校正
+        print('校正扫描序列' + str(temp_dict['scan_index']) + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
+        print("校正平场中...")
+        standard_name = temp_dict['standard_filename']
         temp_img = fits.open(read_dir + '/' + standard_name)
         standard_img = np.array(temp_img[0].data, dtype=float)
         standard_img = suntools.moveImg(standard_img, -2)
         standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
                                                                config.curve_cor_C)
+        sample_from_standard = standard_img
         # 先平移矫正 减去暗场 再谱线弯曲矫正
         flatTemp = suntools.getFlatOffset(flat_img, standard_img)
         flatTemp = suntools.getFlat(flatTemp)
-        print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
         print("获得标准太阳光谱数据中...")
         # 以标准文件作为基准 计算红蓝移吸收系数
         # 需要先对标注文件进行一系列操作 去暗场 去平场 再进行红蓝移修正
         standard_img = suntools.DivFlat(standard_img, flatTemp)
         # 获得标准吸收系数
         abortion = suntools.RB_getdata(standard_img, sun_std, temp1, temp2)
-        flat_abortion_list.append({
-            'index': int(standard_name[19:23]),
-            'flatData': flatTemp,
-            'abortionData': abortion
-        })
+        temp_dict['flat_data'] = flatTemp
+        temp_dict['abortion_data'] = abortion
         temp_img.close()
+        print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
 except uEr.URLError:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
@@ -122,9 +155,30 @@ color_map = suntools.get_color_map(config.color_camp_name)
 if not os.path.exists(out_dir):
     os.mkdir(out_dir)
 
+# 读取头部参数文件
+HA_HEADER = fits.header.Header()
+FE_HEADER = fits.header.Header()
+HA_list = header.read_header_from_txt(config.HA_header_file)
+FE_list = header.read_header_from_txt(config.FE_header_file)
+# 将读入的list构造成为header
+for h in HA_list:
+    HA_HEADER.set(h['key'], value=0, comment=h['comment'])
+for h in FE_list:
+    FE_HEADER.set(h['key'], value=0, comment=h['comment'])
+
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))
 remaining_count = mp.Value('i', 0)
+
+# 全局共享内存
+# 需要创建一个四维数组
+# 三维 xyz 分别为文件序号(扫描序号) 狭缝宽度 与 波长深度
+# 每个单独文件对应的是 yz平面的一个二维数组
+GLOBAL_ARRAY_X_COUNT = config.sun_row_count
+GLOBAL_ARRAY_Y_COUNT = sample_from_standard.shape[0]
+GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
+# 创建共享内存 大小为 x*y*z*sizeof(int16)
+GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
 
 
 # 定义target task
@@ -134,14 +188,12 @@ def target_task(filename):
     # RSM 2021   12     22T060105   -   0008-     0001       .fts
     # 012 3456   78     901234567   8   90123     4567       8901
     #     [year] [mon]  [day_seq]       [index]   [position]
-    file_year = filename[3:7]
-    file_mon = filename[7:9]
-    file_day_seq = filename[9:18]
     file_index = filename[19:23]
     file_position = filename[24:28]
     filePath = read_dir + "/" + filename
     file_data = fits.open(filePath)
     image_data = np.array(file_data[0].data, dtype=float)
+    image_header = file_data[0].header
     # 对fe窗口进行平移
     image_data = suntools.moveImg(image_data, -2)
     # 去暗场
@@ -151,8 +203,8 @@ def target_task(filename):
     # 搜索list
     currentFlat = None
     currentAbortion = None
-    for dataTemp in flat_abortion_list:
-        if dataTemp['index'] == int(file_index):
+    for dataTemp in global_multiprocess_list:
+        if dataTemp['scan_index'] == int(file_index):
             currentFlat = dataTemp['flatData']
             currentAbortion = dataTemp['abortionData']
             break
@@ -167,22 +219,13 @@ def target_task(filename):
     image_data = signal.medfilt(image_data, kernel_size=config.filter_kernel_size)
     # 转为整型
     image_data = np.array(image_data, dtype=np.int16)
-    # 存储FE窗口的fits文件
-    primaryHDU = fits.PrimaryHDU(image_data[HofH: HofH + HofFe])
-    greyHDU = fits.HDUList([primaryHDU])
-    greyHDU.writeto(
-        out_dir + "RSM" + file_year + "-" + file_mon + "-" + file_day_seq + "_" + file_index + "_" + file_position + "_" + "FE.fits")
-    # 存储HA窗口的fits文件
-    primaryHDU = fits.PrimaryHDU(image_data[0: HofH])
-    greyHDU = fits.HDUList([primaryHDU])
-    greyHDU.writeto(
-        out_dir + "RSM" + file_year + "-" + file_mon + "-" + file_day_seq + "_" + file_index + "_" + file_position + "_" + "HA.fits")
+    global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+    global_shared_array[file_position - 1, :, :] = image_data
     # 进度输出
     remaining_count.value += 1
-    greyHDU.close()
     file_data.close()
-    file_data = None
-    print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+    print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
+        remaining_count.value) + '/' + str(file_count.value), end='')
 
 
 def main():
@@ -191,59 +234,50 @@ def main():
     # 获得文件夹列表 读取相关参数
     # 并行处理
     print('开启多核并行处理...')
-    pool = mp.Pool(processes=multiprocess_count)
-    pool.map(target_task, data_file_lst)
+    for temp_dict in global_multiprocess_list:
+        print('正在处理扫描序列:' + str(temp_dict['scan_index']) + '...')
+        file_count.value = temp_dict['file_count']
+        remaining_count.value = 0
+        pool = mp.Pool(processes=multiprocess_count)
+        pool.map(target_task, temp_dict['file_list'])
+        pool.close()
+        pool.join()
+        print('扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
+        print('生成完整日像中...')
+        sum_data = np.zeros((config.sun_row_count, sample_from_standard.shape[1]))
+        global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+        for i in range(global_shared_array.shape[0]):
+            sum_data[i, :] = global_shared_array[i, :, config.sum_row_index]
+        sum_data[sum_data < 0] = 0
+        if config.save_img_form == 'default':
+            # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
+            print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
+            plt.imsave(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + ".png", sum_data, cmap=color_map)
+        if config.save_img_form == 'fts':
+            # 不对data进行任何操作 直接输出为fts文件
+            print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
+            primaryHDU = fits.PrimaryHDU(sum_data)
+            greyHDU = fits.HDUList([primaryHDU])
+            greyHDU.writeto(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + '.fts')
+            greyHDU.close()
+        print('生成HA文件中...')
+        file_year = temp_dict['standard_filename'][3:7]
+        file_mon = temp_dict['standard_filename'][7:9]
+        file_day_seq = temp_dict['standard_filename'][9:18]
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: config.height_Ha])
+        greyHDU = fits.HDUList([primaryHDU])
+        greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
+            temp_dict['scan_index']) + '_HA.fits')
+        greyHDU.close()
+        print('生成FE文件中...')
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, config.height_Ha:])
+        greyHDU = fits.HDUList([primaryHDU])
+        greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
+            temp_dict['scan_index']) + '_FE.fits')
+        greyHDU.close()
+
     time_end = time.time()
     print('\n并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
-
-    # 汇总处理结果
-    print("准备写入汇总，生成日像...")
-    sum_file_path = config.sum_dir_path
-    file_list = os.listdir(out_dir)
-    N = len(file_list)
-    data = []
-    for i in range(N):
-        filename = file_list[i]
-        print('\b' * (9 + len(str(N)) + 1 + 9 + len(str(i))) + '生成的文件总数为:' + str(N) + '/' + '当前读取文件序号:' + str(i), end='')
-        image_file = fits.open(out_dir + "/" + filename)
-        if filename[-7: -5] != 'HA':
-            continue
-        image_data = image_file[0].data
-        # 选取图像文件名的最后四个字符作为index
-        sun_index = int(filename[-17: -13])
-        count = int(filename[-12: -8]) - 1
-        # 在list中寻找对应的dict
-        ifFind = False
-        for j in range(len(data)):
-            if data[j]['index'] == sun_index:
-                data[j]['sum_data'][count, :] = image_data[config.sum_row_index, :]
-                ifFind = True
-                break
-        if not ifFind:
-            data.append({
-                'index': sun_index,
-                'sum_data': np.zeros((config.sun_row_count, standard_img.shape[1]), dtype=np.int16)
-            })
-            data[len(data) - 1]['sum_data'][count, :] = image_data[config.sum_row_index, :]
-        image_file.close()
-    # 去除负值
-    for d in data:
-        d['sum_data'][d['sum_data'] < 0] = 0
-    if config.save_img_form == 'default':
-        # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
-        for d in data:
-            print('输出序号为' + str(d['index']) + '的png...')
-            plt.imsave(sum_file_path + 'sum' + str(d['index']) + ".png", d['sum_data'], cmap=color_map)
-    if config.save_img_form == 'fts':
-        # 不对data进行任何操作 直接输出为fts文件
-        for d in data:
-            print('输出序号为' + str(d['index']) + '的fits...')
-            primaryHDU = fits.PrimaryHDU(d['sum_data'])
-            greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(sum_file_path + 'sum' + str(d['index']) + '.fts')
-    # 程序结束
-    time_end = time.time()
-    print('所有进度已完成，所花费总时间为：', (time_end - time_start) / 60, 'min(分钟)')
     print('程序结束！')
 
 
