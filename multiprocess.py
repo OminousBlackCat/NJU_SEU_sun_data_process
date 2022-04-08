@@ -47,7 +47,7 @@ global_multiprocess_list = []
 for i in range(len(data_file_lst)):
     filename = data_file_lst[i]
     # 选取图像文件名的最后四个字符作为index
-    temp_index = int(filename[-17: -13])
+    temp_index = int(filename[-13: -9])
     # 在list中寻找对应的dict
     ifFind = False
     for j in range(len(global_multiprocess_list)):
@@ -168,6 +168,7 @@ for h in FE_list:
 
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))
+if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
 
 # 全局共享内存
@@ -193,39 +194,51 @@ def target_task(filename):
     filePath = read_dir + "/" + filename
     file_data = fits.open(filePath)
     image_data = np.array(file_data[0].data, dtype=float)
-    image_header = file_data[0].header
     # 对fe窗口进行平移
+    print('平移')
     image_data = suntools.moveImg(image_data, -2)
     # 去暗场
+    print('去暗场')
     image_data = image_data - dark_img
     # 谱线弯曲矫正
+    print('弯曲矫正')
     image_data, HofH, HofFe = suntools.curve_correction(image_data, config.curve_cor_x0, config.curve_cor_C)
     # 搜索list
     currentFlat = None
     currentAbortion = None
     for dataTemp in global_multiprocess_list:
         if dataTemp['scan_index'] == int(file_index):
-            currentFlat = dataTemp['flatData']
-            currentAbortion = dataTemp['abortionData']
+            currentFlat = dataTemp['flat_data']
+            currentAbortion = dataTemp['abortion_data']
             break
     if currentAbortion is None or currentFlat is None:
         print("文件：" + filename + "未找到平场数据与吸收系数, 请检查文件夹")
         return
     # 去平场
+    print('去平场')
     image_data = suntools.DivFlat(image_data, currentFlat)
     # 红蓝移矫正
+    print('红蓝移矫正')
     image_data = suntools.RB_repair(image_data, currentAbortion)
     # 滤波
+    print('滤波')
     image_data = signal.medfilt(image_data, kernel_size=config.filter_kernel_size)
     # 转为整型
+    print('转为整型')
     image_data = np.array(image_data, dtype=np.int16)
-    global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-    global_shared_array[file_position - 1, :, :] = image_data
+    global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
+    global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)
+    global_shared_array[int(file_position) - 1, :, :] = image_data
+    print('写入共享内存')
     # 进度输出
     remaining_count.value += 1
     file_data.close()
-    print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
-        remaining_count.value) + '/' + str(file_count.value), end='')
+    if if_first_print.value:
+        print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        if_first_print.value = False
+    else:
+        print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
+            remaining_count.value) + '/' + str(file_count.value), end='')
 
 
 def main():
@@ -245,7 +258,9 @@ def main():
         print('扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
         print('生成完整日像中...')
         sum_data = np.zeros((config.sun_row_count, sample_from_standard.shape[1]))
-        global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+        global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
+        global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
+                                                          GLOBAL_ARRAY_Z_COUNT)
         for i in range(global_shared_array.shape[0]):
             sum_data[i, :] = global_shared_array[i, :, config.sum_row_index]
         sum_data[sum_data < 0] = 0
