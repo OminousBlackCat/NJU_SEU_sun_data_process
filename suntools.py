@@ -538,7 +538,7 @@ def test():
     #RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060132-0008-2664.fts')
+    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060129-0008-2313.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
     #img_data = change(img_data)
     # bin = getBin(img_data)
