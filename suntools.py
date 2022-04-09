@@ -11,13 +11,14 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-import jplephem
+#import jplephem
 import datetime
 import numpy as np
 from math import *
 from astropy.io import fits
 from astropy.time import Time
 from astropy import coordinates
+import multiprocessing as mp
 
 
 # 定义参数
@@ -27,9 +28,9 @@ height_Fe = config.height_Fe  # he窗口的长度
 HA = config.HA  # 红蓝移HA参数
 FE = config.FE  # 红蓝移FE参数
 K = config.K  # 红蓝移K参数
-# K = K * bin
-# x0 = config.curve_cor_x0
-# C = config.curve_cor_C
+# K = K * bin_count
+x0 = config.curve_cor_x0
+C = config.curve_cor_C
 
 
 # 谱线矫正
@@ -296,7 +297,7 @@ def getFlatOffset(flatData, imgData):
         my *= -1
         flatTempData[:, 0:W + mx - 1] = flatTempData[:, -mx:W - 1] * (1 - my / 10) + flatTempData[:, -mx + 1:W] * (my / 10)
     else:
-        flatTempData[:, mx:W - 1] = flatTempData[:, 0:W - mx - 1] * (1 - my / 10) + flatTempData[:, 1:W - mx] * my / 10
+        flatTempData[:, mx + 1:W - 1] = flatTempData[:, 0:W - mx - 2]  * my / 10 + flatTempData[:, 1:W - mx - 1]*(1 - my / 10)
     return flatTempData
 
 
@@ -531,13 +532,13 @@ def test():
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     dark_data = np.array(fits.getdata(image_file), dtype=float)
 
-    image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
+    image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
 #RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
     #RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + 'RSM20220120T062539-0017-1256.fts')
+    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060132-0008-2664.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
     #img_data = change(img_data)
     # bin = getBin(img_data)
@@ -551,7 +552,7 @@ def test():
     # print(flat_data)
     flat_data = getFlat(flat_data)
 
-    filename = filepath_test + 'RSM20220120T062539-0017-1256.fts'
+    filename = filepath_test + 'RSM20211222T060132-0008-2664.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     #imgData = change(imgData)
@@ -570,26 +571,42 @@ def test():
     plt.show()
 
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + 'RSM20220120T062536-0017-1081.fts', dark_data, flat_data, abortion)
+    image_file, imgData = entireWork(filepath_test + 'RSM20211222T060132-0008-2664.fts', dark_data, flat_data, abortion)
     #
+    print("OK")
     plt.figure()
     plt.imshow(image_file, cmap="gray", aspect='auto')
     plt.show()
 
     # grey = fits.PrimaryHDU(image_file)
+# 全局进度控制
+file_count = mp.Value('i', 20)
+if_first_print = mp.Value('b', True)
+remaining_count = mp.Value('i', 0)
 
 if  __name__ == "__main__":
-    testPath = "sunImage/"
-    I = Image.open(testPath + 'sum17.png')
-    I_array = np.array(I.convert('L'))
-    print(np.shape(I_array))
-    rx,ry,r = GetCircle(I_array)
-    H,W = I_array.shape
-
-    for i in range(H):
-        for j in range(W):
-            if abs((i-2-rx)*(i-2-rx) + (j-2-ry)*(j-2-ry) -r*r) <10000:
-                I_array[i][j]=240
-    plt.figure()
-    plt.imshow(I_array)
-    plt.show()
+    # testPath = "sunImage/"
+    # I = Image.open(testPath + 'sum17.png')
+    # I_array = np.array(I.convert('L'))
+    # print(np.shape(I_array))
+    # rx,ry,r = GetCircle(I_array)
+    # H,W = I_array.shape
+    #
+    # for i in range(H):
+    #     for j in range(W):
+    #         if abs((i-2-rx)*(i-2-rx) + (j-2-ry)*(j-2-ry) -r*r) <10000:
+    #             I_array[i][j]=240
+    # plt.figure()
+    # plt.imshow(I_array)
+    # plt.show()
+    test()
+    if_first_print = True
+    for i in range(100):
+        remaining_count = mp.Value('i', int(i))
+        if if_first_print:
+            print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+            if_first_print = False
+        else:
+            print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
+                remaining_count.value) + '/' + str(file_count.value), end='')
+        time.sleep(0.5)

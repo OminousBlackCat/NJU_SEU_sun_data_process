@@ -38,17 +38,17 @@ sun_row_count = 4625
 
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
-bin_count = 2
+bin_count = 1
 
 # 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
 standard_offset_index = 1256
 
 # 谱线弯曲矫正参数
 # 谱线弯曲矫正x0 参数
-curve_cor_x0 = 1161.58#2321.26
+curve_cor_x0 = 2321.26#1161.58#2321.26
 
 # 谱线弯曲矫正C 参数
-curve_cor_C = 7.639e-011#1.92909e-011
+curve_cor_C = 1.92909e-011#7.639e-011#1.92909e-011
 
 # 中值滤波窗口大小
 filter_kernel_size = 3
