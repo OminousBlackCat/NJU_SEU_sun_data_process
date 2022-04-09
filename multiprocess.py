@@ -6,7 +6,6 @@ import suntools
 import time
 import numpy as np
 from astropy.io import fits
-import scipy.signal as signal
 import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
@@ -227,11 +226,6 @@ def target_task(filename):
     global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)
     global_shared_array[int(file_position) - 1] = image_data
     # 进度输出
-
-    primaryHDU = fits.PrimaryHDU(image_data)
-    greyHDU = fits.HDUList([primaryHDU])
-    greyHDU.writeto(config.save_dir_path + filename)
-
     remaining_count.value += 1
     file_data.close()
     if if_first_print.value:
@@ -258,44 +252,44 @@ def main():
         pool.map(target_task, temp_dict['file_list'])
         pool.close()
         pool.join()
-        # print('\n扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
-        # print('生成完整日像中...')
-        # sum_data = np.zeros((config.sun_row_count, sample_from_standard.shape[1]))
-        # global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
-        # global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
-        #                                                   GLOBAL_ARRAY_Z_COUNT)
-        # print("SHAPE为：" + str(global_shared_array.shape))
-        # for i in range(global_shared_array.shape[0]):
-        #     sum_data[i] = global_shared_array[i, :, config.sum_row_index].reshape(sample_from_standard.shape[1])
-        # sum_data[sum_data < 0] = 0
-        # if config.save_img_form == 'default':
-        #     # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
-        #     print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
-        #     plt.imsave(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + ".png", sum_data, cmap=color_map)
-        # if config.save_img_form == 'fts':
-        #     # 不对data进行任何操作 直接输出为fts文件
-        #     print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
-        #     primaryHDU = fits.PrimaryHDU(sum_data)
-        #     greyHDU = fits.HDUList([primaryHDU])
-        #     greyHDU.writeto(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + '.fts')
-        #     greyHDU.close()
-        # print('生成HA文件中...')
-        # file_year = temp_dict['standard_filename'][3:7]
-        # file_mon = temp_dict['standard_filename'][7:9]
-        # file_day_seq = temp_dict['standard_filename'][9:18]
-        # primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: config.height_Ha]
-        #                              .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, config.height_Ha)))
-        # greyHDU = fits.HDUList([primaryHDU])
-        # greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
-        #     temp_dict['scan_index']) + '_HA.fits')
-        # greyHDU.close()
-        # print('生成FE文件中...')
-        # primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, config.height_Ha:]
-        #                              .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, config.height_Fe)))
-        # greyHDU = fits.HDUList([primaryHDU])
-        # greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
-        #     temp_dict['scan_index']) + '_FE.fits')
-        # greyHDU.close()
+        print('\n扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
+        print('生成完整日像中...')
+        sum_data = np.zeros((config.sun_row_count, sample_from_standard.shape[1]))
+        global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
+        global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
+                                                          GLOBAL_ARRAY_Z_COUNT)
+        print("SHAPE为：" + str(global_shared_array.shape))
+        for i in range(global_shared_array.shape[0]):
+            sum_data[i] = global_shared_array[i, :, config.sum_row_index].reshape(sample_from_standard.shape[1])
+        sum_data[sum_data < 0] = 0
+        if config.save_img_form == 'default':
+            # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
+            print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
+            plt.imsave(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + ".png", sum_data, cmap=color_map)
+        if config.save_img_form == 'fts':
+            # 不对data进行任何操作 直接输出为fts文件
+            print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
+            primaryHDU = fits.PrimaryHDU(sum_data)
+            greyHDU = fits.HDUList([primaryHDU])
+            greyHDU.writeto(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + '.fts')
+            greyHDU.close()
+        print('生成HA文件中...')
+        file_year = temp_dict['standard_filename'][3:7]
+        file_mon = temp_dict['standard_filename'][7:9]
+        file_day_seq = temp_dict['standard_filename'][9:18]
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: int(config.height_Ha / config.bin_count)]
+                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, int(config.height_Ha / config.bin_count))))
+        greyHDU = fits.HDUList([primaryHDU])
+        greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
+            temp_dict['scan_index']) + '_HA.fits')
+        greyHDU.close()
+        print('生成FE文件中...')
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, int(config.height_Ha / config.bin_count):]
+                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, int(config.height_Fe / config.bin_count))))
+        greyHDU = fits.HDUList([primaryHDU])
+        greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
+            temp_dict['scan_index']) + '_FE.fits')
+        greyHDU.close()
 
     time_end = time.time()
     print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')

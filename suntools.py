@@ -24,7 +24,7 @@ import multiprocessing as mp
 # 定义参数
 bin_count = config.bin_count
 height_Ha = config.height_Ha  # ha窗口的长度
-height_Fe = config.height_Fe  # he窗口的长度
+height_Fe = config.height_Fe  # fe窗口的长度
 HA = config.HA  # 红蓝移HA参数
 FE = config.FE  # 红蓝移FE参数
 K = config.K  # 红蓝移K参数

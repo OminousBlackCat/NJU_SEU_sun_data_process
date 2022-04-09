@@ -56,7 +56,7 @@ filter_kernel_size = 3
 
 # 图像窗口数据 包含ha窗口与fe窗口的长度
 height_Ha = 260
-height_Fe = 116
+height_Fe = 58
 
 # 红蓝移修正内 波长相关数据
 HA = 6559.5804
