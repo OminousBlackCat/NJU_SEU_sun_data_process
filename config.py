@@ -16,7 +16,7 @@ sum_dir_path = 'data/sum/'
 dark_fits_name = 'data/dark.fits'
 
 # 读入的平场参数文件路径, 相对路径与绝对路径均可
-flat_fits_name = 'data/for_flat_binning2.fits'
+flat_fits_name = 'data/for_flat.fits'
 
 # 读入的标准光谱数据文件路径, 相对路径与绝对路径均可
 sun_std_name = 'data/bass2000.txt'
@@ -25,8 +25,8 @@ sun_std_name = 'data/bass2000.txt'
 color_camp_name = 'data/color_map.txt'
 
 # 读入的HA头部与FE头部参数文件 注意是txt格式 一般不做修改
-HA_header_file = 'data/HA_header'
-FE_header_file = 'data/FE_header'
+HA_header_file = 'data/HA_header.txt'
+FE_header_file = 'data/FE_header.txt'
 
 # 多核并行数
 # 若为'default' 则程序自动根据获得的cpu核数设定并行数
@@ -38,17 +38,17 @@ sun_row_count = 4625
 
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
-bin_count = 2
+bin_count = 1
 
 # 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
-standard_offset_index = 1256
+standard_offset_index = 2313
 
 # 谱线弯曲矫正参数
 # 谱线弯曲矫正x0 参数
-curve_cor_x0 = 1161.58#2321.26
+curve_cor_x0 = 2321.26  # 1161.58
 
 # 谱线弯曲矫正C 参数
-curve_cor_C = 7.639e-011#1.92909e-011
+curve_cor_C = 1.92909e-011  # 7.639e-011
 
 # 中值滤波窗口大小
 filter_kernel_size = 3

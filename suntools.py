@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-import jplephem
+# import jplephem
 import datetime
 import numpy as np
 from math import *
@@ -231,7 +231,9 @@ def DivFlat(imgData, flatData):
 # 图像中值平滑操作
 # 参数
 def MedSmooth(imgData, winSize=4):
+    zero_range = 100
     imgData = signal.medfilt(imgData, kernel_size=int(winSize / 2) * 2 + 1)
+    imgData[:, imgData.shape[1] - int(zero_range / bin_count): imgData.shape[1] - 1] = 0
     return imgData
 
 
@@ -353,7 +355,7 @@ def entireWork(filename, darkDate, flatData, abortion):
     imgData = np.array(fits.getdata(image_file), dtype=float)
     # imgData = change(imgData)
     imgData = moveImg(imgData, -2)
-    imgData, HofHa, HofFe = curve_correction(imgData - darkDate, x0, C)
+    # imgData, HofHa, HofFe = curve_correction(imgData - darkDate, x0, C)
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
