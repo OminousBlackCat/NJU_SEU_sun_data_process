@@ -50,6 +50,7 @@ curve_cor_x0 = 2321.26  # 1161.58
 # 谱线弯曲矫正C 参数
 curve_cor_C = 1.92909e-011  # 7.639e-011
 
+
 # 中值滤波窗口大小
 filter_kernel_size = 3
 
