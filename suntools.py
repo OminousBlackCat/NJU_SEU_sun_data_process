@@ -275,8 +275,8 @@ def getFlatOffset(flatData, imgData):
     # plt.plot(img[50, :].reshape(-1))
     # plt.plot(flat[50, :].reshape(-1))
     # plt.show()
-    print(np.unravel_index(np.argmax(np.abs(img[10, :650])), img[10, :650].shape))
-    print(np.unravel_index(np.argmax(np.abs(flat[10, :650])), flat[10, :650].shape))
+    # print(np.unravel_index(np.argmax(np.abs(img[10, :650])), img[10, :650].shape))
+    # print(np.unravel_index(np.argmax(np.abs(flat[10, :650])), flat[10, :650].shape))
     # IFFT
     FR = imgFFT * np.conj(flatFFT)
     R = np.fft.ifft2(FR)
@@ -288,10 +288,11 @@ def getFlatOffset(flatData, imgData):
 
     # 获取最大值坐标
     pos = np.unravel_index(np.argmax(np.abs(R)), R.shape)
-    print(pos)
+    # print(pos)
     # 计算偏移量
     mx = int((pos[1] - int((w + 1) / 2)) / 10)
     my = (pos[1] - int((w + 1) / 2)) - mx * 10
+    print("偏移量：",end='')
     print(mx, my)
 
     # 偏移操作
@@ -421,7 +422,7 @@ def GetCircle(image):
     x2 = candidate[int(0.8*L)][0]
     y2 = candidate[int(0.8*L)][1]
     R_x = (((R_y - y2) * (R_y - y2) - (R_y - y1) * (R_y - y1))/(x1 - x2) - x1 - x2) / -2
-    print(R_x,R_y)
+    # print(R_x,R_y)
     return R_x,R_y,math.sqrt((R_y - y2) * (R_y - y2) + (R_x - x2) * (R_x - x2))
 
 # 辅助计算软件的运算
