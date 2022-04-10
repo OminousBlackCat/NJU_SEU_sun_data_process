@@ -173,12 +173,13 @@ if_first_print = mp.Value('b', True)
 
 # 全局共享内存
 # 需要创建一个四维数组
-# 三维 xyz 分别为文件序号(扫描序号) 狭缝宽度 波长深度
-# 每个单独文件对应的是 yz平面的一个二维数组
+# 对于最后写入的文件 NAXIS顺序为: 狭缝宽度 文件序号(扫描序号)  波长深度
+# 因此np array的shape应为(波长深度, 文件序号, 狭缝宽度)
+# 每个单独文件对应的是 xy平面的一个二维数组
 # TODO: 是否需要将shape调转顺序？
-GLOBAL_ARRAY_X_COUNT = config.sun_row_count
-GLOBAL_ARRAY_Y_COUNT = sample_from_standard.shape[1]
-GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[0]
+GLOBAL_ARRAY_X_COUNT = sample_from_standard.shape[0]
+GLOBAL_ARRAY_Y_COUNT = config.sun_row_count
+GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
 print('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
 # 创建共享内存 大小为 x*y*z*sizeof(int16)
 GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
@@ -221,10 +222,9 @@ def target_task(filename):
     image_data = suntools.MedSmooth(image_data)
     # 转为整型, 并将每行的最后部分置零
     image_data = np.array(image_data, dtype=np.int16)
-    image_data = image_data.T
     global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
     global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)
-    global_shared_array[int(file_position) - 1] = image_data
+    global_shared_array[:, int(file_position) - 1, :] = image_data
     # 进度输出
     remaining_count.value += 1
     file_data.close()
@@ -259,8 +259,8 @@ def main():
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
         print("SHAPE为：" + str(global_shared_array.shape))
-        for i in range(global_shared_array.shape[0]):
-            sum_data[i] = global_shared_array[i, :, config.sum_row_index].reshape(sample_from_standard.shape[1])
+        for i in range(global_shared_array.shape[1]):
+            sum_data[i] = global_shared_array[config.sum_row_index, i, :].reshape(sample_from_standard.shape[1])
         sum_data[sum_data < 0] = 0
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
@@ -277,18 +277,18 @@ def main():
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
         file_day_seq = temp_dict['standard_filename'][9:18]
-        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: standard_HA_width]
-                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, standard_HA_width)))
+        primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
+                                     .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)))
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
-            temp_dict['scan_index']) + '_HA.fits')
+            temp_dict['scan_index']).zfill(4) + '_HA.fits')
         greyHDU.close()
         print('生成FE文件中...')
-        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, standard_HA_width:]
-                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, standard_FE_width)))
+        primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
+                                     .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)))
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
-            temp_dict['scan_index']) + '_FE.fits')
+            temp_dict['scan_index']).zfill(4) + '_FE.fits')
         greyHDU.close()
 
     time_end = time.time()
