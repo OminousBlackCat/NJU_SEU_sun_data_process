@@ -109,7 +109,7 @@ except OSError:
     sys.exit("程序终止")
 if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
-    flat_img, temp1, temp2 = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
+    flat_img, standard_HA_width, standard_FE_width = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
 temp_img.close()
 
 # 读取经过日心的图片 作为基准
@@ -125,7 +125,7 @@ try:
         temp_img = fits.open(read_dir + '/' + standard_name)
         standard_img = np.array(temp_img[0].data, dtype=float)
         standard_img = suntools.moveImg(standard_img, -2)
-        standard_img, temp1, temp2 = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
+        standard_img, standard_HA_width, standard_FE_width = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
                                                                config.curve_cor_C)
         sample_from_standard = standard_img
         # 先平移矫正 减去暗场 再谱线弯曲矫正
@@ -136,7 +136,7 @@ try:
         # 需要先对标注文件进行一系列操作 去暗场 去平场 再进行红蓝移修正
         standard_img = suntools.DivFlat(standard_img, flatTemp)
         # 获得标准吸收系数
-        abortion = suntools.RB_getdata(standard_img, sun_std, temp1, temp2)
+        abortion = suntools.RB_getdata(standard_img, sun_std, standard_HA_width, standard_FE_width)
         temp_dict['flat_data'] = flatTemp
         temp_dict['abortion_data'] = abortion
         temp_img.close()
@@ -277,15 +277,15 @@ def main():
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
         file_day_seq = temp_dict['standard_filename'][9:18]
-        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: int(config.height_Ha / config.bin_count)]
-                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, int(config.height_Ha / config.bin_count))))
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, 0: standard_HA_width]
+                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, standard_HA_width)))
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']) + '_HA.fits')
         greyHDU.close()
         print('生成FE文件中...')
-        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, int(config.height_Ha / config.bin_count):]
-                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, int(config.height_Fe / config.bin_count))))
+        primaryHDU = fits.PrimaryHDU(global_shared_array[:, :, standard_HA_width:]
+                                     .reshape((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, standard_FE_width)))
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']) + '_FE.fits')
