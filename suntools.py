@@ -102,8 +102,8 @@ def curve_correction(imgData, x0, C):
         bad_Fe = int(height_Fe / bin_count) - int(29 / bin_count)
     # print(bad_Ha,bad_Fe)
     # 删除坏行 并输出两窗口最后的行数
-    imgData[bad_Ha + 1:bad_Ha + int(height_Fe / bin_count)] = imgData[
-                                                              int(height_Ha / bin_count) + 1:int(height_Fe / bin_count) + 1 + int(
+    imgData[bad_Ha :bad_Ha + int(height_Fe / bin_count)] = imgData[
+                                                              int(height_Ha / bin_count) :int(height_Fe / bin_count)  + int(
                                                                   height_Ha / bin_count)]
     return imgData[0:bad_Ha + bad_Fe], bad_Ha, bad_Fe
 
@@ -539,6 +539,7 @@ def test():
 #RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
     #RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
+    print(H, W)
     filelist = os.listdir(filepath_test)
     image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060129-0008-2313.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
