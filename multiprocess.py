@@ -100,10 +100,7 @@ for h in global_header_list:
 for item in header.static_header_items:
     for temp_dict in global_multiprocess_list:
         temp_dict['header'].set(item['key'], item['value'])
-for temp_dict in global_multiprocess_list:
-    temp_dict['header'].set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
-    temp_dict['header'].set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
-    temp_dict['header'].set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
+
 
 # 读取暗场文件
 temp_img = None
@@ -318,7 +315,7 @@ def main():
             print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
             primaryHDU = fits.PrimaryHDU(sum_data)
             greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + '.fts')
+            greyHDU.writeto(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + '.fts', overwrite=True)
             greyHDU.close()
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')
@@ -333,7 +330,7 @@ def main():
                                      , header=temp_dict['header'])
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
-            temp_dict['scan_index']).zfill(4) + '_HA.fits')
+            temp_dict['scan_index']).zfill(4) + '_HA.fits', overwrite=True)
         greyHDU.close()
         print('生成FE文件中...')
         # 修改header内的SPECLINE与LINECORE
@@ -345,8 +342,9 @@ def main():
                                      , header=temp_dict['header'])
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
-            temp_dict['scan_index']).zfill(4) + '_FE.fits')
+            temp_dict['scan_index']).zfill(4) + '_FE.fits', overwrite=True)
         greyHDU.close()
+        if_first_print.value = True
 
     time_end = time.time()
     print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
