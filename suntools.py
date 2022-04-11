@@ -443,8 +443,8 @@ def rotation_matrix3(xyz, theta):
 
 # 计算需求数据，输入来自于头文件
 def getB0P0(q0, q1, q2, q3, strtime):
-    astropy.utils.data.import_file_to_cache('https:/naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de430.bsp',
-                                            'data/de430.bsp', remove_original=False, pkgname='astropy', replace=True)
+    astropy.utils.data.import_file_to_cache('file://localhost/',
+                                            config.de_file_name, remove_original=False, pkgname='astropy', replace=True)
     t = Time(strtime)
 
     sun_6 = astropy.coordinates.get_body_barycentric_posvel('sun', t, ephemeris='de430')

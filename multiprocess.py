@@ -100,6 +100,10 @@ for h in global_header_list:
 for item in header.static_header_items:
     for temp_dict in global_multiprocess_list:
         temp_dict['header'].set(item['key'], item['value'])
+for temp_dict in global_multiprocess_list:
+    temp_dict['header'].set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
+    temp_dict['header'].set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
+    temp_dict['header'].set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
 
 # 读取暗场文件
 temp_img = None
@@ -174,22 +178,24 @@ try:
         temp_img.close()
         print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
         print('计算B0, INST_ROT中....')
-        temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
-                                                  standard_header['Q3'], standard_header['STR_TIME'])
-        temp_dict['header'].set('B0', temp_B0)
-        temp_dict['header'].set('INST_ROT', temp_INST_ROT)
-        first_name = temp_dict['first_name']
-        last_name = temp_dict['last_name']
+        # temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
+        #                                           standard_header['Q3'], standard_header['STR_TIME'])
+        # temp_dict['header'].set('B0', temp_B0)
+        # temp_dict['header'].set('INST_ROT', temp_INST_ROT)
+        first_name = temp_dict['first_filename']
+        last_name = temp_dict['last_filename']
         temp_dict['header'].set('STR_TIME', first_name[3:7] + '-' + first_name[7:9] + '-' + first_name[9:11] + 'T'
                                 + first_name[12:14] + ':' + first_name[14:16] + ':' + first_name[16:18])
         temp_dict['header'].set('END_TIME', last_name[3:7] + '-' + last_name[7:9] + '-' + last_name[9:11] + 'T'
                                 + last_name[12:14] + ':' + last_name[14:16] + ':' + last_name[16:18])
 
-except uEr.URLError:
+except uEr.URLError as error:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
+    print(error)
     sys.exit("程序终止")
-except OSError:
+except OSError as error:
     print("Error: 标准日心校准文件读取发生错误, 请检查文件读取权限")
+    print(error)
     sys.exit("程序终止")
 
 # 读取输出色谱
@@ -321,6 +327,7 @@ def main():
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
         file_day_seq = temp_dict['standard_filename'][9:18]
+        print(repr(temp_dict['header']))
         primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
                                      .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                      , header=temp_dict['header'])

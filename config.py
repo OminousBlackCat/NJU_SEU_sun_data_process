@@ -24,6 +24,10 @@ sun_std_name = 'data/bass2000.txt'
 # 读入的色谱(作为日像汇总结果png格式的输入)文件路径, 相对路径与绝对路径均可
 color_camp_name = 'data/color_map.txt'
 
+# 读入的星图文件
+de_file_url = 'https:/naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de430.bsp'
+de_file_name = 'data/de430.bsp'
+
 # 读入的HA头部与FE头部参数文件 注意是txt格式 一般不做修改
 HA_header_file = 'data/HA_header.txt'
 FE_header_file = 'data/FE_header.txt'
@@ -70,4 +74,4 @@ sum_row_index = 132
 
 # 输出何种类型的图片
 # 'fts'输出fts格式灰度文件, 'default'则输出以color map为camp的png图片
-save_img_form = 'default'
+save_img_form = 'fts'

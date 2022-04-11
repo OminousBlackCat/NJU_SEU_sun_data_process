@@ -59,6 +59,14 @@ static_header_items = [
     {
         'key': 'SPECLINE',
         'value': 'HA'  # FE
+    },
+    {
+        'key': 'BZERO',
+        'value': 32768
+    },
+    {
+        'key': 'BSCALE',
+        'value': 1
     }
 ]
 
@@ -177,7 +185,7 @@ def main():
     q2 = h['Q2']
     q3 = h['Q3']
     strtime = h['STR_TIME']
-    B0, p0, INST = suntools.getB0P0(q0, q1, q2, q3, strtime)
+    B0, INST = suntools.getB0P0(q0, q1, q2, q3, strtime)
     print(B0)
 
     # b = fits.header.Header()
