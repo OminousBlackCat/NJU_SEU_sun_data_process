@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-# import jplephem
+import jplephem
 import datetime
 import numpy as np
 from math import *
@@ -19,7 +19,6 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy import coordinates
 import multiprocessing as mp
-
 
 # 定义参数
 bin_count = config.bin_count
@@ -95,16 +94,16 @@ def curve_correction(imgData, x0, C):
                 # 计算插值
                 imgData[y + int(height_Ha / bin_count)][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (
                         stdx[now] - stdx[now - 1]) * (
-                                                               y - stdx[now - 1])
+                                                                     y - stdx[now - 1])
     if bad_Ha < int(height_Ha / bin_count) - int(29 / bin_count):
         bad_Ha = int(height_Ha / bin_count) - int(29 / bin_count)
     if bad_Fe < int(height_Fe / bin_count) - int(29 / bin_count):
         bad_Fe = int(height_Fe / bin_count) - int(29 / bin_count)
     # print(bad_Ha,bad_Fe)
     # 删除坏行 并输出两窗口最后的行数
-    imgData[bad_Ha :bad_Ha + int(height_Fe / bin_count)] = imgData[
-                                                              int(height_Ha / bin_count) :int(height_Fe / bin_count)  + int(
-                                                                  height_Ha / bin_count)]
+    imgData[bad_Ha:bad_Ha + int(height_Fe / bin_count)] = imgData[
+                                                          int(height_Ha / bin_count):int(height_Fe / bin_count) + int(
+                                                              height_Ha / bin_count)]
     return imgData[0:bad_Ha + bad_Fe], bad_Ha, bad_Fe
 
 
@@ -292,15 +291,17 @@ def getFlatOffset(flatData, imgData):
     # 计算偏移量
     mx = int((pos[1] - int((w + 1) / 2)) / 10)
     my = (pos[1] - int((w + 1) / 2)) - mx * 10
-    print("偏移量：",end='')
+    print("偏移量：", end='')
     print(mx, my)
 
     # 偏移操作
     if mx * 10 + my < 0:
         my *= -1
-        flatTempData[:, 0:W + mx - 1] = flatTempData[:, -mx:W - 1] * (1 - my / 10) + flatTempData[:, -mx + 1:W] * (my / 10)
+        flatTempData[:, 0:W + mx - 1] = flatTempData[:, -mx:W - 1] * (1 - my / 10) + flatTempData[:, -mx + 1:W] * (
+                    my / 10)
     else:
-        flatTempData[:, mx + 1:W - 1] = flatTempData[:, 0:W - mx - 2]  * my / 10 + flatTempData[:, 1:W - mx - 1]*(1 - my / 10)
+        flatTempData[:, mx + 1:W - 1] = flatTempData[:, 0:W - mx - 2] * my / 10 + flatTempData[:, 1:W - mx - 1] * (
+                    1 - my / 10)
     return flatTempData
 
 
@@ -308,11 +309,12 @@ def getFlatOffset(flatData, imgData):
 def moveImg(imgdata, offset):
     H, W = imgdata.shape
     if offset < 0:
-        imgdata[int(height_Ha / bin_count) + 1:, 0:W + int(offset / bin_count)] = imgdata[int(height_Ha / bin_count) + 1:,
+        imgdata[int(height_Ha / bin_count) + 1:, 0:W + int(offset / bin_count)] = imgdata[
+                                                                                  int(height_Ha / bin_count) + 1:,
                                                                                   -int(offset / bin_count):W]
     else:
         imgdata[int(height_Ha / bin_count) + 1:, int(offset / bin_count):W] = imgdata[int(height_Ha / bin_count) + 1:,
-                                                                  0:W - int(offset / bin_count)]
+                                                                              0:W - int(offset / bin_count)]
     return imgdata
 
 
@@ -374,8 +376,9 @@ def entireWork(filename, darkDate, flatData, abortion):
     plt.show()
     return imgDataRB, imgData
 
+
 # 通过灰度图拟合图中的圆
-def GetCircle(image):
+def getCircle(image):
     # 通过卷积，使用Sobel算子提取边界
     conv1 = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
     conv2 = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
@@ -386,29 +389,29 @@ def GetCircle(image):
     gradient_max = np.max(gradient)
 
     # 提取圆左右两侧对称点，从而计算圆心第二维坐标
-    H,W = gradient.shape
+    H, W = gradient.shape
     # print(H,W)
     border = []
     r_y = []
     for x in range(H):
-        y = int(0.1*W)
-        while y< 0.9*W and gradient[x][y]<0.1*gradient_max:
-            y+=1
+        y = int(0.1 * W)
+        while y < 0.9 * W and gradient[x][y] < 0.1 * gradient_max:
+            y += 1
         y0 = y
-        y+=10
+        y += 10
         y1 = 0
         while y < 0.9 * W:
-            if gradient[x][y]>0.1*gradient_max:
+            if gradient[x][y] > 0.1 * gradient_max:
                 y1 = y
-            y+=1
+            y += 1
         if y1 != 0:
             border.append([x, y0, y1])
-        r_y.append((y1+y0)/2)
+        r_y.append((y1 + y0) / 2)
     # print(r_y)
     L = len(r_y)
     # 通过中位数计算圆第二维坐标
-    R_y = np.median(np.array(r_y)[int(0.2*L) : int(0.8*L)])
-    #print(R_y)
+    R_y = np.median(np.array(r_y)[int(0.2 * L): int(0.8 * L)])
+    # print(R_y)
 
     # 通过圆第二维坐标筛选对称点，选取其中三个点计算圆坐标和直径
     candidate = []
@@ -417,13 +420,14 @@ def GetCircle(image):
         if abs(points[1] + points[2] - 2 * R_y) <= 5:
             candidate.append([points[0], points[1]])
     L = len(candidate)
-    x1 = candidate[int(0.2*L)][0]
-    y1 = candidate[int(0.2*L)][1]
-    x2 = candidate[int(0.8*L)][0]
-    y2 = candidate[int(0.8*L)][1]
-    R_x = (((R_y - y2) * (R_y - y2) - (R_y - y1) * (R_y - y1))/(x1 - x2) - x1 - x2) / -2
+    x1 = candidate[int(0.2 * L)][0]
+    y1 = candidate[int(0.2 * L)][1]
+    x2 = candidate[int(0.8 * L)][0]
+    y2 = candidate[int(0.8 * L)][1]
+    R_x = (((R_y - y2) * (R_y - y2) - (R_y - y1) * (R_y - y1)) / (x1 - x2) - x1 - x2) / -2
     # print(R_x,R_y)
-    return R_x,R_y,math.sqrt((R_y - y2) * (R_y - y2) + (R_x - x2) * (R_x - x2))
+    return R_x, R_y, math.sqrt((R_y - y2) * (R_y - y2) + (R_x - x2) * (R_x - x2))
+
 
 # 辅助计算软件的运算
 def rotation_matrix3(xyz, theta):
@@ -438,7 +442,9 @@ def rotation_matrix3(xyz, theta):
 
 
 # 计算需求数据，输入来自于头文件
-def getB0P0(q0,q1,q2,q3,strtime):
+def getB0P0(q0, q1, q2, q3, strtime):
+    astropy.utils.data.import_file_to_cache('https:/naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de430.bsp',
+                                            'data/de430.bsp', remove_original=False, pkgname='astropy', replace=True)
     t = Time(strtime)
 
     sun_6 = astropy.coordinates.get_body_barycentric_posvel('sun', t, ephemeris='de430')
@@ -523,7 +529,8 @@ def getB0P0(q0,q1,q2,q3,strtime):
 
     # instrument rotation clockwise
     INST_ROT = -p0
-    return B0,p0,INST_ROT
+    return B0, INST_ROT
+
 
 def test():
     matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
@@ -537,14 +544,14 @@ def test():
 
     image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
-#RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
-    #RSM20220120T062536-0017-1081.fts
+    # RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
+    # RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
     print(H, W)
     filelist = os.listdir(filepath_test)
     image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060129-0008-2313.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
-    #img_data = change(img_data)
+    # img_data = change(img_data)
     # bin = getBin(img_data)
     print(bin)
     img_data = moveImg(img_data, -2)
@@ -559,7 +566,7 @@ def test():
     filename = filepath_test + 'RSM20211222T060132-0008-2664.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
-    #imgData = change(imgData)
+    # imgData = change(imgData)
     imgData = moveImg(imgData, -2)
     imgData, HofHa, HofFe = curve_correction(imgData - dark_data, x0, C)
     plt.figure()
@@ -583,12 +590,14 @@ def test():
     plt.show()
 
     # grey = fits.PrimaryHDU(image_file)
+
+
 # 全局进度控制
 file_count = mp.Value('i', 20)
 if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
 
-if  __name__ == "__main__":
+if __name__ == "__main__":
     # testPath = "sunImage/"
     # I = Image.open(testPath + 'sum17.png')
     # I_array = np.array(I.convert('L'))

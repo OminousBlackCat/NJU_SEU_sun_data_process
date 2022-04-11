@@ -1,7 +1,7 @@
 import multiprocessing as mp
+import datetime
 import os
 import header
-import sys
 import suntools
 import time
 import numpy as np
@@ -56,20 +56,30 @@ for i in range(len(data_file_lst)):
             ifFind = True
             if int(filename[24:28]) == config.standard_offset_index:
                 global_multiprocess_list[j]['standard_filename'] = filename
+            if int(filename[24:28]) == 1:
+                global_multiprocess_list[j]['first_filename'] = filename
+            if int(filename[24:28]) > int(global_multiprocess_list[j]['last_filename'][24:28]):
+                global_multiprocess_list[j]['last_filename'] = filename
             break
     if not ifFind:
         global_multiprocess_list.append({
-            'scan_index': temp_index,  # 扫描序号
-            'file_list': [],  # 文件名列表
-            'file_count': 0,  # 包含的文件数
-            'standard_filename': '',  # 标准日心文件名
-            'flat_data': None,  # 此序列的校正后平场数据
-            'abortion_data': None  # 此序列的校正后红蓝移数据
+            'scan_index': temp_index,       # 扫描序号
+            'file_list': [],                # 文件名列表
+            'file_count': 0,                # 包含的文件数
+            'standard_filename': '',        # 标准日心文件名
+            'first_filename': '',           # 序列开始文件
+            'last_filename': '',            # 序列结束文件
+            'flat_data': None,              # 此序列的校正后平场数据
+            'abortion_data': None,          # 此序列的校正后红蓝移数据
+            'header': fits.header.Header()  # 此序列的头部, 构造了一个新的header
         })
         global_multiprocess_list[len(global_multiprocess_list) - 1]['file_list'].append(filename)
         global_multiprocess_list[len(global_multiprocess_list) - 1]['file_count'] += 1
         if int(filename[24:28]) == config.standard_offset_index:
             global_multiprocess_list[len(global_multiprocess_list) - 1]['standard_filename'] = filename
+        if int(filename[24:28]) == 1:
+            global_multiprocess_list[len(global_multiprocess_list) - 1]['first_filename'] = filename
+        global_multiprocess_list[len(global_multiprocess_list) - 1]['last_filename'] = filename
 
 # 剔除不完整序列
 for i in range(len(global_multiprocess_list)):
@@ -78,6 +88,18 @@ for i in range(len(global_multiprocess_list)):
         print('文件夹中包含不完整序列, 序列序号为:' + str(global_multiprocess_list[i]['scan_index']))
         print('本次数据处理将不此序列进行处理.....')
         global_multiprocess_list.remove(global_multiprocess_list[i])
+
+# 读取头部参数文件
+# 为每个序列都创建头
+global_header_list = header.read_header_from_txt(config.HA_header_file)
+# 将读入的list构造成为header
+for h in global_header_list:
+    for temp_dict in global_multiprocess_list:
+        temp_dict['header'].set(h['key'], value=h['value'], comment=h['comment'])
+# 将静态的值赋入header
+for item in header.static_header_items:
+    for temp_dict in global_multiprocess_list:
+        temp_dict['header'].set(item['key'], item['value'])
 
 # 读取暗场文件
 temp_img = None
@@ -116,6 +138,8 @@ temp_img.close()
 # 读取标准太阳光谱数据
 sun_std = suntools.get_Sunstd(config.sun_std_name)
 sample_from_standard = None
+HA_LINECORE = None
+FEI_LINECORE = None
 try:
     for temp_dict in global_multiprocess_list:
         # 对每个序列进行校正
@@ -123,6 +147,14 @@ try:
         print("校正平场中...")
         standard_name = temp_dict['standard_filename']
         temp_img = fits.open(read_dir + '/' + standard_name)
+        standard_header = temp_img[0].header
+        # 复制一些值去头部
+        HA_LINECORE = float(standard_header['WAVE_LEN'].split('and')[0].strip())
+        FEI_LINECORE = float(standard_header['WAVE_LEN'].split('and')[1].strip())
+        for item in header.copy_header_items:
+            temp_dict['header'].set(item['key'], standard_header[item['key']])
+        temp_dict['header'].set('BIN', config.bin_count)
+        temp_dict['header'].set('DATE_OBS', standard_header['STR_TIME'])
         standard_img = np.array(temp_img[0].data, dtype=float)
         standard_img = suntools.moveImg(standard_img, -2)
         standard_img, standard_HA_width, standard_FE_width = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
@@ -141,6 +173,18 @@ try:
         temp_dict['abortion_data'] = abortion
         temp_img.close()
         print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
+        print('计算B0, INST_ROT中....')
+        temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
+                                                  standard_header['Q3'], standard_header['STR_TIME'])
+        temp_dict['header'].set('B0', temp_B0)
+        temp_dict['header'].set('INST_ROT', temp_INST_ROT)
+        first_name = temp_dict['first_name']
+        last_name = temp_dict['last_name']
+        temp_dict['header'].set('STR_TIME', first_name[3:7] + '-' + first_name[7:9] + '-' + first_name[9:11] + 'T'
+                                + first_name[12:14] + ':' + first_name[14:16] + ':' + first_name[16:18])
+        temp_dict['header'].set('END_TIME', last_name[3:7] + '-' + last_name[7:9] + '-' + last_name[9:11] + 'T'
+                                + last_name[12:14] + ':' + last_name[14:16] + ':' + last_name[16:18])
+
 except uEr.URLError:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
@@ -155,20 +199,10 @@ color_map = suntools.get_color_map(config.color_camp_name)
 if not os.path.exists(out_dir):
     os.mkdir(out_dir)
 
-# 读取头部参数文件
-HA_HEADER = fits.header.Header()
-FE_HEADER = fits.header.Header()
-HA_list = header.read_header_from_txt(config.HA_header_file)
-FE_list = header.read_header_from_txt(config.FE_header_file)
-# 将读入的list构造成为header
-for h in HA_list:
-    HA_HEADER.set(h['key'], value=0, comment=h['comment'])
-for h in FE_list:
-    FE_HEADER.set(h['key'], value=0, comment=h['comment'])
 
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))
-remaining_count = mp.Value('i', 0)
+remaining_count = mp.Value('i', 1)
 if_first_print = mp.Value('b', True)
 
 # 全局共享内存
@@ -262,6 +296,13 @@ def main():
         for i in range(global_shared_array.shape[1]):
             sum_data[i] = global_shared_array[config.sum_row_index, i, :].reshape(sample_from_standard.shape[1])
         sum_data[sum_data < 0] = 0
+        print('计算CCD太阳像半径中...')
+        R_x, R_y, radius = suntools.getCircle(sum_data)
+        OBS_Radius = radius * temp_dict['header']['CDELT1']
+        temp_dict['header'].set('CRPIX1', R_x)
+        temp_dict['header'].set('CRPIX2', R_y)
+        temp_dict['header'].set('R_SUN', radius)
+        temp_dict['header'].set('RSUN_OBS', OBS_Radius)
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
@@ -274,18 +315,27 @@ def main():
             greyHDU.writeto(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + '.fts')
             greyHDU.close()
         print('生成HA文件中...')
+        temp_dict['header'].set('SPECLINE', 'HA')
+        temp_dict['header'].set('LINECORE', HA_LINECORE)
+        temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
         file_day_seq = temp_dict['standard_filename'][9:18]
         primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
-                                     .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)))
+                                     .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                     , header=temp_dict['header'])
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_HA.fits')
         greyHDU.close()
         print('生成FE文件中...')
+        # 修改header内的SPECLINE与LINECORE
+        temp_dict['header'].set('SPECLINE', 'FEI')
+        temp_dict['header'].set('LINECORE', FEI_LINECORE)
+        temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
-                                     .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)))
+                                     .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                     , header=temp_dict['header'])
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_FE.fits')
