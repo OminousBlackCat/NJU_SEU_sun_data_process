@@ -359,7 +359,7 @@ def entireWork(filename, darkDate, flatData, abortion):
     imgData = np.array(fits.getdata(image_file), dtype=float)
     # imgData = change(imgData)
     imgData = moveImg(imgData, -2)
-    # imgData, HofHa, HofFe = curve_correction(imgData - darkDate, x0, C)
+    imgData, HofHa, HofFe = curve_correction(imgData - darkDate, x0, C)
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
@@ -379,15 +379,27 @@ def entireWork(filename, darkDate, flatData, abortion):
 
 # 通过灰度图拟合图中的圆
 def getCircle(image):
-    # 通过卷积，使用Sobel算子提取边界
-    conv1 = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-    conv2 = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
-    conv3 = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
-    gradient_Y = signal.convolve2d(image, conv1, "valid")
-    gradient_X = signal.convolve2d(image, conv2, "valid")
-    gradient = np.abs(gradient_X) + np.abs(gradient_Y)
-    gradient_max = np.max(gradient)
 
+    #二值化
+    image_max = np.max(image)
+    image = np.clip(image - image_max*0.15,0,1)
+    plt.figure()
+    plt.imshow(image)
+    plt.show()
+
+    # 通过卷积，使用Sobel算子提取边界
+    # conv1 = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+    conv2 = np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])
+    conv3 = np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]])/16
+    image = signal.convolve2d(image, conv3, "valid")
+    # gradient_Y = signal.convolve2d(image, conv1, "valid")
+    gradient_X = signal.convolve2d(image, conv2, "valid")
+    gradient = np.abs(gradient_X) # + np.abs(gradient_Y)
+    gradient = np.clip(gradient,0,np.max(gradient)*0.6)
+    gradient_max = np.max(gradient)
+    plt.figure()
+    plt.imshow(gradient)
+    plt.show()
     # 提取圆左右两侧对称点，从而计算圆心第二维坐标
     H, W = gradient.shape
     # print(H,W)
@@ -426,7 +438,7 @@ def getCircle(image):
     y2 = candidate[int(0.8 * L)][1]
     R_x = (((R_y - y2) * (R_y - y2) - (R_y - y1) * (R_y - y1)) / (x1 - x2) - x1 - x2) / -2
     # print(R_x,R_y)
-    return R_x, R_y, math.sqrt((R_y - y2) * (R_y - y2) + (R_x - x2) * (R_x - x2))
+    return R_x + 2, R_y + 2, math.sqrt((R_y - y2) * (R_y - y2) + (R_x - x2) * (R_x - x2))
 
 
 # 辅助计算软件的运算
@@ -541,15 +553,14 @@ def test():
     # print(base)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     dark_data = np.array(fits.getdata(image_file), dtype=float)
-
-    image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
+    image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
     # RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
     # RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
     print(H, W)
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060129-0008-2313.fts')
+    image_file = get_pkg_data_filename(filepath_test + 'RSM20220120T062539-0017-1256.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
     # img_data = change(img_data)
     # bin = getBin(img_data)
@@ -563,7 +574,7 @@ def test():
     # print(flat_data)
     flat_data = getFlat(flat_data)
 
-    filename = filepath_test + 'RSM20211222T060132-0008-2664.fts'
+    filename = filepath_test + 'RSM20220120T062539-0017-1256.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     # imgData = change(imgData)
@@ -580,9 +591,8 @@ def test():
     plt.figure()
     plt.imshow(flat_data, cmap="gray", aspect='auto')
     plt.show()
-
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + 'RSM20211222T060132-0008-2664.fts', dark_data, flat_data, abortion)
+    image_file, imgData = entireWork(filepath_test + 'RSM20220120T062539-0017-1256.fts', dark_data, flat_data, abortion)
     #
     print("OK")
     plt.figure()
@@ -601,25 +611,27 @@ if __name__ == "__main__":
     # testPath = "sunImage/"
     # I = Image.open(testPath + 'sum17.png')
     # I_array = np.array(I.convert('L'))
-    # print(np.shape(I_array))
-    # rx,ry,r = GetCircle(I_array)
+    # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
+    # I_array = np.array(fits.getdata(image_file), dtype=float)
+    # # print(np.shape(I_array))
+    # rx,ry,r = getCircle(I_array)
     # H,W = I_array.shape
-    #
+    # print(rx,ry,r)
     # for i in range(H):
     #     for j in range(W):
-    #         if abs((i-2-rx)*(i-2-rx) + (j-2-ry)*(j-2-ry) -r*r) <10000:
+    #         if abs((i-rx)*(i-rx) + (j-ry)*(j-ry) -r*r) <10000:
     #             I_array[i][j]=240
     # plt.figure()
     # plt.imshow(I_array)
     # plt.show()
+    # if_first_print = True
+    # for i in range(100):
+    #     remaining_count = mp.Value('i', int(i))
+    #     if if_first_print:
+    #         print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+    #         if_first_print = False
+    #     else:
+    #         print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
+    #             remaining_count.value) + '/' + str(file_count.value), end='')
+    #     time.sleep(0.5)
     test()
-    if_first_print = True
-    for i in range(100):
-        remaining_count = mp.Value('i', int(i))
-        if if_first_print:
-            print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
-            if_first_print = False
-        else:
-            print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
-                remaining_count.value) + '/' + str(file_count.value), end='')
-        time.sleep(0.5)
