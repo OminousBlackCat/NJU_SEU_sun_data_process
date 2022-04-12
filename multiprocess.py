@@ -361,7 +361,6 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.scale('int16', bzero=1, bscale=32768)
         primaryHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_FE.fits', overwrite=True)
         if_first_print.value = True
