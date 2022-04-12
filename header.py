@@ -10,7 +10,7 @@ from astropy.io.fits import HDUList, Header
 static_header_items = [
     {
         'key': 'TELESCOP',
-        'value': 'CHASE'
+        'value': 'CHASE/HIS'
     },
     {
         'key': 'CUNIT1',
@@ -75,10 +75,6 @@ static_header_items = [
 copy_header_items = [
     {
         'key': 'EXP_TIME',
-        'typeOfValue': 'number'
-    },
-    {
-        'key': 'FRM_NUM',
         'typeOfValue': 'number'
     },
     {
@@ -151,6 +147,10 @@ calculate_header_items = [
     {
         'key': 'B0',
         'typeOfValue': 'number'
+    },
+    {
+        'key': 'FRM_NUM',
+        'typeOfValue': 'string'
     }
 ]
 
