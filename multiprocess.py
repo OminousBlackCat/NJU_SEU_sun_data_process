@@ -185,6 +185,7 @@ try:
                                 + first_name[12:14] + ':' + first_name[14:16] + ':' + first_name[16:18])
         temp_dict['header'].set('END_TIME', last_name[3:7] + '-' + last_name[7:9] + '-' + last_name[9:11] + 'T'
                                 + last_name[12:14] + ':' + last_name[14:16] + ':' + last_name[16:18])
+        temp_dict['header'].set('FRM_NUM', '1~' + str(temp_dict['file_count']))
 
 except uEr.URLError as error:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
@@ -295,10 +296,12 @@ def main():
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
+        # 将小于0的值全部赋为0
+        global_shared_array[global_shared_array < 0] = 0
         print("SHAPE为：" + str(global_shared_array.shape))
+        # 输出太阳像
         for i in range(global_shared_array.shape[1]):
             sum_data[i] = global_shared_array[config.sum_row_index, i, :].reshape(sample_from_standard.shape[1])
-        sum_data[sum_data < 0] = 0
         print('计算CCD太阳像半径中...')
         R_x, R_y, radius = suntools.getCircle(sum_data)
         OBS_Radius = radius * temp_dict['header']['CDELT1']
@@ -340,6 +343,17 @@ def main():
         primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
                                      .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                      , header=temp_dict['header'])
+        primaryHDU.scale('int16', bscale=32768, bzero=1)
+        primaryHDU.header.update('NAXIS', comment='Number of data axes')
+        primaryHDU.header.update('NAXIS1', comment='Length of data axis 1 (slit dimension)')
+        primaryHDU.header.update('NAXIS2', comment='Length of data axis 2 (scanning steps)')
+        primaryHDU.header.update('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
+        primaryHDU.header.update('BZERO', comment='Data is Unsigned Integer')
+        primaryHDU.header.update('BSCALE', comment='default scaling factor')
+        primaryHDU.header.add_comment('Spectral curvature corrected')
+        primaryHDU.header.add_comment('Dark subtracted')
+        primaryHDU.header.add_comment('Flat-field corrected')
+        primaryHDU.header.add_comment('Processed by RSM_prep')
         greyHDU = fits.HDUList([primaryHDU])
         greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_FE.fits', overwrite=True)
