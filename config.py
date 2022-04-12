@@ -1,6 +1,5 @@
 # 存储一些程序需要的必要参数
 
-
 # 读入数据存放的文件夹, 相对路径与绝对路径均可
 data_dir_path = "data/raw_data_test"
 
@@ -37,23 +36,30 @@ FE_header_file = 'data/FE_header.txt'
 # 默认使用可支配核数-4的并行数量
 multiprocess_count = 'default'
 
-# 一个扫描序列最多包含多少行(一组数据包含多少文件)(一般不需要改动此参数)
-sun_row_count = 4625
-
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
 bin_count = 2
 
-# 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
-standard_offset_index = 2313
-
+# TODO: 请在修改bin后修改以下参数
+# 一个扫描序列最多包含多少行(一组数据包含多少文件)(一般不需要改动此参数)
+sun_row_count = 4625  # 2313
 # 谱线弯曲矫正参数
 # 谱线弯曲矫正x0 参数
-curve_cor_x0 =  1161.58#2321.26
-
+curve_cor_x0 = 1161.58  # 2321.26
 # 谱线弯曲矫正C 参数
-curve_cor_C = 7.639e-011#1.92909e-011
+curve_cor_C = 7.639e-011  # 1.92909e-011
+# 红蓝移修正内 波长相关数据
+HA = 6559.5804
+FE = 6569.22
+K = 0.024202301
+# 合并图像时所拼的行数
+# 默认为132行（光谱强度最低点）
+sum_row_index = 132
 
+
+# TODO: 以下参数仅需修改数值即可, 无需在bin修改时更改
+# 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
+standard_offset_index = 2313
 
 # 中值滤波窗口大小
 filter_kernel_size = 3
@@ -61,16 +67,6 @@ filter_kernel_size = 3
 # 图像窗口数据 包含ha窗口与fe窗口的长度
 height_Ha = 260
 height_Fe = 116
-
-# 红蓝移修正内 波长相关数据
-HA = 6559.5804
-FE = 6569.22
-K = 0.024202301
-
-# 合并图像时所拼的行数
-# 默认为132行（光谱强度最低点）
-# 此参数要伴随bin一起更改
-sum_row_index = 132
 
 # 输出何种类型的图片
 # 'fts'输出fts格式灰度文件, 'default'则输出以color map为camp的png图片

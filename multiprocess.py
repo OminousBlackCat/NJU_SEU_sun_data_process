@@ -63,14 +63,14 @@ for i in range(len(data_file_lst)):
             break
     if not ifFind:
         global_multiprocess_list.append({
-            'scan_index': temp_index,       # 扫描序号
-            'file_list': [],                # 文件名列表
-            'file_count': 0,                # 包含的文件数
-            'standard_filename': '',        # 标准日心文件名
-            'first_filename': '',           # 序列开始文件
-            'last_filename': '',            # 序列结束文件
-            'flat_data': None,              # 此序列的校正后平场数据
-            'abortion_data': None,          # 此序列的校正后红蓝移数据
+            'scan_index': temp_index,  # 扫描序号
+            'file_list': [],  # 文件名列表
+            'file_count': 0,  # 包含的文件数
+            'standard_filename': '',  # 标准日心文件名
+            'first_filename': '',  # 序列开始文件
+            'last_filename': '',  # 序列结束文件
+            'flat_data': None,  # 此序列的校正后平场数据
+            'abortion_data': None,  # 此序列的校正后红蓝移数据
             'header': fits.header.Header()  # 此序列的头部, 构造了一个新的header
         })
         global_multiprocess_list[len(global_multiprocess_list) - 1]['file_list'].append(filename)
@@ -83,7 +83,7 @@ for i in range(len(data_file_lst)):
 
 # 剔除不完整序列
 for i in range(len(global_multiprocess_list)):
-    if global_multiprocess_list[i]['file_count'] < config.sun_row_count - 5000 or\
+    if global_multiprocess_list[i]['file_count'] < config.sun_row_count - 5000 or \
             global_multiprocess_list[i]['standard_filename'] is None:
         print('文件夹中包含不完整序列, 序列序号为:' + str(global_multiprocess_list[i]['scan_index']))
         print('本次数据处理将不此序列进行处理.....')
@@ -100,7 +100,6 @@ for h in global_header_list:
 for item in header.static_header_items:
     for temp_dict in global_multiprocess_list:
         temp_dict['header'].set(item['key'], item['value'])
-
 
 # 读取暗场文件
 temp_img = None
@@ -132,7 +131,8 @@ except OSError:
     sys.exit("程序终止")
 if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
-    flat_img, standard_HA_width, standard_FE_width = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0, config.curve_cor_C)
+    flat_img, standard_HA_width, standard_FE_width = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0,
+                                                                               config.curve_cor_C)
 temp_img.close()
 
 # 读取经过日心的图片 作为基准
@@ -158,8 +158,9 @@ try:
         temp_dict['header'].set('DATE_OBS', standard_header['STR_TIME'])
         standard_img = np.array(temp_img[0].data, dtype=float)
         standard_img = suntools.moveImg(standard_img, -2)
-        standard_img, standard_HA_width, standard_FE_width = suntools.curve_correction(standard_img - dark_img, config.curve_cor_x0,
-                                                               config.curve_cor_C)
+        standard_img, standard_HA_width, standard_FE_width = suntools.curve_correction(standard_img - dark_img,
+                                                                                       config.curve_cor_x0,
+                                                                                       config.curve_cor_C)
         sample_from_standard = standard_img
         # 先平移矫正 减去暗场 再谱线弯曲矫正
         flatTemp = suntools.getFlatOffset(flat_img, standard_img)
@@ -202,7 +203,6 @@ color_map = suntools.get_color_map(config.color_camp_name)
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(out_dir):
     os.mkdir(out_dir)
-
 
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))
@@ -328,36 +328,42 @@ def main():
         file_mon = temp_dict['standard_filename'][7:9]
         file_day_seq = temp_dict['standard_filename'][9:18]
         print(repr(temp_dict['header']))
-        primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
-                                     .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-                                     , header=temp_dict['header'])
-        greyHDU = fits.HDUList([primaryHDU])
-        greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
+        primaryHDU = fits.CompImageHDU(global_shared_array[0: standard_HA_width, :, :]
+                                       .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                       , header=temp_dict['header'], compression_type='GZIP_1')
+        primaryHDU.header.set('NAXIS', comment='Number of data axes')
+        primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
+        primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
+        primaryHDU.header.set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
+        primaryHDU.header.set('BZERO', comment='Data is Unsigned Integer')
+        primaryHDU.header.set('BSCALE', comment='default scaling factor')
+        primaryHDU.header.add_comment('Spectral curvature corrected')
+        primaryHDU.header.add_comment('Dark subtracted')
+        primaryHDU.header.add_comment('Flat-field corrected')
+        primaryHDU.header.add_comment('Processed by RSM_prep')
+        primaryHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_HA.fits', overwrite=True)
-        greyHDU.close()
         print('生成FE文件中...')
         # 修改header内的SPECLINE与LINECORE
         temp_dict['header'].set('SPECLINE', 'FEI')
         temp_dict['header'].set('LINECORE', FEI_LINECORE)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-        primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
-                                     .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-                                     , header=temp_dict['header'])
-        primaryHDU.scale('int16', bscale=32768, bzero=1)
-        primaryHDU.header.update('NAXIS', comment='Number of data axes')
-        primaryHDU.header.update('NAXIS1', comment='Length of data axis 1 (slit dimension)')
-        primaryHDU.header.update('NAXIS2', comment='Length of data axis 2 (scanning steps)')
-        primaryHDU.header.update('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
-        primaryHDU.header.update('BZERO', comment='Data is Unsigned Integer')
-        primaryHDU.header.update('BSCALE', comment='default scaling factor')
+        primaryHDU = fits.CompImageHDU(global_shared_array[standard_HA_width:, :, :]
+                                       .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                       , header=temp_dict['header'], compression_type='GZIP_1')
+        primaryHDU.header.set('NAXIS', comment='Number of data axes')
+        primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
+        primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
+        primaryHDU.header.set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
+        primaryHDU.header.set('BZERO', comment='Data is Unsigned Integer')
+        primaryHDU.header.set('BSCALE', comment='default scaling factor')
         primaryHDU.header.add_comment('Spectral curvature corrected')
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        greyHDU = fits.HDUList([primaryHDU])
-        greyHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
+        primaryHDU.scale('int16', bzero=1, bscale=32768)
+        primaryHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_FE.fits', overwrite=True)
-        greyHDU.close()
         if_first_print.value = True
 
     time_end = time.time()
