@@ -28,8 +28,7 @@ de_file_url = 'https:/naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de4
 de_file_name = 'data/de430.bsp'
 
 # 读入的HA头部与FE头部参数文件 注意是txt格式 一般不做修改
-HA_header_file = 'data/HA_header.txt'
-FE_header_file = 'data/FE_header.txt'
+header_file = 'data/HA_header.txt'
 
 # 多核并行数
 # 若为'default' 则程序自动根据获得的cpu核数设定并行数

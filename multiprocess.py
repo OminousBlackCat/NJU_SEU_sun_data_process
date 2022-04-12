@@ -91,7 +91,7 @@ for i in range(len(global_multiprocess_list)):
 
 # 读取头部参数文件
 # 为每个序列都创建头
-global_header_list = header.read_header_from_txt(config.HA_header_file)
+global_header_list = header.read_header_from_txt(config.header_file)
 # 将读入的list构造成为header
 for h in global_header_list:
     for temp_dict in global_multiprocess_list:

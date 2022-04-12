@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-import jplephem
+# import jplephem
 import datetime
 import numpy as np
 from math import *
@@ -141,13 +141,13 @@ def get_Sunstd(filepath):
     dataX = np.array(dataX)
     now = 1
     ansY = []
-    stdx = np.zeros(height_Fe + height_Ha)
+    stdx = np.zeros(int(height_Fe / bin_count + height_Ha / bin_count))
     # 根据窗口转换成需要的数据
     # 坐标变换
-    stdx[0:height_Ha] = np.arange(0, height_Ha, 1) * K + HA
-    stdx[height_Ha:] = np.arange(0, height_Fe, 1) * K + FE
+    stdx[0:int(height_Ha / bin_count)] = np.arange(0, int(height_Ha / bin_count), 1) * K + HA
+    stdx[int(height_Ha / bin_count):] = np.arange(0, int(height_Fe / bin_count), 1) * K + FE
     # 插值
-    for i in range(height_Fe + height_Ha):
+    for i in range(int(height_Fe / bin_count + height_Ha / bin_count)):
         # 找到插值所需的两侧点
         while dataX[now] < stdx[i] and now < len(dataX) - 1:
             now += 1
@@ -172,12 +172,14 @@ def RB_getdata(imgData, sun_std, HofHa, HofFe):
     # 归一化
     # print(np.max(sun_image))
     sun_image /= np.max(sun_image)
-    # 提取所需要的对应数据
-    for i in range(HofHa):
-        ans[i] = (temp_std[i * bin_count] + temp_std[i * bin_count + bin_count - 1]) / 2
-    for i in range(HofFe):
-        ans[HofHa + i] = (temp_std[i * bin_count + height_Ha] + temp_std[i * bin_count + height_Ha + bin_count - 1]) / 2
+    # # 提取所需要的对应数据
+    # for i in range(HofHa):
+    #     ans[i] = (temp_std[i * bin_count] + temp_std[i * bin_count + bin_count - 1]) / 2
+    # for i in range(HofFe):
+    #     ans[HofHa + i] = (temp_std[i * bin_count + height_Ha] + temp_std[i * bin_count + height_Ha + bin_count - 1]) / 2
     stdx = np.zeros(H)
+    ans[0:HofHa] = temp_std[0:HofHa]
+    ans[HofHa:] = temp_std[int(height_Ha / bin_count):int(height_Ha / bin_count) + HofFe]
     # 坐标转化为波长
     stdx[0:HofHa] = np.arange(0, HofHa, 1) * K + HA
     stdx[HofHa:] = np.arange(0, HofFe, 1) * K + FE
