@@ -139,8 +139,6 @@ temp_img.close()
 # 读取标准太阳光谱数据
 sun_std = suntools.get_Sunstd(config.sun_std_name)
 sample_from_standard = None
-HA_LINECORE = None
-FEI_LINECORE = None
 try:
     for temp_dict in global_multiprocess_list:
         # 对每个序列进行校正
@@ -149,9 +147,6 @@ try:
         standard_name = temp_dict['standard_filename']
         temp_img = fits.open(read_dir + '/' + standard_name)
         standard_header = temp_img[0].header
-        # 复制一些值去头部
-        HA_LINECORE = float(standard_header['WAVE_LEN'].split('and')[0].strip())
-        FEI_LINECORE = float(standard_header['WAVE_LEN'].split('and')[1].strip())
         for item in header.copy_header_items:
             temp_dict['header'].set(item['key'], standard_header[item['key']])
         temp_dict['header'].set('BIN', config.bin_count)
@@ -303,7 +298,7 @@ def main():
         for i in range(global_shared_array.shape[1]):
             sum_data[i] = global_shared_array[config.sum_row_index, i, :].reshape(sample_from_standard.shape[1])
         print('计算CCD太阳像半径中...')
-        R_x, R_y, radius = suntools.getCircle(sum_data)
+        R_y, R_x, radius = suntools.getCircle(sum_data)
         OBS_Radius = radius * temp_dict['header']['CDELT1']
         temp_dict['header'].set('CRPIX1', R_x)
         temp_dict['header'].set('CRPIX2', R_y)
@@ -322,15 +317,15 @@ def main():
             greyHDU.close()
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')
-        temp_dict['header'].set('LINECORE', HA_LINECORE)
+        temp_dict['header'].set('LINECORE', config.HA_lineCore)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
         file_day_seq = temp_dict['standard_filename'][9:18]
-        print(repr(temp_dict['header']))
-        primaryHDU = fits.CompImageHDU(global_shared_array[0: standard_HA_width, :, :]
-                                       .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-                                       , header=temp_dict['header'], compression_type='GZIP_1')
+        primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
+                                     .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                     , header=temp_dict['header'])
+        primaryHDU.scale('int16', bscale=1, bzero=32768)
         primaryHDU.header.set('NAXIS', comment='Number of data axes')
         primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
         primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
@@ -341,16 +336,18 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
+        print(repr(primaryHDU.header))
         primaryHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_HA.fits', overwrite=True)
         print('生成FE文件中...')
         # 修改header内的SPECLINE与LINECORE
         temp_dict['header'].set('SPECLINE', 'FEI')
-        temp_dict['header'].set('LINECORE', FEI_LINECORE)
+        temp_dict['header'].set('LINECORE', config.FE_lineCore)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-        primaryHDU = fits.CompImageHDU(global_shared_array[standard_HA_width:, :, :]
-                                       .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-                                       , header=temp_dict['header'], compression_type='GZIP_1')
+        primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
+                                     .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                     , header=temp_dict['header'])
+        primaryHDU.scale('int16', bscale=1, bzero=32768)
         primaryHDU.header.set('NAXIS', comment='Number of data axes')
         primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
         primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
