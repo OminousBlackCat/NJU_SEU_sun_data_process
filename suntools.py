@@ -18,7 +18,6 @@ from math import *
 from astropy.io import fits
 from astropy.time import Time
 from astropy import coordinates
-import bsp_tool
 import multiprocessing as mp
 
 # 定义参数
@@ -464,8 +463,8 @@ def getB0P0(q0, q1, q2, q3, strtime):
     astropy.coordinates.solar_system_ephemeris.set(config.de_file_url)
     t = Time(strtime)
 
-    sun_6 = astropy.coordinates.get_body_barycentric_posvel('sun', t, ephemeris='de430')
-    earth_6 = astropy.coordinates.get_body_barycentric_posvel('earth', t, ephemeris='de430')
+    sun_6 = astropy.coordinates.get_body_barycentric_posvel('sun', t)
+    earth_6 = astropy.coordinates.get_body_barycentric_posvel('earth', t)
 
     sun_pos = sun_6[0]
     earth_pos = earth_6[0]
