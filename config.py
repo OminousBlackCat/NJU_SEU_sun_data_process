@@ -1,14 +1,17 @@
 # 存储一些程序需要的必要参数
 
 # 读入数据存放的文件夹, 相对路径与绝对路径均可
-data_dir_path = "data/raw_data_test"
+# 文件夹最后的结尾需要带'/'
+data_dir_path = "data/raw_data_test/"
 
 # 数据输出的存放文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
+# 文件夹最后的结尾需要带'/'
 save_dir_path = "data/out/"
 
 # 日像汇总结果存放的文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
+# 文件夹最后的结尾需要带'/'
 sum_dir_path = 'data/sum/'
 
 # 读入的暗场fits文件路径, 相对路径与绝对路径均可
@@ -24,8 +27,7 @@ sun_std_name = 'data/bass2000.txt'
 color_camp_name = 'data/color_map.txt'
 
 # 读入的星图文件
-de_file_url = 'https:/naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de430.bsp'
-de_file_name = 'data/de430.bsp'
+de_file_url = 'file://'
 
 # 读入的HA头部与FE头部参数文件 注意是txt格式 一般不做修改
 header_file = 'data/HA_header.txt'

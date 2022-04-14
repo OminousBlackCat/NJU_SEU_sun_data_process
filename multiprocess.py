@@ -145,7 +145,7 @@ try:
         print('校正扫描序列' + str(temp_dict['scan_index']) + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
         print("校正平场中...")
         standard_name = temp_dict['standard_filename']
-        temp_img = fits.open(read_dir + '/' + standard_name)
+        temp_img = fits.open(read_dir + standard_name)
         standard_header = temp_img[0].header
         for item in header.copy_header_items:
             temp_dict['header'].set(item['key'], standard_header[item['key']])
@@ -171,10 +171,10 @@ try:
         temp_img.close()
         print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
         print('计算B0, INST_ROT中....')
-        # temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
-        #                                           standard_header['Q3'], standard_header['STR_TIME'])
-        # temp_dict['header'].set('B0', temp_B0)
-        # temp_dict['header'].set('INST_ROT', temp_INST_ROT)
+        temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
+                                                  standard_header['Q3'], standard_header['STR_TIME'])
+        temp_dict['header'].set('B0', temp_B0)
+        temp_dict['header'].set('INST_ROT', temp_INST_ROT)
         first_name = temp_dict['first_filename']
         last_name = temp_dict['last_filename']
         temp_dict['header'].set('STR_TIME', first_name[3:7] + '-' + first_name[7:9] + '-' + first_name[9:11] + 'T'
@@ -227,7 +227,7 @@ def target_task(filename):
     #     [year] [mon]  [day_seq]       [index]   [position]
     file_index = filename[19:23]
     file_position = filename[24:28]
-    filePath = read_dir + "/" + filename
+    filePath = read_dir + filename
     file_data = fits.open(filePath)
     image_data = np.array(file_data[0].data, dtype=float)
     # 对fe窗口进行平移
@@ -325,13 +325,10 @@ def main():
         primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
                                      .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                      , header=temp_dict['header'])
-        primaryHDU.scale('int16', bscale=1, bzero=32768)
         primaryHDU.header.set('NAXIS', comment='Number of data axes')
         primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
         primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
         primaryHDU.header.set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
-        primaryHDU.header.set('BZERO', comment='Data is Unsigned Integer')
-        primaryHDU.header.set('BSCALE', comment='default scaling factor')
         primaryHDU.header.add_comment('Spectral curvature corrected')
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
@@ -347,13 +344,10 @@ def main():
         primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
                                      .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                      , header=temp_dict['header'])
-        primaryHDU.scale('int16', bscale=1, bzero=32768)
         primaryHDU.header.set('NAXIS', comment='Number of data axes')
         primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
         primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
         primaryHDU.header.set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
-        primaryHDU.header.set('BZERO', comment='Data is Unsigned Integer')
-        primaryHDU.header.set('BSCALE', comment='default scaling factor')
         primaryHDU.header.add_comment('Spectral curvature corrected')
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')

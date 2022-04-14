@@ -18,6 +18,7 @@ from math import *
 from astropy.io import fits
 from astropy.time import Time
 from astropy import coordinates
+import bsp_tool
 import multiprocessing as mp
 
 # 定义参数
@@ -385,9 +386,9 @@ def getCircle(image):
     #二值化
     image_max = np.max(image)
     image = np.clip(image - image_max*0.15,0,1)
-    plt.figure()
-    plt.imshow(image)
-    plt.show()
+    # plt.figure()
+    # plt.imshow(image)
+    # plt.show()
 
     # 通过卷积，使用Sobel算子提取边界
     # conv1 = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
@@ -399,9 +400,9 @@ def getCircle(image):
     gradient = np.abs(gradient_X) # + np.abs(gradient_Y)
     gradient = np.clip(gradient,0,np.max(gradient)*0.6)
     gradient_max = np.max(gradient)
-    plt.figure()
-    plt.imshow(gradient)
-    plt.show()
+    # plt.figure()
+    # plt.imshow(gradient)
+    # plt.show()
     # 提取圆左右两侧对称点，从而计算圆心第二维坐标
     H, W = gradient.shape
     # print(H,W)
@@ -457,8 +458,10 @@ def rotation_matrix3(xyz, theta):
 
 # 计算需求数据，输入来自于头文件
 def getB0P0(q0, q1, q2, q3, strtime):
-    astropy.utils.data.import_file_to_cache('file://localhost/',
-                                            config.de_file_name, remove_original=False, pkgname='astropy', replace=True)
+    # astropy.utils.data.import_file_to_cache(config.de_file_url,
+    #                                         config.de_file_name,
+    #                                         remove_original=False, pkgname='astropy', replace=True)
+    astropy.coordinates.solar_system_ephemeris.set(config.de_file_url)
     t = Time(strtime)
 
     sun_6 = astropy.coordinates.get_body_barycentric_posvel('sun', t, ephemeris='de430')
