@@ -252,7 +252,7 @@ def target_task(filename):
     # 红蓝移矫正
     image_data = suntools.RB_repair(image_data, currentAbortion)
     # 滤波
-    image_data = suntools.MedSmooth(image_data)
+    image_data = suntools.MedSmooth(image_data, winSize=config.filter_kernel_size)
     # 转为整型, 并将每行的最后部分置零
     image_data = np.array(image_data, dtype=np.int16)
     global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
@@ -318,6 +318,7 @@ def main():
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')
         temp_dict['header'].set('LINECORE', config.HA_lineCore)
+        temp_dict['header'].set('CRVAL3', config.HA_cravl)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
@@ -341,6 +342,7 @@ def main():
         temp_dict['header'].set('SPECLINE', 'FEI')
         temp_dict['header'].set('LINECORE', config.FE_lineCore)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+        temp_dict['header'].set('CRVAL3', config.FE_cravl)
         primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
                                      .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                      , header=temp_dict['header'])
