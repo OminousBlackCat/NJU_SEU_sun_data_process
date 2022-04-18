@@ -39,22 +39,22 @@ multiprocess_count = 'default'
 
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
-bin_count = 2
+bin_count = 1
 
 # TODO: 请在修改bin后修改以下参数
 # 一个扫描序列最多包含多少行(一组数据包含多少文件)(一般不需要改动此参数)
 sun_row_count = 4625  # 2313
 # 谱线弯曲矫正参数
 # 谱线弯曲矫正x0 参数
-curve_cor_x0 = 1161.58  # 2321.26
+curve_cor_x0 =  2321.26#1161.58
 # 谱线弯曲矫正C 参数
-curve_cor_C = 7.639e-011  # 1.92909e-011
+curve_cor_C = 1.92909e-011# 7.639e-011
 # 红蓝移修正内 波长相关数据
 HA = 6559.5804
 FE = 6569.22
 HA_lineCore = 6562.82
 FE_lineCore = 6569.22
-K = 0.024202301  
+K = 0.024202301
 # 合并图像时所拼的行数
 # 默认为132行（光谱强度最低点）
 sum_row_index = 132  # 66

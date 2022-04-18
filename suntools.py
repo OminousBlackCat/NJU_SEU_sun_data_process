@@ -160,6 +160,38 @@ def get_Sunstd(filepath):
     return ansY / np.max(ansY)
 
 
+# 吸收系数获取
+# 参数filepathFE/HA：储存标准光谱的文件路径
+# 输出：文件包含数据
+def get_Absorstd(filepathHA,filepathFE, HofHa, HofFe):
+    ansY = np.zeros(height_Ha+height_Fe)
+    # 获取太阳标准数据
+    i = 0
+    with open(filepathHA) as f:
+        line = f.readline()
+        while line:
+            line = re.findall(r"\d+\.?\d*", line)
+            if len(line) > 0:
+                ansY[i] = float(line[0])
+                i+=1
+            line = f.readline()
+    f.close()
+    i = height_Ha
+
+    with open(filepathFE) as f:
+        line = f.readline()
+        while line:
+            line = re.findall(r"\d+\.?\d*", line)
+            if len(line) > 0:
+                ansY[i] = float(line[0])
+                i+=1
+            line = f.readline()
+    f.close()
+    ansY[HofHa:HofHa+HofFe] = ansY[height_Ha:height_Ha+HofFe]
+    ansY = ansY[0:HofHa+HofFe]
+    # 归一化输出
+    return ansY / np.max(ansY)
+
 # 红蓝移矫正
 # 参数bin: 模式参数
 def RB_getdata(imgData, sun_std, HofHa, HofFe):
@@ -227,7 +259,7 @@ def MeanSmooth(imgData, winSize=4):
 
 
 def DivFlat(imgData, flatData):
-    return imgData / np.clip(flatData, 0.01, 200)
+    return imgData / flatData
 
 
 # 图像中值平滑操作
@@ -370,7 +402,7 @@ def entireWork(filename, darkDate, flatData, abortion):
     # plt.figure()
     # plt.imshow(imgData, cmap="gray", aspect='auto')
     # plt.show()
-    # plt.figure()
+    plt.figure()
     plt.plot(imgData[:, 2200].reshape(-1))
     imgDataRB = RB_repair(imgData, abortion)
     imgDataRB = MedSmooth(imgDataRB, 3)
@@ -557,14 +589,14 @@ def test():
     # print(base)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     dark_data = np.array(fits.getdata(image_file), dtype=float)
-    image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
+    image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
     # RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
     # RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
     print(H, W)
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + 'RSM20220120T062539-0017-1256.fts')
+    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060119-0008-1353.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
     # img_data = change(img_data)
     # bin = getBin(img_data)
@@ -578,7 +610,7 @@ def test():
     # print(flat_data)
     flat_data = getFlat(flat_data)
 
-    filename = filepath_test + 'RSM20220120T062539-0017-1256.fts'
+    filename = filepath_test + 'RSM20211222T060119-0008-1353.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     # imgData = change(imgData)
@@ -590,13 +622,17 @@ def test():
     # print(HofHa, HofFe)
     imgData = DivFlat(imgData, flat_data)
     base = get_Sunstd(filepath_bash)
-    abortion = RB_getdata(imgData, base, HofHa, HofFe)
-
+    filepathHA = "HA_absorption.txt"
+    filepathFE = "FE_absorption.txt"
+    abortion = get_Absorstd(filepathHA,filepathFE, HofHa, HofFe)
+    plt.figure()
+    plt.plot(base)
+    plt.show()
     plt.figure()
     plt.imshow(flat_data, cmap="gray", aspect='auto')
     plt.show()
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + 'RSM20220120T062539-0017-1256.fts', dark_data, flat_data, abortion)
+    image_file, imgData = entireWork(filepath_test + 'RSM20211222T060119-0008-1353.fts', dark_data, flat_data, abortion)
     #
     print("OK")
     plt.figure()
