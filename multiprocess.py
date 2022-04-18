@@ -228,8 +228,8 @@ try:
                                           day=int(last_name[9: 11]), hour=int(last_name[12: 14]),
                                           minute=int(last_name[14:16]), second=int(last_name[16: 18]))
         end_temp_time = end_temp_time + time_offset
-        temp_dict['header'].set(start_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
-        temp_dict['header'].set(end_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
+        temp_dict['header'].set('STR_TIME', start_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
+        temp_dict['header'].set('END_TIME', end_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('FRM_NUM', '1~' + str(temp_dict['file_count']))
 
 except uEr.URLError as error:
