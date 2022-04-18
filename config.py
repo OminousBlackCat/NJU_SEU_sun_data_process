@@ -69,9 +69,9 @@ sun_row_count_bin_2 = 2313
 # 矫正所需的日心文件序号
 standard_offset_index_bin_2 = 1156
 # 谱线弯曲矫正x0 参数
-curve_cor_x0 = 1161.58
+curve_cor_x0_bin_2 = 1161.58
 # 谱线弯曲矫正C 参数
-curve_cor_C = 7.639e-011
+curve_cor_C_bin_2 = 7.639e-011
 # 谱线分辨率
 wavelength_resolution_bin_2 = 0.048404602
 # 合并日像时使用的行数
@@ -82,21 +82,19 @@ sum_row_index_bin_2 = 66
 # 红蓝移修正内 波长相关数据
 HA_start = 6559.58  # HA窗口零像素波长
 FE_start = 6567.66  # FE窗口零像素波长
-K = 0.024202301  # 分辨率
 # 写入头文件内的HA与FEI相关数据
 HA_lineCore = 6562.82  # HA线心处波长
 FE_lineCore = 6569.22  # FE线心处波长
-
-# TODO: 以下参数仅需修改数值即可, 无需在bin修改时更改
-# 读入的日心数据(矫正平场时需要)序号(*不要使用引号引起来*)
-standard_offset_index = 2313
-
 # 中值滤波窗口大小
 filter_kernel_size = 3
-
 # 图像窗口数据 包含ha窗口与fe窗口的长度
 height_Ha = 260
 height_Fe = 116
+
+# 序列扫描时间偏移量(单位: 秒)
+# 会在写入头部的时候将时间加上时间偏移量
+scan_time_offset = 0
+
 
 # 输出何种类型的图片
 # 'fts'输出fts格式灰度文件, 'default'则输出以color map为camp的png图片

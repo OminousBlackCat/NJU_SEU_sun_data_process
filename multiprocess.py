@@ -13,16 +13,44 @@ import ctypes as c
 import sys
 
 # 读入配置文件 引入参数
-GLOBAL_BINNING = config.bin_count
-READ_DIR = config.data_dir_path
-OUT_DIR = config.save_dir_path
-SUM_DIR = config.sum_dir_path
-DARK_FITS_FILE = config.dark_fits_name
-flat_fits_file = ''
+GLOBAL_BINNING = config.bin_count  # binning 数值
+READ_DIR = config.data_dir_path  # 读文件的文件夹
+OUT_DIR = config.save_dir_path  # 输出文件夹
+SUM_DIR = config.sum_dir_path  # 汇总结果文件夹
+DARK_FITS_FILE = config.dark_fits_name  # 暗场文件路径
+HA_ABSORPTION_FILE = config.HA_absorption_path  # HA吸收系数文件路径
+FE_ABSORPTION_FILE = config.FE_absorption_path  # FE吸收系数文件路径
+COLOR_CAMP_FILE = config.color_camp_name  # 色彩盘文件路径
+HEADER_FILE = config.header_file  # 读取的标准头部文件路径
+HA_START = config.HA_start  # HA窗口起始波长
+FE_START = config.FE_start  # FE窗口起始波长
+HA_LINE_CORE = config.HA_lineCore  # HA线心波长
+FE_LINE_CORE = config.FE_lineCore  # FE线心波长
+FILTER_KERNEL_SIZE = config.filter_kernel_size  # 滤波窗口
+FLAT_FITS_FILE = ''  # 平场文件路径(与bin相关)
+SUN_ROW_COUNT = 0  # 太阳序列数(与bin相关)
+STANDARD_FILE_INDEX = 0  # 标准文件在序列中的位置(与bin相关)
+CURVE_X0 = 0  # 谱线矫正参数x0(与bin相关)
+CURVE_C = 0  # 谱线矫正参数c(与bin相关)
+WAVE_RESOLUTION = 0  # 波长分辨率(与bin相关)
+SUM_ROW_INDEX = 0  # 合并日像所选的行数(与bin相关)
+SCAN_TIME_OFFSET = config.scan_time_offset  # 时间偏差
 if GLOBAL_BINNING == 1:
-    flat_fits_file = config.flat_fits_name_bin_1
+    FLAT_FITS_FILE = config.flat_fits_name_bin_1
+    SUN_ROW_COUNT = config.sun_row_count_bin_1
+    STANDARD_FILE_INDEX = config.standard_offset_index_bin_1
+    CURVE_X0 = config.curve_cor_x0_bin_1
+    CURVE_C = config.curve_cor_C_bin_1
+    WAVE_RESOLUTION = config.wavelength_resolution_bin_1
+    SUM_ROW_INDEX = config.sum_row_index_bin_1
 if GLOBAL_BINNING == 2:
-    flat_fits_file = config.flat_fits_name_bin_2
+    FLAT_FITS_FILE = config.flat_fits_name_bin_2
+    SUN_ROW_COUNT = config.sun_row_count_bin_2
+    STANDARD_FILE_INDEX = config.standard_offset_index_bin_2
+    CURVE_X0 = config.curve_cor_x0_bin_2
+    CURVE_C = config.curve_cor_C_bin_2
+    WAVE_RESOLUTION = config.wavelength_resolution_bin_2
+    SUM_ROW_INDEX = config.sum_row_index_bin_2
 
 multiprocess_count = 1
 if config.multiprocess_count != 'default':
@@ -63,7 +91,7 @@ for i in range(len(data_file_lst)):
             global_multiprocess_list[j]['file_list'].append(filename)
             global_multiprocess_list[j]['file_count'] += 1
             ifFind = True
-            if int(filename[24:28]) == config.standard_offset_index:
+            if int(filename[24:28]) == STANDARD_FILE_INDEX:
                 global_multiprocess_list[j]['standard_filename'] = filename
             if int(filename[24:28]) == 1:
                 global_multiprocess_list[j]['first_filename'] = filename
@@ -80,11 +108,12 @@ for i in range(len(data_file_lst)):
             'last_filename': '',  # 序列结束文件
             'flat_data': None,  # 此序列的校正后平场数据
             'abortion_data': None,  # 此序列的校正后红蓝移数据
-            'header': fits.header.Header()  # 此序列的头部, 构造了一个新的header
+            'header': fits.header.Header(),  # 此序列的头部, 构造了一个新的header
+            'start_time': datetime.datetime.now()
         })
         global_multiprocess_list[len(global_multiprocess_list) - 1]['file_list'].append(filename)
         global_multiprocess_list[len(global_multiprocess_list) - 1]['file_count'] += 1
-        if int(filename[24:28]) == config.standard_offset_index:
+        if int(filename[24:28]) == STANDARD_FILE_INDEX:
             global_multiprocess_list[len(global_multiprocess_list) - 1]['standard_filename'] = filename
         if int(filename[24:28]) == 1:
             global_multiprocess_list[len(global_multiprocess_list) - 1]['first_filename'] = filename
@@ -92,7 +121,7 @@ for i in range(len(data_file_lst)):
 
 # 剔除不完整序列
 for temp_dict in global_multiprocess_list:
-    if temp_dict['file_count'] < config.sun_row_count - 500 or \
+    if temp_dict['file_count'] < SUN_ROW_COUNT - 500 or \
             temp_dict['standard_filename'] == '':
         print('文件夹中包含不完整序列, 序列序号为:' + str(temp_dict['scan_index']))
         print('本次数据处理将不此序列进行处理.....')
@@ -100,7 +129,7 @@ for temp_dict in global_multiprocess_list:
 
 # 读取头部参数文件
 # 为每个序列都创建头
-global_header_list = header.read_header_from_txt(config.header_file)
+global_header_list = header.read_header_from_txt(HEADER_FILE)
 # 将读入的list构造成为header
 for h in global_header_list:
     for temp_dict in global_multiprocess_list:
@@ -115,7 +144,7 @@ temp_img = None
 dark_img = None
 try:
     print("正在读取原始暗场文件")
-    temp_img = fits.open(config.dark_fits_name)
+    temp_img = fits.open(DARK_FITS_FILE)
 except uEr.URLError:
     print("Error: 暗场文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
@@ -132,7 +161,7 @@ flat_img = None
 standard_HA_width, standard_FE_width = None, None
 try:
     print("正在读取原始平场文件")
-    temp_img = fits.open(config.flat_fits_name)
+    temp_img = fits.open(FLAT_FITS_FILE)
 except uEr.URLError:
     print("Error: 原始平场文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
@@ -141,15 +170,15 @@ except OSError:
     sys.exit("程序终止")
 if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
-    flat_img, standard_HA_width, standard_FE_width = suntools.curve_correction(flat_img - dark_img, config.curve_cor_x0,
-                                                                               config.curve_cor_C)
+    flat_img, standard_HA_width, standard_FE_width = suntools.curve_correction(flat_img - dark_img, CURVE_X0,
+                                                                               CURVE_C)
 temp_img.close()
 
 # 读取经过日心的图片 作为基准
 # 读取标准太阳光谱数据
 sun_std = suntools.get_Sunstd(config.sun_std_name)
 global_absorption = suntools.get_Absorstd(
-    config.HA_absorption_path, config.FE_absorption_path, standard_HA_width, standard_FE_width)
+    HA_ABSORPTION_FILE, FE_ABSORPTION_FILE, standard_HA_width, standard_FE_width)
 sample_from_standard = None
 try:
     for temp_dict in global_multiprocess_list:
@@ -161,13 +190,13 @@ try:
         standard_header = temp_img[0].header
         for item in header.copy_header_items:
             temp_dict['header'].set(item['key'], standard_header[item['key']])
-        temp_dict['header'].set('BIN', config.bin_count)
+        temp_dict['header'].set('BIN', GLOBAL_BINNING)
         temp_dict['header'].set('DATE_OBS', standard_header['STR_TIME'])
         standard_img = np.array(temp_img[0].data, dtype=float)
         standard_img = suntools.moveImg(standard_img, -2)
         standard_img, standard_HA_width, standard_FE_width = suntools.curve_correction(standard_img - dark_img,
-                                                                                       config.curve_cor_x0,
-                                                                                       config.curve_cor_C)
+                                                                                       CURVE_X0,
+                                                                                       CURVE_C)
         sample_from_standard = standard_img
         # 先平移矫正 减去暗场 再谱线弯曲矫正
         flatTemp = suntools.getFlatOffset(flat_img, standard_img)
@@ -187,12 +216,20 @@ try:
                                                   standard_header['Q3'], standard_header['STR_TIME'])
         temp_dict['header'].set('B0', temp_B0)
         temp_dict['header'].set('INST_ROT', temp_INST_ROT)
+        time_offset = datetime.timedelta(seconds=SCAN_TIME_OFFSET)
         first_name = temp_dict['first_filename']
         last_name = temp_dict['last_filename']
-        temp_dict['header'].set('STR_TIME', first_name[3:7] + '-' + first_name[7:9] + '-' + first_name[9:11] + 'T'
-                                + first_name[12:14] + ':' + first_name[14:16] + ':' + first_name[16:18])
-        temp_dict['header'].set('END_TIME', last_name[3:7] + '-' + last_name[7:9] + '-' + last_name[9:11] + 'T'
-                                + last_name[12:14] + ':' + last_name[14:16] + ':' + last_name[16:18])
+        start_temp_time = datetime.datetime(year=int(first_name[3: 7]), month=int(first_name[7: 9]),
+                                            day=int(first_name[9: 11]), hour=int(first_name[12: 14]),
+                                            minute=int(first_name[14:16]), second=int(first_name[16: 18]))
+        start_temp_time = start_temp_time + time_offset
+        temp_dict['start_time'] = start_temp_time
+        end_temp_time = datetime.datetime(year=int(last_name[3: 7]), month=int(last_name[7: 9]),
+                                          day=int(last_name[9: 11]), hour=int(last_name[12: 14]),
+                                          minute=int(last_name[14:16]), second=int(last_name[16: 18]))
+        end_temp_time = end_temp_time + time_offset
+        temp_dict['header'].set(start_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
+        temp_dict['header'].set(end_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('FRM_NUM', '1~' + str(temp_dict['file_count']))
 
 except uEr.URLError as error:
@@ -205,7 +242,7 @@ except OSError as error:
     sys.exit("程序终止")
 
 # 读取输出色谱
-color_map = suntools.get_color_map(config.color_camp_name)
+color_map = suntools.get_color_map(COLOR_CAMP_FILE)
 
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(OUT_DIR):
@@ -223,7 +260,7 @@ if_first_print = mp.Value('b', True)
 # 每个单独文件对应的是 xy平面的一个二维数组
 # TODO: 是否需要将shape调转顺序？
 GLOBAL_ARRAY_X_COUNT = sample_from_standard.shape[0]
-GLOBAL_ARRAY_Y_COUNT = config.sun_row_count
+GLOBAL_ARRAY_Y_COUNT = SUN_ROW_COUNT
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
 print('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
 # 创建共享内存 大小为 x*y*z*sizeof(int16)
@@ -247,7 +284,7 @@ def target_task(filename):
     # 去暗场
     image_data = image_data - dark_img
     # 谱线弯曲矫正
-    image_data, HofH, HofFe = suntools.curve_correction(image_data, config.curve_cor_x0, config.curve_cor_C)
+    image_data, HofH, HofFe = suntools.curve_correction(image_data, CURVE_X0, CURVE_C)
     # 搜索list
     currentFlat = None
     currentAbortion = None
@@ -264,7 +301,7 @@ def target_task(filename):
     # 红蓝移矫正
     image_data = suntools.RB_repair(image_data, global_absorption)
     # 滤波
-    image_data = suntools.MedSmooth(image_data, winSize=config.filter_kernel_size)
+    image_data = suntools.MedSmooth(image_data, winSize=FILTER_KERNEL_SIZE)
     # 转为整型, 并将每行的最后部分置零
     image_data = np.array(image_data, dtype=np.int16)
     global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
@@ -299,7 +336,7 @@ def main():
         pool.join()
         print('\n扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
         print('生成完整日像中...')
-        sum_data = np.zeros((config.sun_row_count, sample_from_standard.shape[1]))
+        sum_data = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
@@ -308,7 +345,7 @@ def main():
         print("SHAPE为：" + str(global_shared_array.shape))
         # 输出太阳像
         for i in range(global_shared_array.shape[1]):
-            sum_data[i] = global_shared_array[config.sum_row_index, i, :].reshape(sample_from_standard.shape[1])
+            sum_data[i] = global_shared_array[SUM_ROW_INDEX, i, :].reshape(sample_from_standard.shape[1])
         print('计算CCD太阳像半径中...')
         R_y, R_x, radius = suntools.getCircle(sum_data)
         OBS_Radius = radius * temp_dict['header']['CDELT1']
@@ -316,28 +353,27 @@ def main():
         temp_dict['header'].set('CRPIX2', R_y)
         temp_dict['header'].set('R_SUN', radius)
         temp_dict['header'].set('RSUN_OBS', OBS_Radius)
-        temp_dict['header'].set('CDELT1', 0.52 * config.bin_count)
-        temp_dict['header'].set('CDELT2', 0.52 * config.bin_count)
-        temp_dict['header'].set('CDELT3', config.K * config.bin_count)
+        temp_dict['header'].set('CDELT1', 0.52 * GLOBAL_BINNING)
+        temp_dict['header'].set('CDELT2', 0.52 * GLOBAL_BINNING)
+        temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
-            plt.imsave(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + ".png", sum_data, cmap=color_map)
+            plt.imsave(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+                       + '-' + str(temp_dict['scan_index']) + ".png", sum_data, cmap=color_map)
         if config.save_img_form == 'fts':
             # 不对data进行任何操作 直接输出为fts文件
             print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
             primaryHDU = fits.PrimaryHDU(sum_data)
             greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(config.sum_dir_path + 'sum' + str(temp_dict['scan_index']) + '.fts', overwrite=True)
+            greyHDU.writeto(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+                            + '-' + str(temp_dict['scan_index']) + '.fts', overwrite=True)
             greyHDU.close()
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')
-        temp_dict['header'].set('LINECORE', config.HA_lineCore)
-        temp_dict['header'].set('CRVAL3', config.HA_start)
+        temp_dict['header'].set('LINECORE', HA_LINE_CORE)
+        temp_dict['header'].set('CRVAL3', HA_START)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-        file_year = temp_dict['standard_filename'][3:7]
-        file_mon = temp_dict['standard_filename'][7:9]
-        file_day_seq = temp_dict['standard_filename'][9:18]
         primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
                                      .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                      , header=temp_dict['header'])
@@ -350,14 +386,14 @@ def main():
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
         print(repr(primaryHDU.header))
-        primaryHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
+        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S') + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_HA.fits', overwrite=True)
         print('生成FE文件中...')
         # 修改header内的SPECLINE与LINECORE
         temp_dict['header'].set('SPECLINE', 'FEI')
-        temp_dict['header'].set('LINECORE', config.FE_lineCore)
+        temp_dict['header'].set('LINECORE', FE_LINE_CORE)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-        temp_dict['header'].set('CRVAL3', config.FE_start)
+        temp_dict['header'].set('CRVAL3', FE_START)
         primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
                                      .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                      , header=temp_dict['header'])
@@ -369,7 +405,7 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.writeto(config.save_dir_path + 'RSM' + file_year + '-' + file_mon + '-' + file_day_seq + '_' + str(
+        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S') + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_FE.fits', overwrite=True)
         if_first_print.value = True
 
