@@ -49,10 +49,6 @@ static_header_items = [
         'value': 0.0484
     },
     {
-        'key': 'CRVAL3',
-        'value': 6567.66
-    },
-    {
         'key': 'STEPTIME',
         'value': 0.01
     },

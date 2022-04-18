@@ -264,9 +264,9 @@ def DivFlat(imgData, flatData):
 
 # 图像中值平滑操作
 # 参数
-def MedSmooth(imgData, winSize=4):
+def MedSmooth(imgData, winSize=3):
     zero_range = 100
-    imgData = signal.medfilt(imgData, kernel_size=int(winSize / 2) * 2 + 1)
+    imgData = signal.medfilt(imgData, kernel_size=int((winSize - 1) / bin_count))
     imgData[:, imgData.shape[1] - int(zero_range / bin_count): imgData.shape[1] - 1] = 0
     return imgData
 
