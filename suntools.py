@@ -200,10 +200,10 @@ def get_Absorstd(filepathHA, filepathFE, HofHa, HofFe):
             line = f.readline()
     f.close()
 
-    if(bin_count == 2):
+    if bin_count == 2:
         for i in range(int((height_Ha+height_Fe)/2)):
             ansY[i]=(ansY[i*2]+ansY[i*2+1])/2
-            ansY[HofHa:HofHa + HofFe] = ansY[int(height_Ha/2):int(height_Ha/2) + HofFe]
+        ansY[HofHa:HofHa + HofFe] = ansY[int(height_Ha/2):int(height_Ha/2) + HofFe]
     else:
         ansY[HofHa:HofHa+HofFe] = ansY[height_Ha:height_Ha+HofFe]
     ansY = ansY[0:HofHa+HofFe]
