@@ -160,6 +160,39 @@ def get_Sunstd(filepath):
     return ansY / np.max(ansY)
 
 
+# 吸收系数获取
+# 参数filepathFE/HA：储存标准光谱的文件路径
+# 输出：文件包含数据
+def get_Absorstd(filepathHA, filepathFE, HofHa, HofFe):
+    ansY = np.zeros(height_Ha + height_Fe)
+    # 获取太阳标准数据
+    i = 0
+    with open(filepathHA) as f:
+        line = f.readline()
+        while line:
+            line = re.findall(r"\d+\.?\d*", line)
+            if len(line) > 0:
+                ansY[i] = float(line[0])
+                i += 1
+            line = f.readline()
+    f.close()
+    i = height_Ha
+
+    with open(filepathFE) as f:
+        line = f.readline()
+        while line:
+            line = re.findall(r"\d+\.?\d*", line)
+            if len(line) > 0:
+                ansY[i] = float(line[0])
+                i += 1
+            line = f.readline()
+    f.close()
+    ansY[HofHa:HofHa + HofFe] = ansY[height_Ha:height_Ha + HofFe]
+    ansY = ansY[0:HofHa + HofFe]
+    # 归一化输出
+    return ansY / np.max(ansY)
+
+
 # 红蓝移矫正
 # 参数bin: 模式参数
 def RB_getdata(imgData, sun_std, HofHa, HofFe):
@@ -172,11 +205,9 @@ def RB_getdata(imgData, sun_std, HofHa, HofFe):
     # 归一化
     # print(np.max(sun_image))
     sun_image /= np.max(sun_image)
-    # # 提取所需要的对应数据
-    # for i in range(HofHa):
-    #     ans[i] = (temp_std[i * bin_count] + temp_std[i * bin_count + bin_count - 1]) / 2
-    # for i in range(HofFe):
-    #     ans[HofHa + i] = (temp_std[i * bin_count + height_Ha] + temp_std[i * bin_count + height_Ha + bin_count - 1]) / 2
+    # # 提取所需要的对应数据 for i in range(HofHa): ans[i] = (temp_std[i * bin_count] + temp_std[i * bin_count + bin_count -
+    # 1]) / 2 for i in range(HofFe): ans[HofHa + i] = (temp_std[i * bin_count + height_Ha] + temp_std[i * bin_count +
+    # height_Ha + bin_count - 1]) / 2
     stdx = np.zeros(H)
     ans[0:HofHa] = temp_std[0:HofHa]
     ans[HofHa:] = temp_std[int(height_Ha / bin_count):int(height_Ha / bin_count) + HofFe]
@@ -236,6 +267,8 @@ def MedSmooth(imgData, winSize=3):
     zero_range = 100
     if bin_count == 1:
         imgData = signal.medfilt(imgData, kernel_size=winSize)
+    if bin_count == 2:
+        imgData = signal.medfilt(imgData, kernel_size=winSize - 2)
     imgData[:, imgData.shape[1] - int(zero_range / bin_count): imgData.shape[1] - 1] = 0
     return imgData
 
@@ -301,10 +334,10 @@ def getFlatOffset(flatData, imgData):
     if mx * 10 + my < 0:
         my *= -1
         flatTempData[:, 0:W + mx - 1] = flatTempData[:, -mx:W - 1] * (1 - my / 10) + flatTempData[:, -mx + 1:W] * (
-                    my / 10)
+                my / 10)
     else:
         flatTempData[:, mx + 1:W - 1] = flatTempData[:, 0:W - mx - 2] * my / 10 + flatTempData[:, 1:W - mx - 1] * (
-                    1 - my / 10)
+                1 - my / 10)
     return flatTempData
 
 
@@ -371,7 +404,7 @@ def entireWork(filename, darkDate, flatData, abortion):
     # plt.figure()
     # plt.imshow(imgData, cmap="gray", aspect='auto')
     # plt.show()
-    # plt.figure()
+    plt.figure()
     plt.plot(imgData[:, 2200].reshape(-1))
     imgDataRB = RB_repair(imgData, abortion)
     imgDataRB = MedSmooth(imgDataRB, 3)
@@ -382,10 +415,9 @@ def entireWork(filename, darkDate, flatData, abortion):
 
 # 通过灰度图拟合图中的圆
 def getCircle(image):
-
-    #二值化
+    # 二值化
     image_max = np.max(image)
-    image = np.clip(image - image_max*0.15,0,1)
+    image = np.clip(image - image_max * 0.15, 0, 1)
     # plt.figure()
     # plt.imshow(image)
     # plt.show()
@@ -393,12 +425,12 @@ def getCircle(image):
     # 通过卷积，使用Sobel算子提取边界
     # conv1 = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
     conv2 = np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])
-    conv3 = np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]])/16
+    conv3 = np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]]) / 16
     image = signal.convolve2d(image, conv3, "valid")
     # gradient_Y = signal.convolve2d(image, conv1, "valid")
     gradient_X = signal.convolve2d(image, conv2, "valid")
-    gradient = np.abs(gradient_X) # + np.abs(gradient_Y)
-    gradient = np.clip(gradient,0,np.max(gradient)*0.6)
+    gradient = np.abs(gradient_X)  # + np.abs(gradient_Y)
+    gradient = np.clip(gradient, 0, np.max(gradient) * 0.6)
     gradient_max = np.max(gradient)
     # plt.figure()
     # plt.imshow(gradient)
@@ -558,14 +590,14 @@ def test():
     # print(base)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     dark_data = np.array(fits.getdata(image_file), dtype=float)
-    image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
+    image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
     # RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
     # RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
     print(H, W)
     filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + 'RSM20220120T062539-0017-1256.fts')
+    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060119-0008-1353.fts')
     img_data = np.array(fits.getdata(image_file), dtype=float)
     # img_data = change(img_data)
     # bin = getBin(img_data)
@@ -579,7 +611,7 @@ def test():
     # print(flat_data)
     flat_data = getFlat(flat_data)
 
-    filename = filepath_test + 'RSM20220120T062539-0017-1256.fts'
+    filename = filepath_test + 'RSM20211222T060119-0008-1353.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
     # imgData = change(imgData)
@@ -591,13 +623,17 @@ def test():
     # print(HofHa, HofFe)
     imgData = DivFlat(imgData, flat_data)
     base = get_Sunstd(filepath_bash)
-    abortion = RB_getdata(imgData, base, HofHa, HofFe)
-
+    filepathHA = "HA_absorption.txt"
+    filepathFE = "FE_absorption.txt"
+    abortion = get_Absorstd(filepathHA, filepathFE, HofHa, HofFe)
+    plt.figure()
+    plt.plot(base)
+    plt.show()
     plt.figure()
     plt.imshow(flat_data, cmap="gray", aspect='auto')
     plt.show()
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + 'RSM20220120T062539-0017-1256.fts', dark_data, flat_data, abortion)
+    image_file, imgData = entireWork(filepath_test + 'RSM20211222T060119-0008-1353.fts', dark_data, flat_data, abortion)
     #
     print("OK")
     plt.figure()

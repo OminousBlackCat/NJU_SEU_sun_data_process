@@ -13,8 +13,17 @@ import ctypes as c
 import sys
 
 # 读入配置文件 引入参数
-read_dir = config.data_dir_path
-out_dir = config.save_dir_path
+GLOBAL_BINNING = config.bin_count
+READ_DIR = config.data_dir_path
+OUT_DIR = config.save_dir_path
+SUM_DIR = config.sum_dir_path
+DARK_FITS_FILE = config.dark_fits_name
+flat_fits_file = ''
+if GLOBAL_BINNING == 1:
+    flat_fits_file = config.flat_fits_name_bin_1
+if GLOBAL_BINNING == 2:
+    flat_fits_file = config.flat_fits_name_bin_2
+
 multiprocess_count = 1
 if config.multiprocess_count != 'default':
     multiprocess_count = config.multiprocess_count
@@ -26,7 +35,7 @@ print('多核并行数:' + str(multiprocess_count))
 # 读取数据文件夹所有文件
 def read_fits_directory():
     arr = []
-    arr = os.listdir(read_dir)
+    arr = os.listdir(READ_DIR)
     if len(arr) == 0:
         raise OSError
     return arr
@@ -120,6 +129,7 @@ temp_img.close()
 
 # 平场需要以日心图片作为基准进行平移矫正 再进行谱线弯曲矫正
 flat_img = None
+standard_HA_width, standard_FE_width = None, None
 try:
     print("正在读取原始平场文件")
     temp_img = fits.open(config.flat_fits_name)
@@ -138,6 +148,8 @@ temp_img.close()
 # 读取经过日心的图片 作为基准
 # 读取标准太阳光谱数据
 sun_std = suntools.get_Sunstd(config.sun_std_name)
+global_absorption = suntools.get_Absorstd(
+    config.HA_absorption_path, config.FE_absorption_path, standard_HA_width, standard_FE_width)
 sample_from_standard = None
 try:
     for temp_dict in global_multiprocess_list:
@@ -145,7 +157,7 @@ try:
         print('校正扫描序列' + str(temp_dict['scan_index']) + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
         print("校正平场中...")
         standard_name = temp_dict['standard_filename']
-        temp_img = fits.open(read_dir + standard_name)
+        temp_img = fits.open(READ_DIR + standard_name)
         standard_header = temp_img[0].header
         for item in header.copy_header_items:
             temp_dict['header'].set(item['key'], standard_header[item['key']])
@@ -196,8 +208,8 @@ except OSError as error:
 color_map = suntools.get_color_map(config.color_camp_name)
 
 # 检查输出文件夹是否存在 不存在则创建
-if not os.path.exists(out_dir):
-    os.mkdir(out_dir)
+if not os.path.exists(OUT_DIR):
+    os.mkdir(OUT_DIR)
 
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))
@@ -227,7 +239,7 @@ def target_task(filename):
     #     [year] [mon]  [day_seq]       [index]   [position]
     file_index = filename[19:23]
     file_position = filename[24:28]
-    filePath = read_dir + filename
+    filePath = READ_DIR + filename
     file_data = fits.open(filePath)
     image_data = np.array(file_data[0].data, dtype=float)
     # 对fe窗口进行平移
@@ -250,7 +262,7 @@ def target_task(filename):
     # 去平场
     image_data = suntools.DivFlat(image_data, currentFlat)
     # 红蓝移矫正
-    image_data = suntools.RB_repair(image_data, currentAbortion)
+    image_data = suntools.RB_repair(image_data, global_absorption)
     # 滤波
     image_data = suntools.MedSmooth(image_data, winSize=config.filter_kernel_size)
     # 转为整型, 并将每行的最后部分置零
