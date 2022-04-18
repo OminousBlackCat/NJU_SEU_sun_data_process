@@ -22,14 +22,26 @@ import multiprocessing as mp
 
 # 定义参数
 bin_count = config.bin_count
-height_Ha = config.height_Ha  # ha窗口的长度
-height_Fe = config.height_Fe  # fe窗口的长度
-HA = config.HA_start  # 红蓝移HA参数
-FE = config.FE_start  # 红蓝移FE参数
-K = config.K  # 红蓝移K参数
-# K = K * bin_count
-x0 = config.curve_cor_x0
-C = config.curve_cor_C
+if bin_count==1:
+    height_Ha = config.height_Ha  # ha窗口的长度
+    height_Fe = config.height_Fe  # fe窗口的长度
+    HA = config.HA_start  # 红蓝移HA参数
+    FE = config.FE_start  # 红蓝移FE参数
+    K = config.wavelength_resolution_bin_1  # 红蓝移K参数
+    # K = K * bin_count
+    x0 = config.curve_cor_x0_bin_1
+    C = config.curve_cor_C_bin_1
+else:
+    height_Ha = config.height_Ha  # ha窗口的长度
+    height_Fe = config.height_Fe  # fe窗口的长度
+    HA = config.HA_start  # 红蓝移HA参数
+    FE = config.FE_start  # 红蓝移FE参数
+    K = config.wavelength_resolution_bin_2  # 红蓝移K参数
+    # K = K * bin_count
+    x0 = config.curve_cor_x0_bin_2
+    C = config.curve_cor_C_bin_2
+
+
 
 
 # 谱线矫正
@@ -187,11 +199,16 @@ def get_Absorstd(filepathHA, filepathFE, HofHa, HofFe):
                 i += 1
             line = f.readline()
     f.close()
-    ansY[HofHa:HofHa + HofFe] = ansY[height_Ha:height_Ha + HofFe]
-    ansY = ansY[0:HofHa + HofFe]
+
+    if(bin_count == 2):
+        for i in range(int((height_Ha+height_Fe)/2)):
+            ansY[i]=(ansY[i*2]+ansY[i*2+1])/2
+            ansY[HofHa:HofHa + HofFe] = ansY[int(height_Ha/2):int(height_Ha/2) + HofFe]
+    else:
+        ansY[HofHa:HofHa+HofFe] = ansY[height_Ha:height_Ha+HofFe]
+    ansY = ansY[0:HofHa+HofFe]
     # 归一化输出
     return ansY / np.max(ansY)
-
 
 # 红蓝移矫正
 # 参数bin: 模式参数
