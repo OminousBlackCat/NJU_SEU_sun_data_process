@@ -24,8 +24,8 @@ import multiprocessing as mp
 bin_count = config.bin_count
 height_Ha = config.height_Ha  # ha窗口的长度
 height_Fe = config.height_Fe  # fe窗口的长度
-HA = config.HA  # 红蓝移HA参数
-FE = config.FE  # 红蓝移FE参数
+HA = config.HA_start  # 红蓝移HA参数
+FE = config.FE_start  # 红蓝移FE参数
 K = config.K  # 红蓝移K参数
 # K = K * bin_count
 x0 = config.curve_cor_x0
@@ -234,7 +234,8 @@ def DivFlat(imgData, flatData):
 # 参数
 def MedSmooth(imgData, winSize=3):
     zero_range = 100
-    imgData = signal.medfilt(imgData, kernel_size=int((winSize - 1) / bin_count))
+    if bin_count == 1:
+        imgData = signal.medfilt(imgData, kernel_size=winSize)
     imgData[:, imgData.shape[1] - int(zero_range / bin_count): imgData.shape[1] - 1] = 0
     return imgData
 

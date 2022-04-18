@@ -82,12 +82,12 @@ for i in range(len(data_file_lst)):
         global_multiprocess_list[len(global_multiprocess_list) - 1]['last_filename'] = filename
 
 # 剔除不完整序列
-for i in range(len(global_multiprocess_list)):
-    if global_multiprocess_list[i]['file_count'] < config.sun_row_count - 5000 or \
-            global_multiprocess_list[i]['standard_filename'] is None:
-        print('文件夹中包含不完整序列, 序列序号为:' + str(global_multiprocess_list[i]['scan_index']))
+for temp_dict in global_multiprocess_list:
+    if temp_dict['file_count'] < config.sun_row_count - 500 or \
+            temp_dict['standard_filename'] == '':
+        print('文件夹中包含不完整序列, 序列序号为:' + str(temp_dict['scan_index']))
         print('本次数据处理将不此序列进行处理.....')
-        global_multiprocess_list.remove(global_multiprocess_list[i])
+        global_multiprocess_list.remove(temp_dict)
 
 # 读取头部参数文件
 # 为每个序列都创建头
@@ -304,6 +304,9 @@ def main():
         temp_dict['header'].set('CRPIX2', R_y)
         temp_dict['header'].set('R_SUN', radius)
         temp_dict['header'].set('RSUN_OBS', OBS_Radius)
+        temp_dict['header'].set('CDELT1', 0.52 * config.bin_count)
+        temp_dict['header'].set('CDELT2', 0.52 * config.bin_count)
+        temp_dict['header'].set('CDELT3', config.K * config.bin_count)
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
@@ -318,7 +321,7 @@ def main():
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')
         temp_dict['header'].set('LINECORE', config.HA_lineCore)
-        temp_dict['header'].set('CRVAL3', config.HA_cravl)
+        temp_dict['header'].set('CRVAL3', config.HA_start)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         file_year = temp_dict['standard_filename'][3:7]
         file_mon = temp_dict['standard_filename'][7:9]
@@ -342,7 +345,7 @@ def main():
         temp_dict['header'].set('SPECLINE', 'FEI')
         temp_dict['header'].set('LINECORE', config.FE_lineCore)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-        temp_dict['header'].set('CRVAL3', config.FE_cravl)
+        temp_dict['header'].set('CRVAL3', config.FE_start)
         primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
                                      .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                      , header=temp_dict['header'])
