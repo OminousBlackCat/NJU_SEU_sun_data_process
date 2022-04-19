@@ -33,7 +33,8 @@ STANDARD_FILE_INDEX = 0  # 标准文件在序列中的位置(与bin相关)
 CURVE_X0 = 0  # 谱线矫正参数x0(与bin相关)
 CURVE_C = 0  # 谱线矫正参数c(与bin相关)
 WAVE_RESOLUTION = 0  # 波长分辨率(与bin相关)
-SUM_ROW_INDEX = 0  # 合并日像所选的行数(与bin相关)
+SUM_ROW_INDEX_HA = 0  # 合并HA日像所选的行数(与bin相关)
+SUM_ROW_INDEX_FE = 0  # 合并FE日像所选的行数(与bin相关)
 SCAN_TIME_OFFSET = config.scan_time_offset  # 时间偏差
 if GLOBAL_BINNING == 1:
     FLAT_FITS_FILE = config.flat_fits_name_bin_1
@@ -42,7 +43,8 @@ if GLOBAL_BINNING == 1:
     CURVE_X0 = config.curve_cor_x0_bin_1
     CURVE_C = config.curve_cor_C_bin_1
     WAVE_RESOLUTION = config.wavelength_resolution_bin_1
-    SUM_ROW_INDEX = config.sum_row_index_bin_1
+    SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_1
+    SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_1
 if GLOBAL_BINNING == 2:
     FLAT_FITS_FILE = config.flat_fits_name_bin_2
     SUN_ROW_COUNT = config.sun_row_count_bin_2
@@ -50,7 +52,8 @@ if GLOBAL_BINNING == 2:
     CURVE_X0 = config.curve_cor_x0_bin_2
     CURVE_C = config.curve_cor_C_bin_2
     WAVE_RESOLUTION = config.wavelength_resolution_bin_2
-    SUM_ROW_INDEX = config.sum_row_index_bin_2
+    SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_2
+    SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_2
 
 multiprocess_count = 1
 if config.multiprocess_count != 'default':
@@ -191,7 +194,6 @@ try:
         for item in header.copy_header_items:
             temp_dict['header'].set(item['key'], standard_header[item['key']])
         temp_dict['header'].set('BIN', GLOBAL_BINNING)
-        temp_dict['header'].set('DATE_OBS', standard_header['STR_TIME'])
         standard_img = np.array(temp_img[0].data, dtype=float)
         standard_img = suntools.moveImg(standard_img, -2)
         standard_img, standard_HA_width, standard_FE_width = suntools.curve_correction(standard_img - dark_img,
@@ -228,6 +230,7 @@ try:
                                           day=int(last_name[9: 11]), hour=int(last_name[12: 14]),
                                           minute=int(last_name[14:16]), second=int(last_name[16: 18]))
         end_temp_time = end_temp_time + time_offset
+        temp_dict['header'].set('DATE_OBS', start_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('STR_TIME', start_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('END_TIME', end_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('FRM_NUM', '1~' + str(temp_dict['file_count']))
@@ -336,7 +339,8 @@ def main():
         pool.join()
         print('\n扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
         print('生成完整日像中...')
-        sum_data = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
+        sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
+        sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
@@ -345,9 +349,10 @@ def main():
         print("SHAPE为：" + str(global_shared_array.shape))
         # 输出太阳像
         for i in range(global_shared_array.shape[1]):
-            sum_data[i] = global_shared_array[SUM_ROW_INDEX, i, :].reshape(sample_from_standard.shape[1])
+            sum_data_HA[i] = global_shared_array[SUM_ROW_INDEX_HA, i, :].reshape(sample_from_standard.shape[1])
+            sum_data_FE[i] = global_shared_array[standard_HA_width + SUM_ROW_INDEX_FE, i, :].reshape(sample_from_standard.shape[1])
         print('计算CCD太阳像半径中...')
-        R_y, R_x, radius = suntools.getCircle(sum_data)
+        R_y, R_x, radius = suntools.getCircle(sum_data_HA)
         OBS_Radius = radius * temp_dict['header']['CDELT1']
         temp_dict['header'].set('CRPIX1', R_x)
         temp_dict['header'].set('CRPIX2', R_y)
@@ -360,14 +365,21 @@ def main():
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
             plt.imsave(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
-                       + '-' + str(temp_dict['scan_index']) + ".png", sum_data, cmap=color_map)
+                       + '-' + str(temp_dict['scan_index']) + '_HA' + ".png", sum_data_HA, cmap=color_map)
+            plt.imsave(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+                       + '-' + str(temp_dict['scan_index']) + '_FE' + ".png", sum_data_FE, cmap=color_map)
         if config.save_img_form == 'fts':
             # 不对data进行任何操作 直接输出为fts文件
             print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
-            primaryHDU = fits.PrimaryHDU(sum_data)
+            primaryHDU = fits.PrimaryHDU(sum_data_HA)
             greyHDU = fits.HDUList([primaryHDU])
             greyHDU.writeto(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
-                            + '-' + str(temp_dict['scan_index']) + '.fts', overwrite=True)
+                            + '-' + str(temp_dict['scan_index']) + '_HA' + '.fts', overwrite=True)
+            greyHDU.close()
+            primaryHDU = fits.PrimaryHDU(sum_data_FE)
+            greyHDU = fits.HDUList([primaryHDU])
+            greyHDU.writeto(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+                            + '-' + str(temp_dict['scan_index']) + '_FE' + '.fts', overwrite=True)
             greyHDU.close()
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')

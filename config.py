@@ -2,16 +2,20 @@
 
 # 读入数据存放的文件夹, 相对路径与绝对路径均可
 # 文件夹最后的结尾需要带'/'
-data_dir_path = "data/raw_data_test/"
+# TODO: 在运行程序前一定要修改此目录, 此目录应精确到当日的扫描序列文件夹
+# 例: /data/chase/Chase/2021/12/16-428/
+data_dir_path = "/data/chase/Chase/2021/12/"
 
 # 数据输出的存放文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
 # 文件夹最后的结尾需要带'/'
+# TODO: 在程序运行前需要修改此目录
 save_dir_path = "data/out/"
 
 # 日像汇总结果存放的文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
 # 文件夹最后的结尾需要带'/'
+# TODO: 可以直接使用与data_dir_path相同的路径
 sum_dir_path = 'data/sum/'
 
 # 读入的暗场fits文件路径, 相对路径与绝对路径均可
@@ -24,6 +28,7 @@ flat_fits_name_bin_1 = 'data/for_flat.fits'
 flat_fits_name_bin_2 = 'data/for_flat_binning2.fits'
 
 # 读入的标准光谱数据文件路径, 相对路径与绝对路径均可
+# TODO: sun_std_name可以删除
 sun_std_name = 'data/bass2000.txt'
 HA_absorption_path = 'data/HA_absorption.txt'
 FE_absorption_path = 'data/FE_absorption.txt'
@@ -32,7 +37,7 @@ FE_absorption_path = 'data/FE_absorption.txt'
 color_camp_name = 'data/color_map.txt'
 
 # 读入的星图文件
-de_file_url = 'file://'
+de_file_url = 'file:///data/home/wangxinyu/de430.bsp'
 
 # 读入的HA头部与FE头部参数文件 注意是txt格式 一般不做修改
 header_file = 'data/HA_header.txt'
@@ -59,9 +64,10 @@ curve_cor_x0_bin_1 = 2321.26
 curve_cor_C_bin_1 = 1.92909e-011
 # 谱线分辨率
 wavelength_resolution_bin_1 = 0.024202301
-# 合并日像时使用的行数
-sum_row_index_bin_1 = 132
-
+# 合并HA日像时使用的行数
+sum_row_index_HA_bin_1 = 136
+# 合并FE日像时使用的行数
+sum_row_index_FE_bin_1 = 20
 
 # bin = 2的时候, 程序将使用的参数
 # 一个扫描序列最多包含多少行(一组数据包含多少文件)
@@ -74,8 +80,10 @@ curve_cor_x0_bin_2 = 1161.58
 curve_cor_C_bin_2 = 7.639e-011
 # 谱线分辨率
 wavelength_resolution_bin_2 = 0.048404602
-# 合并日像时使用的行数
-sum_row_index_bin_2 = 66
+# 合并HA日像时使用的行数
+sum_row_index_HA_bin_2 = 68
+# 合并FE日像时使用的行数
+sum_row_index_FE_bin_2 = 10
 
 
 # 通用参数
@@ -94,7 +102,6 @@ height_Fe = 116
 # 序列扫描时间偏移量(单位: 秒)
 # 会在写入头部的时候将时间加上时间偏移量
 scan_time_offset = 0
-
 
 # 输出何种类型的图片
 # 'fts'输出fts格式灰度文件, 'default'则输出以color map为camp的png图片
