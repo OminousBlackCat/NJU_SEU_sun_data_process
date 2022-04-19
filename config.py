@@ -4,7 +4,7 @@
 # 文件夹最后的结尾需要带'/'
 # TODO: 在运行程序前一定要修改此目录, 此目录应精确到当日的扫描序列文件夹
 # 例: /data/chase/Chase/2021/12/16-428/
-data_dir_path = "/data/chase/Chase/2021/12/16-962"
+data_dir_path = "/data/chase/Chase/2021/12/16-962/"
 
 # 数据输出的存放文件夹, 相对路径与绝对路径均可, 需精确到天数
 # 请确保此文件夹存在并拥有写入权限
@@ -37,19 +37,19 @@ flat_fits_name_bin_2 = 'data/for_flat_binning2.fits'
 
 # 读入的标准光谱数据文件路径, 相对路径与绝对路径均可
 # sun_std_name可以删除
-sun_std_name = 'data/bass2000.txt'
 HA_absorption_path = 'data/HA_absorption.txt'
 FE_absorption_path = 'data/FE_absorption.txt'
 
 # 读入的色谱(作为日像汇总结果png格式的输入)文件路径, 相对路径与绝对路径均可
 color_camp_name = 'data/color_map.txt'
 
-# 读入的星图文件
-# 此路径不要随意改变
+# 读入的星图文件, 需要以url的格式输入, 因此为绝对路径
+# 此路径不要随意改变, 若需要改变, 则首先确保绝对路径内拥有此星图文件
 de_file_url = 'file:///data/home/wangxinyu/de430.bsp'
 
 # 读入的HA头部与FE头部参数文件 注意是txt格式 一般不做修改
-header_file = 'data/HA_header.txt'
+# 如需增添新的头部 可以修改对应的header.txt, 但具体写入何值则需要修改header.py
+header_file = 'data/header.txt'
 
 # 多核并行数
 # 若为'default' 则程序自动根据获得的cpu核数设定并行数
@@ -104,9 +104,9 @@ height_Ha = 260
 height_Fe = 116
 
 # 序列扫描时间偏移量(单位: 秒)
-# 会在写入头部的时候将时间加上时间偏移量
+# 会在写入头部的时候将对应的STR_TIME/OBS_TIME/END_TIME时间加上时间偏移量
 scan_time_offset = 0
 
 # 输出何种类型的图片
 # 'fts'输出fts格式灰度文件, 'default'则输出以color map为camp的png图片
-save_img_form = 'fts'
+save_img_form = 'default'

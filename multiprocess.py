@@ -180,7 +180,7 @@ temp_img.close()
 
 # 读取经过日心的图片 作为基准
 # 读取标准太阳光谱数据
-sun_std = suntools.get_Sunstd(config.sun_std_name)
+# sun_std = suntools.get_Sunstd(config.sun_std_name)
 global_absorption = suntools.get_Absorstd(
     HA_ABSORPTION_FILE, FE_ABSORPTION_FILE, standard_HA_width, standard_FE_width)
 sample_from_standard = None
@@ -209,9 +209,9 @@ try:
         # 需要先对标注文件进行一系列操作 去暗场 去平场 再进行红蓝移修正
         standard_img = suntools.DivFlat(standard_img, flatTemp)
         # 获得标准吸收系数
-        abortion = suntools.RB_getdata(standard_img, sun_std, standard_HA_width, standard_FE_width)
+        # abortion = suntools.RB_getdata(standard_img, sun_std, standard_HA_width, standard_FE_width)
         temp_dict['flat_data'] = flatTemp
-        temp_dict['abortion_data'] = abortion
+        # temp_dict['abortion_data'] = abortion
         temp_img.close()
         print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
         print('计算B0, INST_ROT中....')
@@ -295,10 +295,10 @@ def target_task(filename):
     for dataTemp in global_multiprocess_list:
         if dataTemp['scan_index'] == int(file_index):
             currentFlat = dataTemp['flat_data']
-            currentAbortion = dataTemp['abortion_data']
+            # currentAbortion = dataTemp['abortion_data']
             break
-    if currentAbortion is None or currentFlat is None:
-        print("文件：" + filename + "未找到平场数据与吸收系数, 请检查文件夹")
+    if currentFlat is None:
+        print("文件：" + filename + "未找到平场数据, 请检查文件夹")
         return
     # 去平场
     image_data = suntools.DivFlat(image_data, currentFlat)
