@@ -4,31 +4,39 @@
 # 文件夹最后的结尾需要带'/'
 # TODO: 在运行程序前一定要修改此目录, 此目录应精确到当日的扫描序列文件夹
 # 例: /data/chase/Chase/2021/12/16-428/
-data_dir_path = "/data/chase/Chase/2021/12/"
+data_dir_path = "/data/chase/Chase/2021/12/16-962"
 
-# 数据输出的存放文件夹, 相对路径与绝对路径均可
+# 数据输出的存放文件夹, 相对路径与绝对路径均可, 需精确到天数
 # 请确保此文件夹存在并拥有写入权限
+# **** 请在程序运行前创建对应月份的文件夹! ****
 # 文件夹最后的结尾需要带'/'
+# 例: /data/chase/Chase/Lev1/2021/12/16/
 # TODO: 在程序运行前需要修改此目录
-save_dir_path = "data/out/"
+save_dir_path = "/data/chase/Chase/Lev1/2021/12/16/"
+
+# 是否bin
+# 修改此参数的时候记得修改sun_row_index
+# TODO: bin_count务必在程序运行前要确认
+bin_count = 1
+
 
 # 日像汇总结果存放的文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
 # 文件夹最后的结尾需要带'/'
-# TODO: 可以直接使用与data_dir_path相同的路径
-sum_dir_path = 'data/sum/'
+# 目前直接使用与data_dir_path相同的路径
+sum_dir_path = save_dir_path
 
 # 读入的暗场fits文件路径, 相对路径与绝对路径均可
 dark_fits_name = 'data/dark.fits'
 
 # 读入的平场参数文件路径, 相对路径与绝对路径均可
-# bin = 1
+# bin = 1的时候
 flat_fits_name_bin_1 = 'data/for_flat.fits'
-# bin = 2
+# bin = 2的时候
 flat_fits_name_bin_2 = 'data/for_flat_binning2.fits'
 
 # 读入的标准光谱数据文件路径, 相对路径与绝对路径均可
-# TODO: sun_std_name可以删除
+# sun_std_name可以删除
 sun_std_name = 'data/bass2000.txt'
 HA_absorption_path = 'data/HA_absorption.txt'
 FE_absorption_path = 'data/FE_absorption.txt'
@@ -37,6 +45,7 @@ FE_absorption_path = 'data/FE_absorption.txt'
 color_camp_name = 'data/color_map.txt'
 
 # 读入的星图文件
+# 此路径不要随意改变
 de_file_url = 'file:///data/home/wangxinyu/de430.bsp'
 
 # 读入的HA头部与FE头部参数文件 注意是txt格式 一般不做修改
@@ -46,11 +55,6 @@ header_file = 'data/HA_header.txt'
 # 若为'default' 则程序自动根据获得的cpu核数设定并行数
 # 默认使用可支配核数-4的并行数量
 multiprocess_count = 'default'
-
-# 是否bin
-# 修改此参数的时候记得修改sun_row_index
-# TODO: bin_count务必在程序运行前要确认
-bin_count = 1
 
 
 # bin = 1的时候, 程序将使用的参数

@@ -80,6 +80,7 @@ except OSError:
     print('没有获得原始数据文件，请检查config中的读入数据目录')
     sys.exit("程序终止")
 print('文件总数为: ' + str(len(data_file_lst)))
+print('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
 
 # 将读入的文件按照序列分成不同的组
 global_multiprocess_list = []
@@ -364,22 +365,22 @@ def main():
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
-            plt.imsave(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
-                       + '-' + str(temp_dict['scan_index']) + '_HA' + ".png", sum_data_HA, cmap=color_map)
-            plt.imsave(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
-                       + '-' + str(temp_dict['scan_index']) + '_FE' + ".png", sum_data_FE, cmap=color_map)
+            plt.imsave(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+                       + '_' + str(temp_dict['scan_index']).zfill(4) + '_HA' + ".png", sum_data_HA, cmap=color_map)
+            plt.imsave(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+                       + '_' + str(temp_dict['scan_index']).zfill(4) + '_FE' + ".png", sum_data_FE, cmap=color_map)
         if config.save_img_form == 'fts':
             # 不对data进行任何操作 直接输出为fts文件
             print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
             primaryHDU = fits.PrimaryHDU(sum_data_HA)
             greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
-                            + '-' + str(temp_dict['scan_index']) + '_HA' + '.fts', overwrite=True)
+            greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+                            + '_' + str(temp_dict['scan_index']).zfill(4) + '_HA' + '.fts', overwrite=True)
             greyHDU.close()
             primaryHDU = fits.PrimaryHDU(sum_data_FE)
             greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'sum' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
-                            + '-' + str(temp_dict['scan_index']) + '_FE' + '.fts', overwrite=True)
+            greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+                            + '_' + str(temp_dict['scan_index']).zfill(4) + '_FE' + '.fts', overwrite=True)
             greyHDU.close()
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')
