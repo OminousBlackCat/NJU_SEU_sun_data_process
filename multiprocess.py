@@ -97,7 +97,7 @@ for i in range(len(data_file_lst)):
             ifFind = True
             if int(filename[24:28]) == STANDARD_FILE_INDEX:
                 global_multiprocess_list[j]['standard_filename'] = filename
-            if int(filename[24:28]) == 1:
+            if int(filename[24:28]) < int(global_multiprocess_list[j]['first_filename'][24:28]):
                 global_multiprocess_list[j]['first_filename'] = filename
             if int(filename[24:28]) > int(global_multiprocess_list[j]['last_filename'][24:28]):
                 global_multiprocess_list[j]['last_filename'] = filename
@@ -119,8 +119,7 @@ for i in range(len(data_file_lst)):
         global_multiprocess_list[len(global_multiprocess_list) - 1]['file_count'] += 1
         if int(filename[24:28]) == STANDARD_FILE_INDEX:
             global_multiprocess_list[len(global_multiprocess_list) - 1]['standard_filename'] = filename
-        if int(filename[24:28]) == 1:
-            global_multiprocess_list[len(global_multiprocess_list) - 1]['first_filename'] = filename
+        global_multiprocess_list[len(global_multiprocess_list) - 1]['first_filename'] = filename
         global_multiprocess_list[len(global_multiprocess_list) - 1]['last_filename'] = filename
 
 # 剔除不完整序列
@@ -188,6 +187,8 @@ try:
     for temp_dict in global_multiprocess_list:
         # 对每个序列进行校正
         print('校正扫描序列' + str(temp_dict['scan_index']) + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
+        print('此序列首文件为' + temp_dict['first_filename'])
+        print('此序列末文件为' + temp_dict['last_filename'])
         print("校正平场中...")
         standard_name = temp_dict['standard_filename']
         temp_img = fits.open(READ_DIR + standard_name)
@@ -274,54 +275,59 @@ GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_CO
 # 定义target task
 # 传入一个文件名，读取此文件名对应的fits文件并对其做曲线矫正
 def target_task(filename):
-    # 一个标准文件名 如下:
-    # RSM 2021   12     22T060105   -   0008-     0001       .fts
-    # 012 3456   78     901234567   8   90123     4567       8901
-    #     [year] [mon]  [day_seq]       [index]   [position]
-    file_index = filename[19:23]
-    file_position = filename[24:28]
-    filePath = READ_DIR + filename
-    file_data = fits.open(filePath)
-    image_data = np.array(file_data[0].data, dtype=float)
-    # 对fe窗口进行平移
-    image_data = suntools.moveImg(image_data, -2)
-    # 去暗场
-    image_data = image_data - dark_img
-    # 谱线弯曲矫正
-    image_data, HofH, HofFe = suntools.curve_correction(image_data, CURVE_X0, CURVE_C)
-    # 搜索list
-    currentFlat = None
-    currentAbortion = None
-    for dataTemp in global_multiprocess_list:
-        if dataTemp['scan_index'] == int(file_index):
-            currentFlat = dataTemp['flat_data']
-            # currentAbortion = dataTemp['abortion_data']
-            break
-    if currentFlat is None:
-        print("文件：" + filename + "未找到平场数据, 请检查文件夹")
-        return
-    # 去平场
-    image_data = suntools.DivFlat(image_data, currentFlat)
-    # 红蓝移矫正
-    image_data = suntools.RB_repair(image_data, global_absorption)
-    # 滤波
-    image_data = suntools.MedSmooth(image_data, winSize=FILTER_KERNEL_SIZE)
-    # 转为整型, 并将每行的最后部分置零
-    image_data = np.array(image_data, dtype=np.int16)
-    global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
-    global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT)
-    global_shared_array[:, int(file_position) - 1, :] = image_data
-    # 进度输出
-    remaining_count.value += 1
-    file_data.close()
-    if if_first_print.value:
-        print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
-        sys.stdout.flush()
-        if_first_print.value = False
-    else:
-        print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
-        print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
-        sys.stdout.flush()
+    try:
+        # 一个标准文件名 如下:
+        # RSM 2021   12     22T060105   -   0008-     0001       .fts
+        # 012 3456   78     901234567   8   90123     4567       8901
+        #     [year] [mon]  [day_seq]       [index]   [position]
+        file_index = filename[19:23]
+        file_position = filename[24:28]
+        filePath = READ_DIR + filename
+        file_data = fits.open(filePath)
+        image_data = np.array(file_data[0].data, dtype=float)
+        # 对fe窗口进行平移
+        image_data = suntools.moveImg(image_data, -2)
+        # 去暗场
+        image_data = image_data - dark_img
+        # 谱线弯曲矫正
+        image_data, HofH, HofFe = suntools.curve_correction(image_data, CURVE_X0, CURVE_C)
+        # 搜索list
+        currentFlat = None
+        currentAbortion = None
+        for dataTemp in global_multiprocess_list:
+            if dataTemp['scan_index'] == int(file_index):
+                currentFlat = dataTemp['flat_data']
+                # currentAbortion = dataTemp['abortion_data']
+                break
+        if currentFlat is None:
+            print("文件：" + filename + "未找到平场数据, 请检查文件夹")
+            return
+        # 去平场
+        image_data = suntools.DivFlat(image_data, currentFlat)
+        # 红蓝移矫正
+        image_data = suntools.RB_repair(image_data, global_absorption)
+        # 滤波
+        image_data = suntools.MedSmooth(image_data, winSize=FILTER_KERNEL_SIZE)
+        # 转为整型, 并将每行的最后部分置零
+        image_data = np.array(image_data, dtype=np.int16)
+        global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
+        global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
+                                                          GLOBAL_ARRAY_Z_COUNT)
+        global_shared_array[:, int(file_position) - 1, :] = image_data
+        # 进度输出
+        remaining_count.value += 1
+        file_data.close()
+        if if_first_print.value:
+            print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+            sys.stdout.flush()
+            if_first_print.value = False
+        else:
+            print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
+            print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+            sys.stdout.flush()
+    except BaseException as e:
+        print(e)
+        print('文件:' + filename + '处理失败, 请检查此文件')
 
 
 def main():

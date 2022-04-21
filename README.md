@@ -47,5 +47,35 @@
 | header.txt             | 标准头部参数文件                                   |
 | de430.bsp              | 计算B0等值时使用的星表文件(此文件在不同的文件夹内) |
 
-
-
+## 程序完整的参数列表
+| 参数名                      | 描述                                               | 默认值 |
+| :-------------------------- | -------------------------------------------------- | ------ |
+| data_dir_path               | binning=1对应的平场文件                            |        |
+| save_dir_path               | binning=2对应的平场文件                            |        |
+| bin_count                   | 暗场文件                                           |        |
+| sum_dir_path                | HA窗口吸收系数文件                                 |        |
+| dark_fits_name              | FE窗口吸收系数文件                                 |        |
+| flat_fits_name_bin_1        | 绘制png日像时使用的色表文件                        |        |
+| flat_fits_name_bin_2        | 标准头部参数文件                                   |        |
+| HA_absorption_path          | 计算B0等值时使用的星表文件(此文件在不同的文件夹内) |        |
+| FE_absorption_path          |                                                    |        |
+| color_camp_name             |                                                    |        |
+| de_file_url                 |                                                    |        |
+| header_file                 |                                                    |        |
+| multiprocess_count          |                                                    |        |
+| sun_row_count_bin_1         |                                                    |        |
+| standard_offset_index_bin_1 |                                                    |        |
+| curve_cor_x0_bin_1          |                                                    |        |
+| curve_cor_C_bin_1           |                                                    |        |
+| wavelength_resolution_bin_1 |                                                    |        |
+| sum_row_index_HA_bin_1      |                                                    |        |
+| sum_row_index_FE_bin_1      |                                                    |        |
+| sun_row_count_bin_2         |                                                    |        |
+| standard_offset_index_bin_2 |                                                    |        |
+| curve_cor_x0_bin_2          |                                                    |        |
+| curve_cor_C_bin_2           |                                                    |        |
+| wavelength_resolution_bin_2 |                                                    |        |
+| sum_row_index_HA_bin_2      |                                                    |        |
+| sum_row_index_FE_bin_2      |                                                    |        |
+| HA_start                    |                                                    |        |
+| FE_start                    |                                                    |        |
