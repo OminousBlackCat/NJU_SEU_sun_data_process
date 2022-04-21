@@ -186,9 +186,9 @@ sample_from_standard = None
 try:
     for temp_dict in global_multiprocess_list:
         # 对每个序列进行校正
-        print('校正扫描序列' + str(temp_dict['scan_index']) + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
-        print('此序列首文件为' + temp_dict['first_filename'])
-        print('此序列末文件为' + temp_dict['last_filename'])
+        print('校正扫描序列' + str(temp_dict['scan_index']).zfill(4) + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
+        print('此序列首文件为:' + temp_dict['first_filename'])
+        print('此序列末文件为:' + temp_dict['last_filename'])
         print("校正平场中...")
         standard_name = temp_dict['standard_filename']
         temp_img = fits.open(READ_DIR + standard_name)
@@ -214,7 +214,7 @@ try:
         temp_dict['flat_data'] = flatTemp
         # temp_dict['abortion_data'] = abortion
         temp_img.close()
-        print("序列:" + str(int(standard_name[19:23])) + "矫正完成")
+        print("序列:" + str(int(standard_name[19:23])).zfill(4) + "矫正完成")
         print('计算B0, INST_ROT中....')
         temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
                                                   standard_header['Q3'], standard_header['STR_TIME'])
