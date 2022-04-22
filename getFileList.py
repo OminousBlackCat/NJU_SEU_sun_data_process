@@ -9,11 +9,19 @@ def getTarget(filePath):
     target_list = []
     if len(dbtype_list) >= limit_size:
         target_list.append(filePath)
+    err = 0
     for dbtype in dbtype_list:
-        if os.path.isdir(filePath+dbtype):
-            filelist = os.listdir(filePath + dbtype)
-            if(len(filelist)) >= limit_size:
+        try:
+            if os.path.isdir(filePath + dbtype):
+                filelist = os.listdir(filePath + dbtype)
+            else:
+                filelist = []
+        except IOError:
+            err += 1
+        else:
+            if (len(filelist)) >= limit_size:
                 target_list.append(filePath + dbtype)
+
     print(target_list)
     return target_list
 
