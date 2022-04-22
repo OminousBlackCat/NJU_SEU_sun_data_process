@@ -472,10 +472,10 @@ def getCircle(image):
         r_y.append((y1 + y0) / 2)
     # print(r_y)
     L = len(r_y)
-    if L<1 :
-        return -1,-1,-1
+    if L < 1:
+        return -1.0, -1.0, -1.0
     # 通过中位数计算圆第二维坐标
-    R_y = np.median(np.array(r_y)[int(0.2 * L): int(0.8 * L)])
+    R_y = float(np.median(np.array(r_y)[int(0.2 * L): int(0.8 * L)]))
     # print(R_y)
 
     # 通过圆第二维坐标筛选对称点，选取其中三个点计算圆坐标和直径
@@ -485,8 +485,8 @@ def getCircle(image):
         if abs(points[1] + points[2] - 2 * R_y) <= 5:
             candidate.append([points[0], points[1]])
     L = len(candidate)
-    if L<1 :
-        return -1,-1,-1
+    if L < 1:
+        return -1.0, -1.0, -1.0
     x1 = candidate[int(0.2 * L)][0]
     y1 = candidate[int(0.2 * L)][1]
     x2 = candidate[int(0.8 * L)][0]
@@ -529,7 +529,8 @@ def getB0P0(q0, q1, q2, q3, strtime):
     earth2sun_pos = np.array([[earth2sun_rx], [earth2sun_ry], [earth2sun_rz]])
 
     normalize_factor = sqrt(earth2sun_pos[0] ** 2 + earth2sun_pos[1] ** 2 + earth2sun_pos[2] ** 2)
-    earth2sun_pos_normalize = earth2sun_pos / normalize_factor  # the satellite position to the sun position (point from satellite to sun)
+    earth2sun_pos_normalize = earth2sun_pos / normalize_factor  # the satellite position to the sun position (point
+    # from satellite to sun)
     g1 = 2 * (q1 * q3 - q0 * q2)
     g2 = 2 * (q2 * q3 + q0 * q1)
     g3 = q0 ** 2 - q1 ** 2 - q2 ** 2 + q3 ** 2
@@ -669,6 +670,7 @@ if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
 
 if __name__ == "__main__":
+    print(type(float(np.median(np.array([1,2,3,4])))))
     # testPath = "sunImage/"
     # I = Image.open(testPath + 'sum17.png')
     # I_array = np.array(I.convert('L'))
@@ -695,4 +697,4 @@ if __name__ == "__main__":
     #         print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
     #             remaining_count.value) + '/' + str(file_count.value), end='')
     #     time.sleep(0.5)
-    test()
+    # test()
