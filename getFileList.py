@@ -1,9 +1,12 @@
 import config
 import os
+
 if config.bin_count == 1:
     limit_size = config.sun_row_count_bin_1
 else:
     limit_size = config.sun_row_count_bin_2
+
+
 def getTarget(filePath):
     dbtype_list = os.listdir(filePath)
     target_list = []
@@ -25,6 +28,6 @@ def getTarget(filePath):
     print(target_list)
     return target_list
 
+
 if __name__ == "__main__":
     getTarget('D:/NJU_SEU_sun_data_process/')
-
