@@ -32,9 +32,6 @@ def getTarget(filePath):
     return target_list,out_list
 
 if __name__ == "__main__":
-    #getTarget('D:/NJU_SEU_sun_data_process/')
-    filePath = 'D:/NJU_SEU_sun_data_process/3-23'
-    nums = filePath.split('/')
-    out_list = nums[-1].split('-')[0]
-    print(out_list)
+    getTarget(config.data_dir_path)
+
 
