@@ -126,7 +126,7 @@ for i in range(len(data_file_lst)):
 # 剔除不完整序列
 print('当前SIT_STARE模式为:' + str(SIT_STARE_MODE))
 if not SIT_STARE_MODE:
-    print('检验序列中..将提出不完整序列...')
+    print('检验序列中..将剔除不完整序列...')
     for temp_dict in global_multiprocess_list[:]:
         print('序列:' + str(temp_dict['scan_index']).zfill(4) + '包含文件总数:' + str(temp_dict['file_count']))
         if temp_dict['file_count'] < SUN_ROW_COUNT - 500 or \
