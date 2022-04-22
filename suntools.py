@@ -472,6 +472,8 @@ def getCircle(image):
         r_y.append((y1 + y0) / 2)
     # print(r_y)
     L = len(r_y)
+    if L==0 :
+        return -1,-1,-1
     # 通过中位数计算圆第二维坐标
     R_y = np.median(np.array(r_y)[int(0.2 * L): int(0.8 * L)])
     # print(R_y)
