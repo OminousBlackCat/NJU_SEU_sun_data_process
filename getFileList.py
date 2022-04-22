@@ -1,9 +1,12 @@
 import config
 import os
+
 if config.bin_count == 1:
     limit_size = config.sun_row_count_bin_1
 else:
     limit_size = config.sun_row_count_bin_2
+
+
 def getTarget(filePath):
     dbtype_list = os.listdir(filePath)
     target_list = []
@@ -11,7 +14,7 @@ def getTarget(filePath):
     if len(dbtype_list) >= limit_size:
         target_list.append(filePath)
         nums = filePath.split('/')
-        out_list .append( nums[-1].split('-')[0])
+        out_list.append(nums[-1].split('-')[0])
     err = 0
     for dbtype in dbtype_list:
         try:
@@ -25,13 +28,12 @@ def getTarget(filePath):
             if (len(filelist)) >= limit_size:
                 target_list.append(filePath + dbtype)
                 nums = dbtype.split('/')
-                out_list .append( nums[-1].split('-')[0])
+                out_list.append(nums[-1].split('-')[0])
 
     print(target_list)
     print(out_list)
-    return target_list,out_list
+    return target_list, out_list
+
 
 if __name__ == "__main__":
     getTarget(config.data_dir_path)
-
-

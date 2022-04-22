@@ -36,6 +36,7 @@ WAVE_RESOLUTION = 0  # 波长分辨率(与bin相关)
 SUM_ROW_INDEX_HA = 0  # 合并HA日像所选的行数(与bin相关)
 SUM_ROW_INDEX_FE = 0  # 合并FE日像所选的行数(与bin相关)
 SCAN_TIME_OFFSET = config.scan_time_offset  # 时间偏差
+SIT_STARE_MODE = config.sit_stare_mode  # sit stare模式
 if GLOBAL_BINNING == 1:
     FLAT_FITS_FILE = config.flat_fits_name_bin_1
     SUN_ROW_COUNT = config.sun_row_count_bin_1
@@ -123,12 +124,16 @@ for i in range(len(data_file_lst)):
         global_multiprocess_list[len(global_multiprocess_list) - 1]['last_filename'] = filename
 
 # 剔除不完整序列
-for temp_dict in global_multiprocess_list:
-    if temp_dict['file_count'] < SUN_ROW_COUNT - 500 or \
-            temp_dict['standard_filename'] == '':
-        print('文件夹中包含不完整序列, 序列序号为:' + str(temp_dict['scan_index']))
-        print('本次数据处理将不此序列进行处理.....')
-        global_multiprocess_list.remove(temp_dict)
+print('当前SIT_STARE模式为:' + str(SIT_STARE_MODE))
+if not SIT_STARE_MODE:
+    print('检验序列中..将提出不完整序列...')
+    for temp_dict in global_multiprocess_list[:]:
+        print('序列:' + str(temp_dict['scan_index']).zfill(4) + '包含文件总数:' + str(temp_dict['file_count']))
+        if temp_dict['file_count'] < SUN_ROW_COUNT - 500 or \
+                temp_dict['standard_filename'] == '':
+            print('文件夹中包含不完整序列, 序列序号为:' + str(temp_dict['scan_index']))
+            print('本次数据处理将不此序列进行处理.....')
+            global_multiprocess_list.remove(temp_dict)
 
 # 读取头部参数文件
 # 为每个序列都创建头
@@ -357,7 +362,8 @@ def main():
         # 输出太阳像
         for i in range(global_shared_array.shape[1]):
             sum_data_HA[i] = global_shared_array[SUM_ROW_INDEX_HA, i, :].reshape(sample_from_standard.shape[1])
-            sum_data_FE[i] = global_shared_array[standard_HA_width + SUM_ROW_INDEX_FE, i, :].reshape(sample_from_standard.shape[1])
+            sum_data_FE[i] = global_shared_array[standard_HA_width + SUM_ROW_INDEX_FE, i, :].reshape(
+                sample_from_standard.shape[1])
         print('计算CCD太阳像半径中...')
         R_y, R_x, radius = suntools.getCircle(sum_data_HA)
         OBS_Radius = radius * temp_dict['header']['CDELT1']
@@ -371,21 +377,21 @@ def main():
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
-            plt.imsave(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+            plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
                        + '_' + str(temp_dict['scan_index']).zfill(4) + '_HA' + ".png", sum_data_HA, cmap=color_map)
-            plt.imsave(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+            plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
                        + '_' + str(temp_dict['scan_index']).zfill(4) + '_FE' + ".png", sum_data_FE, cmap=color_map)
         if config.save_img_form == 'fts':
             # 不对data进行任何操作 直接输出为fts文件
             print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
             primaryHDU = fits.PrimaryHDU(sum_data_HA)
             greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+            greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
                             + '_' + str(temp_dict['scan_index']).zfill(4) + '_HA' + '.fts', overwrite=True)
             greyHDU.close()
             primaryHDU = fits.PrimaryHDU(sum_data_FE)
             greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S')
+            greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
                             + '_' + str(temp_dict['scan_index']).zfill(4) + '_FE' + '.fts', overwrite=True)
             greyHDU.close()
         print('生成HA文件中...')
@@ -405,7 +411,7 @@ def main():
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
         print(repr(primaryHDU.header))
-        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S') + '_' + str(
+        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_HA.fits', overwrite=True)
         print('生成FE文件中...')
         # 修改header内的SPECLINE与LINECORE
@@ -424,7 +430,7 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y-%m-%dT%H:%M:%S') + '_' + str(
+        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' + str(
             temp_dict['scan_index']).zfill(4) + '_FE.fits', overwrite=True)
         if_first_print.value = True
 

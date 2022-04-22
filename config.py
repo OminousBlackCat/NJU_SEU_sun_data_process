@@ -57,6 +57,10 @@ header_file = 'data/header.txt'
 multiprocess_count = 'default'
 
 
+# sit stare模式
+# 若为Ture, 则不对序列进行数额判断, 所有序列都会尝试进行处理
+sit_stare_mode = False
+
 # bin = 1的时候, 程序将使用的参数
 # 一个扫描序列最多包含多少行(一组数据包含多少文件)
 sun_row_count_bin_1 = 4625
