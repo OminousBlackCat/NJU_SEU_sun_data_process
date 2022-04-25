@@ -37,6 +37,7 @@ SUM_ROW_INDEX_HA = 0  # 合并HA日像所选的行数(与bin相关)
 SUM_ROW_INDEX_FE = 0  # 合并FE日像所选的行数(与bin相关)
 SCAN_TIME_OFFSET = config.scan_time_offset  # 时间偏差
 SIT_STARE_MODE = config.sit_stare_mode  # sit stare模式
+PIXEL_RESOLUTION = config.pixel_resolution  # 像素分辨率
 if GLOBAL_BINNING == 1:
     FLAT_FITS_FILE = config.flat_fits_name_bin_1
     SUN_ROW_COUNT = config.sun_row_count_bin_1
@@ -366,21 +367,25 @@ def main():
                 sample_from_standard.shape[1])
         print('计算CCD太阳像半径中...')
         R_y, R_x, radius = suntools.getCircle(sum_data_HA)
-        OBS_Radius = radius * temp_dict['header']['CDELT1']
+        OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
         temp_dict['header'].set('CRPIX1', R_x)
         temp_dict['header'].set('CRPIX2', R_y)
         temp_dict['header'].set('R_SUN', radius)
         temp_dict['header'].set('RSUN_OBS', OBS_Radius)
-        temp_dict['header'].set('CDELT1', 0.52 * GLOBAL_BINNING)
-        temp_dict['header'].set('CDELT2', 0.52 * GLOBAL_BINNING)
+        temp_dict['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
+        temp_dict['header'].set('CDELT2', PIXEL_RESOLUTION * GLOBAL_BINNING)
         temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
+            sum_mean_ha = np.mean(sum_data_HA)
+            sum_mean_fe = np.mean(sum_data_FE)
             plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + str(temp_dict['scan_index']).zfill(4) + '_HA' + ".png", sum_data_HA, cmap=color_map)
+                       + '_' + str(temp_dict['scan_index']).zfill(4) + '_HA' + ".png",
+                       sum_data_HA, cmap=color_map, vmin=0, vmax=3*sum_mean_ha)
             plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + str(temp_dict['scan_index']).zfill(4) + '_FE' + ".png", sum_data_FE, cmap=color_map)
+                       + '_' + str(temp_dict['scan_index']).zfill(4) + '_FE' + ".png",
+                       sum_data_FE, cmap=color_map, vmin=0, vmax=3*sum_mean_fe)
         if config.save_img_form == 'fts':
             # 不对data进行任何操作 直接输出为fts文件
             print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')

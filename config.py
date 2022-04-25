@@ -106,6 +106,8 @@ filter_kernel_size = 3
 # 图像窗口数据 包含ha窗口与fe窗口的长度
 height_Ha = 260
 height_Fe = 116
+# 通用像素分辨率
+pixel_resolution = 0.52
 
 # 序列扫描时间偏移量(单位: 秒)
 # 会在写入头部的时候将对应的STR_TIME/OBS_TIME/END_TIME时间加上时间偏移量
