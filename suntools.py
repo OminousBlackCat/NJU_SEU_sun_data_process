@@ -513,7 +513,7 @@ def getCircle(image):
     L = len(points)
     if L < 200:
         print("圆检测失败")
-        return 0, 0, 0
+        return -1,-1,-1
     flag = True
     times = 0
     while flag:
