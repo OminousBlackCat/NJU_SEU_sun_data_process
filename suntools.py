@@ -20,7 +20,6 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy import coordinates
 import multiprocessing as mp
-import Point
 
 # 定义参数
 bin_count = config.bin_count
@@ -430,6 +429,23 @@ def entireWork(filename, darkDate, flatData, abortion):
     plt.show()
     return imgDataRB, imgData
 
+def circle(x1, y1, x2, y2, x3, y3):
+    """
+    :return:  x0 and y0 is center of a circle, r is radius of a circle
+    """
+    a = x1 - x2
+    b = y1 - y2
+    c = x1 - x3
+    d = y1 - y3
+    a1 = ((x1 * x1 - x2 * x2) + (y1 * y1 - y2 * y2)) / 2.0
+    a2 = ((x1 * x1 - x3 * x3) + (y1 * y1 - y3 * y3)) / 2.0
+    theta = b * c - a * d
+    if abs(theta) < 1e-7:
+        return 0,0,0
+    x0 = (b * a2 - d * a1) / theta
+    y0 = (c * a1 - a * a2) / theta
+    r = np.sqrt(pow((x1 - x0), 2) + pow((y1 - y0), 2))
+    return x0, y0, r
 
 # 通过灰度图拟合图中的圆
 def getCircle(image):
@@ -501,7 +517,7 @@ def getCircle(image):
     while flag:
         p1,p2,p3 = random.sample(range(1,int(L/2)), 3)
         # print(p1,p2,p3)
-        y,x,r = Point.circle(points[p1][1],points[p1][0],points[p2][1],points[p2][0],points[p3][1],points[p3][0])
+        y,x,r = circle(points[p1][1],points[p1][0],points[p2][1],points[p2][0],points[p3][1],points[p3][0])
         s = 0
         for i in range(L):
             if abs((points[i][0]-x)**2 + (points[i][1]-y)**2 - r**2) < 10000:
