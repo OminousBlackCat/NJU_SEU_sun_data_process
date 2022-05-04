@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-# import jplephem
+import jplephem
 import datetime
 import random
 import numpy as np
