@@ -11,14 +11,16 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-import jplephem
+# import jplephem
 import datetime
+import random
 import numpy as np
 from math import *
 from astropy.io import fits
 from astropy.time import Time
 from astropy import coordinates
 import multiprocessing as mp
+import Point
 
 # 定义参数
 bin_count = config.bin_count
@@ -433,7 +435,7 @@ def entireWork(filename, darkDate, flatData, abortion):
 def getCircle(image):
     # 二值化
     image_max = np.max(image)
-    image = np.clip(image - image_max * 0.15, 0, 1)
+    image = np.clip((image - image_max * 0.05) * 10, 0, 1)
     # plt.figure()
     # plt.imshow(image)
     # plt.show()
@@ -448,52 +450,70 @@ def getCircle(image):
     gradient = np.abs(gradient_X)  # + np.abs(gradient_Y)
     gradient = np.clip(gradient, 0, np.max(gradient) * 0.6)
     gradient_max = np.max(gradient)
+    gradient = np.clip((gradient - gradient * 0.05) * 10, 0, 1)
+
     # plt.figure()
     # plt.imshow(gradient)
     # plt.show()
-    # 提取圆左右两侧对称点，从而计算圆心第二维坐标
-    H, W = gradient.shape
-    # print(H,W)
-    border = []
-    r_y = []
-    for x in range(H):
-        y = int(0.1 * W)
-        while y < 0.9 * W and gradient[x][y] < 0.1 * gradient_max:
-            y += 1
-        y0 = y
-        y += 10
-        y1 = 0
-        while y < 0.9 * W:
-            if gradient[x][y] > 0.1 * gradient_max:
-                y1 = y
-            y += 1
-        if y1 != 0:
-            border.append([x, y0, y1])
-        r_y.append((y1 + y0) / 2)
-    # print(r_y)
-    L = len(r_y)
-    if L<1 :
-        return -1,-1,-1
-    # 通过中位数计算圆第二维坐标
-    R_y = np.median(np.array(r_y)[int(0.2 * L): int(0.8 * L)])
-    # print(R_y)
 
-    # 通过圆第二维坐标筛选对称点，选取其中三个点计算圆坐标和直径
-    candidate = []
-    gradient = np.clip(gradient, 0, 0)
-    for points in border:
-        if abs(points[1] + points[2] - 2 * R_y) <= 5:
-            candidate.append([points[0], points[1]])
-    L = len(candidate)
-    if L<1 :
-        return -1,-1,-1
-    x1 = candidate[int(0.2 * L)][0]
-    y1 = candidate[int(0.2 * L)][1]
-    x2 = candidate[int(0.8 * L)][0]
-    y2 = candidate[int(0.8 * L)][1]
-    R_x = (((R_y - y2) * (R_y - y2) - (R_y - y1) * (R_y - y1)) / (x1 - x2) - x1 - x2) / -2
-    # print(R_x,R_y)
-    return R_x + 2, R_y + 2, math.sqrt((R_y - y2) * (R_y - y2) + (R_x - x2) * (R_x - x2))
+    gradient_reverse = np.array(gradient)
+    H, W = gradient.shape
+    for i in range(W):
+        gradient_reverse[:, i] = gradient[:, W - 1 - i]
+
+    # plt.figure()
+    # plt.imshow(gradient_reverse)
+    # plt.show()
+
+    # FFT变化
+    imgFFT = np.fft.fft2(gradient)
+    flatFFT = np.fft.fft2(gradient_reverse)
+
+    # IFFT
+    FR = imgFFT * np.conj(flatFFT)
+    R = np.fft.ifft2(FR)
+    R = np.fft.fftshift(R)
+    # 获取最大值坐标
+    pos = np.unravel_index(np.argmax(np.abs(R)), R.shape)
+    # print(pos)
+    # print((pos[1] + W / 2) / 2)  # 460 340
+    Offset = int(pos[1] - W / 2)
+    if Offset > 0:
+        gradient_reverse[:, Offset:] = gradient_reverse[:, 0:-Offset]
+    else:
+        Offset *= -1
+        gradient_reverse[:, 0:-Offset] = gradient_reverse[:, Offset:]
+    gradient *= gradient_reverse
+    # plt.figure()
+    # plt.imshow(gradient)
+    # plt.show()
+    points = []
+    for i in range(H):
+        for j in range(W):
+            if gradient[i][j]>0.8:
+                points.append([i,j])
+    L = len(points)
+    if L<200:
+        print("圆检测失败")
+        return 0,0,0
+    flag = True
+    times = 0
+    while flag:
+        p1,p2,p3 = random.sample(range(1,int(L/2)), 3)
+        # print(p1,p2,p3)
+        y,x,r = Point.circle(points[p1][1],points[p1][0],points[p2][1],points[p2][0],points[p3][1],points[p3][0])
+        s = 0
+        for i in range(L):
+            if abs((points[i][0]-x)**2 + (points[i][1]-y)**2 - r**2) < 10000:
+                s += 1
+        times += 1
+        if times > 100*2.5:
+            return -1,-1,-1
+        if s > L * 0.3 or (times > 100 and s > L * (0.3-times/1000)):
+            flag = False
+    # print(times)
+    # print(x,y,r*0.52)
+    return x + 4,y + 4,r - 20 / bin_count
 
 
 # 辅助计算软件的运算
@@ -669,13 +689,25 @@ if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
 
 if __name__ == "__main__":
-    # testPath = "sunImage/"
-    # I = Image.open(testPath + 'sum17.png')
-    # I_array = np.array(I.convert('L'))
-    # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
-    # I_array = np.array(fits.getdata(image_file), dtype=float)
-    # # print(np.shape(I_array))
-    # rx,ry,r = getCircle(I_array)
+    testPath = "circle/circle/"
+    type = "check"
+    if type=="test":
+        Filelist = os.listdir(testPath)
+        I = Image.open(testPath + Filelist[178])
+        I_array = np.array(I.convert('L'))
+        # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
+        # I_array = np.array(fits.getdata(image_file), dtype=float)
+        # # print(np.shape(I_array))
+        rx, ry, r = getCircle(I_array)
+        H, W = I_array.shape
+        for i in range(H):
+            for j in range(W):
+                if abs((i-rx)*(i-rx) + (j-ry)*(j-ry) -r*r) <10000:
+                    I_array[i][j]=240
+        print(rx, ry, r*0.52)
+        plt.figure()
+        plt.imshow(I_array)
+        plt.show()
     # H,W = I_array.shape
     # print(rx,ry,r)
     # for i in range(H):
@@ -695,4 +727,20 @@ if __name__ == "__main__":
     #         print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
     #             remaining_count.value) + '/' + str(file_count.value), end='')
     #     time.sleep(0.5)
-    test()
+    # test()
+    else:
+        Filelist = os.listdir(testPath)
+        print(Filelist)
+        L = len(Filelist)-1
+        err = []
+        i = 0
+        while i < L :
+            I = Image.open(testPath + Filelist[i+1])
+            I_array = np.array(I.convert('L'))
+            print("测试图像"+str(i)+":",end="")
+            rx, ry, r = getCircle(I_array)
+            print(rx,ry,r*0.52*2)
+            if r * 0.52 > 985 or r * 0.52 < 955:
+                err.append([i,Filelist[i+1],r*0.52])
+            i += 1
+        print(err)
