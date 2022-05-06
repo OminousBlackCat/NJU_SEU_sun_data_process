@@ -443,6 +443,7 @@ def entireWork(filename, darkDate, flatData, abortion):
     plt.show()
     return imgDataRB, imgData
 
+
 def circle(x1, y1, x2, y2, x3, y3):
     """
     :return:  x0 and y0 is center of a circle, r is radius of a circle
@@ -455,11 +456,12 @@ def circle(x1, y1, x2, y2, x3, y3):
     a2 = ((x1 * x1 - x3 * x3) + (y1 * y1 - y3 * y3)) / 2.0
     theta = b * c - a * d
     if abs(theta) < 1e-7:
-        return 0,0,0
+        return 0, 0, 0
     x0 = (b * a2 - d * a1) / theta
     y0 = (c * a1 - a * a2) / theta
     r = np.sqrt(pow((x1 - x0), 2) + pow((y1 - y0), 2))
     return x0, y0, r
+
 
 # 通过灰度图拟合图中的圆
 def getCircle(image):
@@ -520,30 +522,30 @@ def getCircle(image):
     points = []
     for i in range(H):
         for j in range(W):
-            if gradient[i][j]>0.8:
-                points.append([i,j])
+            if gradient[i][j] > 0.8:
+                points.append([i, j])
     L = len(points)
-    if L<200:
+    if L < 200:
         print("圆检测失败")
         return -1,-1,-1
     flag = True
     times = 0
     while flag:
-        p1,p2,p3 = random.sample(range(1,int(L/2)), 3)
+        p1, p2, p3 = random.sample(range(1, int(L / 2)), 3)
         # print(p1,p2,p3)
-        y,x,r = circle(points[p1][1],points[p1][0],points[p2][1],points[p2][0],points[p3][1],points[p3][0])
+        y, x, r = circle(points[p1][1], points[p1][0], points[p2][1], points[p2][0], points[p3][1], points[p3][0])
         s = 0
         for i in range(L):
-            if abs((points[i][0]-x)**2 + (points[i][1]-y)**2 - r**2) < 10000:
+            if abs((points[i][0] - x) ** 2 + (points[i][1] - y) ** 2 - r ** 2) < 10000:
                 s += 1
         times += 1
-        if times > 100*2.5:
-            return -1,-1,-1
-        if s > L * 0.3 or (times > 100 and s > L * (0.3-times/1000)):
+        if times > 100 * 2.5:
+            return -1, -1, -1
+        if s > L * 0.3 or (times > 100 and s > L * (0.3 - times / 1000)):
             flag = False
     # print(times)
     # print(x,y,r*0.52)
-    return x + 4,y + 4,r - 20 / bin_count
+    return x + 4, y + 4, r - 20 / bin_count
 
 
 # 辅助计算软件的运算
@@ -732,9 +734,9 @@ if __name__ == "__main__":
         H, W = I_array.shape
         for i in range(H):
             for j in range(W):
-                if abs((i-rx)*(i-rx) + (j-ry)*(j-ry) -r*r) <10000:
-                    I_array[i][j]=240
-        print(rx, ry, r*0.52)
+                if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
+                    I_array[i][j] = 240
+        print(rx, ry, r * 0.52)
         plt.figure()
         plt.imshow(I_array)
         plt.show()
@@ -761,17 +763,17 @@ if __name__ == "__main__":
     if type=="check":
         Filelist = os.listdir(testPath)
         print(Filelist)
-        L = len(Filelist)-1
+        L = len(Filelist) - 1
         err = []
         i = 0
-        while i < L :
-            I = Image.open(testPath + Filelist[i+1])
+        while i < L:
+            I = Image.open(testPath + Filelist[i + 1])
             I_array = np.array(I.convert('L'))
-            print("测试图像"+str(i)+":",end="")
+            print("测试图像" + str(i) + ":", end="")
             rx, ry, r = getCircle(I_array)
-            print(rx,ry,r*0.52*2)
+            print(rx, ry, r * 0.52 * 2)
             if r * 0.52 > 985 or r * 0.52 < 955:
-                err.append([i,Filelist[i+1],r*0.52])
+                err.append([i, Filelist[i + 1], r * 0.52])
             i += 1
         print(err)
     test()

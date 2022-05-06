@@ -63,6 +63,14 @@ static_header_items = [
     {
         'key': 'BSCALE',
         'value': 1
+    },
+    {
+        'key': 'OBS_MOD',
+        'value': 'RSM'
+    },
+    {
+        'key': 'LVL_NUM',
+        'value': 1
     }
 ]
 
