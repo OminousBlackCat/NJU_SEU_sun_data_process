@@ -280,13 +280,26 @@ def DivFlat(imgData, flatData):
 
 # 图像中值平滑操作
 # 参数
-def MedSmooth(imgData, winSize=3):
-    zero_range = 100
+def MedSmooth(imgData, HofHa , HofFe, winSize=3):
+
+    H, W = imgData.shape
+    img = np.zeros([HofHa + HofFe + 4, W])
+    img[1:1 + HofHa] = imgData[0:HofHa]
+    img[0] = imgData[0]
+    img[1 + HofHa] = imgData[HofHa]
+
+    img[3 + HofHa:3 + HofHa + HofFe] = imgData[HofHa:]
+    img[2 + HofHa] = imgData[HofHa]
+    img[3 + HofHa + HofFe] = imgData[HofHa + HofFe - 1]
+
+
     if bin_count == 1:
-        imgData = signal.medfilt(imgData, kernel_size=winSize)
+        img = signal.medfilt(img, kernel_size=winSize)
     if bin_count == 2:
-        imgData = signal.medfilt(imgData, kernel_size=winSize - 2)
-    imgData[:, imgData.shape[1] - int(zero_range / bin_count): imgData.shape[1] - 1] = 0
+        img = signal.medfilt(img, kernel_size=winSize - 2)
+
+    imgData[:HofHa] = img[1:1 + HofHa]
+    imgData[HofHa:] = img[HofHa + 3: 3 + HofHa + HofFe]
     return imgData
 
 
@@ -421,25 +434,26 @@ def entireWork(filename, darkDate, flatData, abortion):
     # plt.figure()
     # plt.imshow(imgData, cmap="gray", aspect='auto')
     # plt.show()
-    print(HofHa)
+    #print(HofHa)
     plt.figure()
     plt.plot(imgData[HofHa:, 2200].reshape(-1))
     imgDataRB = RB_repair(imgData, abortion)
     plt.plot(imgDataRB[HofHa:, 2200].reshape(-1))
-    H,W = imgDataRB.shape
-    img = np.zeros([HofHa+HofFe+4,W])
-    img[1:1+HofHa] = imgDataRB[0:HofHa]
-    img[0] = imgDataRB[0]
-    img[1+HofHa] = imgDataRB[HofHa]
-
-    img[3 + HofHa:3 + HofHa + HofFe] = imgDataRB[HofHa:]
-    img[2 + HofHa] = imgDataRB[HofHa]
-    img[3 + HofHa + HofFe] = imgDataRB[HofHa + HofFe -1]
-
-    img = MedSmooth(img, 3)
-    imgDataRB[:HofHa] = img[1:1+HofHa]
-    imgDataRB[HofHa:] = img[HofHa + 3: 3 + HofHa + HofFe]
-    plt.plot(imgDataRB[HofHa:, 2200].reshape(-1))
+    imgData = MedSmooth(np.array(imgDataRB),HofHa,HofFe,3)
+    # H,W = imgDataRB.shape
+    # img = np.zeros([HofHa+HofFe+4,W])
+    # img[1:1+HofHa] = imgDataRB[0:HofHa]
+    # img[0] = imgDataRB[0]
+    # img[1+HofHa] = imgDataRB[HofHa]
+    #
+    # img[3 + HofHa:3 + HofHa + HofFe] = imgDataRB[HofHa:]
+    # img[2 + HofHa] = imgDataRB[HofHa]
+    # img[3 + HofHa + HofFe] = imgDataRB[HofHa + HofFe -1]
+    #
+    # img = MedSmooth(img, 3)
+    # imgDataRB[:HofHa] = img[1:1+HofHa]
+    # imgDataRB[HofHa:] = img[HofHa + 3: 3 + HofHa + HofFe]
+    plt.plot(imgData[HofHa:, 2200].reshape(-1))
     plt.show()
     return imgDataRB, imgData
 
@@ -709,7 +723,7 @@ def test():
     #
     print("OK")
     plt.figure()
-    plt.imshow(image_file, cmap="gray", aspect='auto')
+    plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
 
     # grey = fits.PrimaryHDU(image_file)
