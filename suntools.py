@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-import jplephem
+#import jplephem
 import datetime
 import random
 import numpy as np
@@ -421,11 +421,25 @@ def entireWork(filename, darkDate, flatData, abortion):
     # plt.figure()
     # plt.imshow(imgData, cmap="gray", aspect='auto')
     # plt.show()
+    print(HofHa)
     plt.figure()
-    plt.plot(imgData[:, 2200].reshape(-1))
+    plt.plot(imgData[HofHa:, 2200].reshape(-1))
     imgDataRB = RB_repair(imgData, abortion)
-    imgDataRB = MedSmooth(imgDataRB, 3)
-    plt.plot(imgDataRB[:, 2200].reshape(-1))
+    plt.plot(imgDataRB[HofHa:, 2200].reshape(-1))
+    H,W = imgDataRB.shape
+    img = np.zeros([HofHa+HofFe+4,W])
+    img[1:1+HofHa] = imgDataRB[0:HofHa]
+    img[0] = imgDataRB[0]
+    img[1+HofHa] = imgDataRB[HofHa]
+
+    img[3 + HofHa:3 + HofHa + HofFe] = imgDataRB[HofHa:]
+    img[2 + HofHa] = imgDataRB[HofHa]
+    img[3 + HofHa + HofFe] = imgDataRB[HofHa + HofFe -1]
+
+    img = MedSmooth(img, 3)
+    imgDataRB[:HofHa] = img[1:1+HofHa]
+    imgDataRB[HofHa:] = img[HofHa + 3: 3 + HofHa + HofFe]
+    plt.plot(imgDataRB[HofHa:, 2200].reshape(-1))
     plt.show()
     return imgDataRB, imgData
 
@@ -689,7 +703,7 @@ def test():
     plt.imshow(flat_data, cmap="gray", aspect='auto')
     plt.show()
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + 'RSM20211222T060119-0008-1353.fts', dark_data, flat_data, abortion)
+    image_file, imgData = entireWork(filepath_test + 'RSM20211203T184958-0001-2555.fts', dark_data, flat_data, abortion)
     #
     print("OK")
     plt.figure()
@@ -706,7 +720,7 @@ remaining_count = mp.Value('i', 0)
 
 if __name__ == "__main__":
     testPath = "circle/circle/"
-    type = "check"
+    type = "check over"
     if type=="test":
         Filelist = os.listdir(testPath)
         I = Image.open(testPath + Filelist[178])
@@ -744,7 +758,7 @@ if __name__ == "__main__":
     #             remaining_count.value) + '/' + str(file_count.value), end='')
     #     time.sleep(0.5)
     # test()
-    else:
+    if type=="check":
         Filelist = os.listdir(testPath)
         print(Filelist)
         L = len(Filelist)-1
@@ -760,3 +774,4 @@ if __name__ == "__main__":
                 err.append([i,Filelist[i+1],r*0.52])
             i += 1
         print(err)
+    test()
