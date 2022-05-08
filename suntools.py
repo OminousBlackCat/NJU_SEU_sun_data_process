@@ -280,8 +280,7 @@ def DivFlat(imgData, flatData):
 
 # 图像中值平滑操作
 # 参数
-def MedSmooth(imgData, HofHa , HofFe, winSize=3):
-
+def MedSmooth(imgData, HofHa, HofFe, winSize=3):
     H, W = imgData.shape
     img = np.zeros([HofHa + HofFe + 4, W])
     img[1:1 + HofHa] = imgData[0:HofHa]
@@ -291,7 +290,6 @@ def MedSmooth(imgData, HofHa , HofFe, winSize=3):
     img[3 + HofHa:3 + HofHa + HofFe] = imgData[HofHa:]
     img[2 + HofHa] = imgData[HofHa]
     img[3 + HofHa + HofFe] = imgData[HofHa + HofFe - 1]
-
 
     if bin_count == 1:
         img = signal.medfilt(img, kernel_size=winSize)
@@ -434,12 +432,12 @@ def entireWork(filename, darkDate, flatData, abortion):
     # plt.figure()
     # plt.imshow(imgData, cmap="gray", aspect='auto')
     # plt.show()
-    #print(HofHa)
+    # print(HofHa)
     plt.figure()
     plt.plot(imgData[HofHa:, 2200].reshape(-1))
     imgDataRB = RB_repair(imgData, abortion)
     plt.plot(imgDataRB[HofHa:, 2200].reshape(-1))
-    imgData = MedSmooth(np.array(imgDataRB),HofHa,HofFe,3)
+    imgData = MedSmooth(np.array(imgDataRB), HofHa, HofFe, 3)
     # H,W = imgDataRB.shape
     # img = np.zeros([HofHa+HofFe+4,W])
     # img[1:1+HofHa] = imgDataRB[0:HofHa]
@@ -541,7 +539,7 @@ def getCircle(image):
     L = len(points)
     if L < 200:
         print("圆检测失败")
-        return -1,-1,-1
+        return -1, -1, -1
     flag = True
     times = 0
     while flag:
@@ -737,7 +735,7 @@ remaining_count = mp.Value('i', 0)
 if __name__ == "__main__":
     testPath = "circle/circle/"
     type = "check over"
-    if type=="test":
+    if type == "test":
         Filelist = os.listdir(testPath)
         I = Image.open(testPath + Filelist[178])
         I_array = np.array(I.convert('L'))
@@ -774,7 +772,7 @@ if __name__ == "__main__":
     #             remaining_count.value) + '/' + str(file_count.value), end='')
     #     time.sleep(0.5)
     # test()
-    if type=="check":
+    if type == "check":
         Filelist = os.listdir(testPath)
         print(Filelist)
         L = len(Filelist) - 1

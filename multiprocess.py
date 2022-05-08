@@ -313,7 +313,7 @@ def target_task(filename):
         # 红蓝移矫正
         image_data = suntools.RB_repair(image_data, global_absorption)
         # 滤波
-        image_data = suntools.MedSmooth(image_data, winSize=FILTER_KERNEL_SIZE)
+        image_data = suntools.MedSmooth(image_data, HofH, HofFe, winSize=FILTER_KERNEL_SIZE)
         # 转为整型, 并将每行的最后部分置零
         image_data = np.array(image_data, dtype=np.int16)
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
