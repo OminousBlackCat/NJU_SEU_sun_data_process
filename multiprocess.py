@@ -401,7 +401,7 @@ def main():
             greyHDU.close()
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')
-        temp_dict['header'].set('WAVELNTH', HA_LINE_CORE)
+        temp_dict['header'].set('WAVE_LEN', HA_LINE_CORE)
         temp_dict['header'].set('CRVAL3', HA_START)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
@@ -421,7 +421,7 @@ def main():
         print('生成FE文件中...')
         # 修改header内的SPECLINE与WAVELNTH
         temp_dict['header'].set('SPECLINE', 'FEI')
-        temp_dict['header'].set('WAVELNTH', FE_LINE_CORE)
+        temp_dict['header'].set('WAVE_LEN', FE_LINE_CORE)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('CRVAL3', FE_START)
         primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
