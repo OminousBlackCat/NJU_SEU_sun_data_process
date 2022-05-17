@@ -141,8 +141,6 @@ for i in range(len(data_file_lst)):
         global_multiprocess_list[len(global_multiprocess_list) - 1]['last_filename'] = filename
     last_temp_index = temp_index
 
-# *********TEST*************
-print(global_multiprocess_list)
 
 # 剔除不完整序列
 print('当前SIT_STARE模式为:' + str(SIT_STARE_MODE))
