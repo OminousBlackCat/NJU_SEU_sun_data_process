@@ -214,7 +214,15 @@ try:
         print('此序列首文件为:' + temp_dict['first_filename'])
         print('此序列末文件为:' + temp_dict['last_filename'])
         print("校正平场中...")
-        standard_name = temp_dict['standard_filename']
+        standard_name = None
+        if temp_dict['standard_filename'] == '' and SIT_STARE_MODE:
+            print('此序列不完整且不包含标准序列文件, 将使用最靠近中心的文件作为矫正基准')
+            if int(temp_dict['first_filename'][24: 28]) < 100:
+                standard_name = temp_dict['last_filename']
+            if int(temp_dict['last_filename'][24: 28]) > 4000 / GLOBAL_BINNING:
+                standard_name = temp_dict['last_filename']
+        else:
+            standard_name = temp_dict['standard_filename']
         temp_img = fits.open(READ_DIR + standard_name)
         standard_header = temp_img[0].header
         for item in header.copy_header_items:
@@ -334,6 +342,7 @@ def target_task(filename):
         image_data = suntools.MedSmooth(image_data, HofH, HofFe, winSize=FILTER_KERNEL_SIZE)
         # 转为整型, 并将每行的最后部分置零
         image_data = np.array(image_data, dtype=np.int16)
+        image_data[-150: 0, :] = 0
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
@@ -434,8 +443,8 @@ def main():
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
         print(repr(primaryHDU.header))
-        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' + ['scan_index']
-                           + '_HA_RICE_COMP.fits', overwrite=True)
+        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
+                           temp_dict['scan_index'] + '_HA_RICE_COMP.fits', overwrite=True)
         print('生成FE文件中...')
         # 修改header内的SPECLINE与WAVELNTH
         temp_dict['header'].set('SPECLINE', 'FEI')
