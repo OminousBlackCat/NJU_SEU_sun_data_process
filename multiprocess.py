@@ -38,6 +38,7 @@ SUM_ROW_INDEX_FE = 0  # 合并FE日像所选的行数(与bin相关)
 SCAN_TIME_OFFSET = config.scan_time_offset  # 时间偏差
 SIT_STARE_MODE = config.sit_stare_mode  # sit stare模式
 PIXEL_RESOLUTION = config.pixel_resolution  # 像素分辨率
+PIXEL_ZERO_COUNT = config.pixel_to_zero_count  # 置零区间
 if GLOBAL_BINNING == 1:
     FLAT_FITS_FILE = config.flat_fits_name_bin_1
     SUN_ROW_COUNT = config.sun_row_count_bin_1
@@ -85,28 +86,44 @@ print('文件总数为: ' + str(len(data_file_lst)))
 print('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
 
 # 将读入的文件按照序列分成不同的组
-global_multiprocess_list = []
+# 此处坑比较大
+# 首先需要按照文件前18位的时间来进行排序
+# 相同时间的按照后面的序列号和帧号来排序
+# 并且将其分为不同的组 不能按照序列号进行索引 可以直接将3-27位拉出来字符串排序
+# 一个标准文件名 如下:
+# RSM 2021   12     22     T 060105   -   0008-     0001       .fts
+# 012 3456   78     90     1 234567   8   90123     4567       8901
+#     [year] [mon]  [day] [T hhMMSS]      [index]   [frame]
+global_multiprocess_list = []  # 存放序列dict的全局数组
+# 对list内的文件名排序
+data_file_lst.sort(key=lambda x: x[3: 28].replace('-', ''))
+last_temp_index = None
+global_multiprocess_index = -1
 for i in range(len(data_file_lst)):
     filename = data_file_lst[i]
-    # 选取图像文件名的最后四个字符作为index
-    temp_index = int(filename[-13: -9])
-    # 在list中寻找对应的dict
-    ifFind = False
-    for j in range(len(global_multiprocess_list)):
-        if global_multiprocess_list[j]['scan_index'] == temp_index:
-            global_multiprocess_list[j]['file_list'].append(filename)
-            global_multiprocess_list[j]['file_count'] += 1
-            ifFind = True
-            if int(filename[24:28]) == STANDARD_FILE_INDEX:
-                global_multiprocess_list[j]['standard_filename'] = filename
-            if int(filename[24:28]) < int(global_multiprocess_list[j]['first_filename'][24:28]):
-                global_multiprocess_list[j]['first_filename'] = filename
-            if int(filename[24:28]) > int(global_multiprocess_list[j]['last_filename'][24:28]):
-                global_multiprocess_list[j]['last_filename'] = filename
-            break
-    if not ifFind:
+    temp_index = 0
+    # 尝试按照正序获得当前的序列号
+    try:
+        temp_index = int(filename[19: 23])
+    except ValueError as error:
+        print('文件<' + filename + '>文件命名非常规, 无法获取序列号')
+        continue
+    # 如果和上一个序号相等 说明list已经有了需要的dict 直接根据索引赋值即可
+    if temp_index == last_temp_index:
+        global_multiprocess_list[global_multiprocess_index]['file_list'].append(filename)
+        global_multiprocess_list[global_multiprocess_index]['file_count'] += 1
+        if int(filename[24:28]) == STANDARD_FILE_INDEX:
+            global_multiprocess_list[global_multiprocess_index]['standard_filename'] = filename
+        if int(filename[24:28]) < int(global_multiprocess_list[global_multiprocess_index]['first_filename'][24:28]):
+            global_multiprocess_list[global_multiprocess_index]['first_filename'] = filename
+        if int(filename[24:28]) > int(global_multiprocess_list[global_multiprocess_index]['last_filename'][24:28]):
+            global_multiprocess_list[global_multiprocess_index]['last_filename'] = filename
+    # 如果是刚进入循环, 就新加一个dict
+    else:
+        global_multiprocess_index += 1
         global_multiprocess_list.append({
-            'scan_index': temp_index,  # 扫描序号
+            'key_index': global_multiprocess_index,  # 唯一序号
+            'scan_index': str(temp_index).zfill(4),  # 扫描序号
             'file_list': [],  # 文件名列表
             'file_count': 0,  # 包含的文件数
             'standard_filename': '',  # 标准日心文件名
@@ -123,16 +140,18 @@ for i in range(len(data_file_lst)):
             global_multiprocess_list[len(global_multiprocess_list) - 1]['standard_filename'] = filename
         global_multiprocess_list[len(global_multiprocess_list) - 1]['first_filename'] = filename
         global_multiprocess_list[len(global_multiprocess_list) - 1]['last_filename'] = filename
+    last_temp_index = temp_index
+
 
 # 剔除不完整序列
 print('当前SIT_STARE模式为:' + str(SIT_STARE_MODE))
 if not SIT_STARE_MODE:
     print('检验序列中..将剔除不完整序列...')
     for temp_dict in global_multiprocess_list[:]:
-        print('序列:' + str(temp_dict['scan_index']).zfill(4) + '包含文件总数:' + str(temp_dict['file_count']))
+        print('序列:' + temp_dict['scan_index'] + '包含文件总数:' + str(temp_dict['file_count']))
         if temp_dict['file_count'] < SUN_ROW_COUNT - 500 or \
                 temp_dict['standard_filename'] == '':
-            print('文件夹中包含不完整序列, 序列序号为:' + str(temp_dict['scan_index']))
+            print('文件夹中包含不完整序列, 序列序号为:' + temp_dict['scan_index'])
             print('本次数据处理将不此序列进行处理.....')
             global_multiprocess_list.remove(temp_dict)
 
@@ -192,11 +211,19 @@ sample_from_standard = None
 try:
     for temp_dict in global_multiprocess_list:
         # 对每个序列进行校正
-        print('校正扫描序列' + str(temp_dict['scan_index']).zfill(4) + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
+        print('校正扫描序列' + temp_dict['scan_index'] + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
         print('此序列首文件为:' + temp_dict['first_filename'])
         print('此序列末文件为:' + temp_dict['last_filename'])
         print("校正平场中...")
-        standard_name = temp_dict['standard_filename']
+        standard_name = None
+        if temp_dict['standard_filename'] == '' and SIT_STARE_MODE:
+            print('此序列不完整且不包含标准序列文件, 将使用最靠近中心的文件作为矫正基准')
+            if int(temp_dict['first_filename'][24: 28]) < 100:
+                standard_name = temp_dict['last_filename']
+            if int(temp_dict['last_filename'][24: 28]) > 4000 / GLOBAL_BINNING:
+                standard_name = temp_dict['last_filename']
+        else:
+            standard_name = temp_dict['standard_filename']
         temp_img = fits.open(READ_DIR + standard_name)
         standard_header = temp_img[0].header
         for item in header.copy_header_items:
@@ -301,7 +328,7 @@ def target_task(filename):
         currentFlat = None
         currentAbortion = None
         for dataTemp in global_multiprocess_list:
-            if dataTemp['scan_index'] == int(file_index):
+            if int(dataTemp['scan_index']) == int(file_index):
                 currentFlat = dataTemp['flat_data']
                 # currentAbortion = dataTemp['abortion_data']
                 break
@@ -316,6 +343,7 @@ def target_task(filename):
         image_data = suntools.MedSmooth(image_data, HofH, HofFe, winSize=FILTER_KERNEL_SIZE)
         # 转为整型, 并将每行的最后部分置零
         image_data = np.array(image_data, dtype=np.int16)
+        image_data[-PIXEL_ZERO_COUNT: 0, :] = 0
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
@@ -343,14 +371,14 @@ def main():
     # 并行处理
     print('开启多核并行处理...')
     for temp_dict in global_multiprocess_list:
-        print('正在处理扫描序列:' + str(temp_dict['scan_index']) + '...')
+        print('正在处理扫描序列:' + temp_dict['scan_index'] + '...')
         file_count.value = temp_dict['file_count']
         remaining_count.value = 0
         pool = mp.Pool(processes=multiprocess_count)
         pool.map(target_task, temp_dict['file_list'])
         pool.close()
         pool.join()
-        print('\n扫描序列' + str(temp_dict['scan_index']) + '预处理完成...')
+        print('\n扫描序列' + temp_dict['scan_index'] + '预处理完成...')
         print('生成完整日像中...')
         sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
@@ -377,36 +405,36 @@ def main():
         temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
-            print('输出序号为' + str(temp_dict['scan_index']) + '的png...')
+            print('输出序号为' + temp_dict['scan_index'] + '的png...')
             sum_mean_ha = np.mean(sum_data_HA)
             sum_mean_fe = np.mean(sum_data_FE)
             plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + str(temp_dict['scan_index']).zfill(4) + '_HA' + ".png",
-                       sum_data_HA, cmap=color_map, vmin=0, vmax=3*sum_mean_ha)
+                       + '_' + temp_dict['scan_index'] + '_HA' + ".png",
+                       sum_data_HA, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha)
             plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + str(temp_dict['scan_index']).zfill(4) + '_FE' + ".png",
-                       sum_data_FE, cmap=color_map, vmin=0, vmax=3*sum_mean_fe)
+                       + '_' + temp_dict['scan_index'] + '_FE' + ".png",
+                       sum_data_FE, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe)
         if config.save_img_form == 'fts':
             # 不对data进行任何操作 直接输出为fts文件
-            print('输出序号为' + str(temp_dict['scan_index']) + '的fits...')
+            print('输出序号为' + temp_dict['scan_index'] + '的fits...')
             primaryHDU = fits.PrimaryHDU(sum_data_HA)
             greyHDU = fits.HDUList([primaryHDU])
             greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                            + '_' + str(temp_dict['scan_index']).zfill(4) + '_HA' + '.fts', overwrite=True)
+                            + '_' + temp_dict['scan_index'] + '_HA' + '.fts', overwrite=True)
             greyHDU.close()
             primaryHDU = fits.PrimaryHDU(sum_data_FE)
             greyHDU = fits.HDUList([primaryHDU])
             greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                            + '_' + str(temp_dict['scan_index']).zfill(4) + '_FE' + '.fts', overwrite=True)
+                            + '_' + temp_dict['scan_index'] + '_FE' + '.fts', overwrite=True)
             greyHDU.close()
         print('生成HA文件中...')
         temp_dict['header'].set('SPECLINE', 'HA')
         temp_dict['header'].set('WAVE_LEN', HA_LINE_CORE)
         temp_dict['header'].set('CRVAL3', HA_START)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-        primaryHDU = fits.PrimaryHDU(global_shared_array[0: standard_HA_width, :, :]
-                                     .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-                                     , header=temp_dict['header'])
+        primaryHDU = fits.CompImageHDU(global_shared_array[0: standard_HA_width, :, :]
+                                       .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                       , header=temp_dict['header'], compression_type='RICE_1')
         primaryHDU.header.set('NAXIS', comment='Number of data axes')
         primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
         primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
@@ -416,17 +444,17 @@ def main():
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
         print(repr(primaryHDU.header))
-        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' + str(
-            temp_dict['scan_index']).zfill(4) + '_HA.fits', overwrite=True)
+        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
+                           temp_dict['scan_index'] + '_HA_RICE_COMP.fits', overwrite=True)
         print('生成FE文件中...')
         # 修改header内的SPECLINE与WAVELNTH
         temp_dict['header'].set('SPECLINE', 'FEI')
         temp_dict['header'].set('WAVE_LEN', FE_LINE_CORE)
         temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('CRVAL3', FE_START)
-        primaryHDU = fits.PrimaryHDU(global_shared_array[standard_HA_width:, :, :]
-                                     .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-                                     , header=temp_dict['header'])
+        primaryHDU = fits.CompImageHDU(global_shared_array[standard_HA_width:, :, :]
+                                       .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                       , header=temp_dict['header'], compression_type='RICE_1')
         primaryHDU.header.set('NAXIS', comment='Number of data axes')
         primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
         primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
@@ -435,8 +463,8 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' + str(
-            temp_dict['scan_index']).zfill(4) + '_FE.fits', overwrite=True)
+        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
+                           temp_dict['scan_index'] + '_FE_RICE_COMP.fits', overwrite=True)
         if_first_print.value = True
 
     time_end = time.time()

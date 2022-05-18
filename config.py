@@ -108,6 +108,8 @@ height_Ha = 260
 height_Fe = 116
 # 通用像素分辨率
 pixel_resolution = 0.52
+# 右侧多少行的数据会被置0
+pixel_to_zero_count = 150
 
 # 序列扫描时间偏移量(单位: 秒)
 # 会在写入头部的时候将对应的STR_TIME/OBS_TIME/END_TIME时间加上时间偏移量
