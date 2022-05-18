@@ -57,14 +57,6 @@ static_header_items = [
         'value': 'HA'  # FE
     },
     {
-        'key': 'BZERO',
-        'value': 32768
-    },
-    {
-        'key': 'BSCALE',
-        'value': 1
-    },
-    {
         'key': 'OBS_MOD',
         'value': 'RSM'
     },

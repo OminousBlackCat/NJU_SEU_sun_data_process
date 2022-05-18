@@ -702,12 +702,13 @@ def down_sample_quarter(data: np.array):
     return_array = np.zeros((int(data.shape[0] / 4), int(data.shape[1] / 4)))
     for i in range(return_array.shape[0]):
         for j in range(return_array.shape[1]):
-            scaled_i = i * 2
-            scaled_j = j * 2
+            scaled_i = i * 4
+            scaled_j = j * 4
             if scaled_i < data.shape[0] and scaled_j < data.shape[1]:
-                return_array[i][j] = np.mean(data[scaled_i: scaled_i + 2, scaled_j: scaled_j + 2])
+                return_array[i][j] = np.mean(data[scaled_i: scaled_i + 4, scaled_j: scaled_j + 4])
             else:
                 return_array[i][j] = 0
+    return return_array
 
 
 def test():

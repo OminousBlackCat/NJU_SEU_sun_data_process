@@ -65,6 +65,7 @@ else:
     multiprocess_count = mp.cpu_count() - 4
 print('多核并行数:' + str(multiprocess_count))
 
+
 # 读取数据文件夹所有文件
 def read_fits_directory():
     arr = []
@@ -72,4 +73,37 @@ def read_fits_directory():
     if len(arr) == 0:
         raise OSError
     return arr
+
+
+# 此处的数据均未做共享处理，因为共享数据量并不是很大，在LINUX环境下使用multiprocess并fork()将直接复制此些全局变量
+# 预读输入目录
+try:
+    data_file_lst = read_fits_directory()
+except OSError:
+    print('没有获得原始数据文件，请检查config中的读入数据目录')
+    sys.exit("程序终止")
+print('文件总数为: ' + str(len(data_file_lst)))
+print('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
+
+# 将读入的文件按照序列分成不同的组
+# 此处坑比较大
+# 首先需要按照文件前18位的时间来进行排序
+# 相同时间的按照后面的序列号和帧号来排序
+# 并且将其分为不同的组 不能按照序列号进行索引 可以直接将3-27位拉出来字符串排序
+# 一个标准文件名 如下:
+# RSM 2021   12     22     T 060105   -   0008-     0001       .fts
+# 012 3456   78     90     1 234567   8   90123     4567       8901
+#     [year] [mon]  [day] [T hhMMSS]      [index]   [frame]
+global_multiprocess_list = []  # 存放序列dict的全局数组
+# 对list内的文件名排序
+data_file_lst.sort(key=lambda x: x.split('-')[0] + x.split('-')[1] + str(int(x.split('-')[2].split('.'))).zfill(6))
+global_wave_line_strength_list = []
+# 读取每个文件某一行的像素强度并记录在list内
+for filename in data_file_lst:
+    temp_img = fits.open(READ_DIR + filename)
+    temp_data = np.array(temp_img[0].data, dtype=float)
+    temp_mean = np.mean(temp_data[SUM_ROW_INDEX_HA, :])
+    global_wave_line_strength_list.append(temp_mean)
+for gwl in global_wave_line_strength_list:
+    print(gwl)
 

@@ -447,7 +447,7 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.scale(type='uint16')
+        primaryHDU.scale(bzero=32768, bscale=1)
         print(repr(primaryHDU.header))
         primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                            temp_dict['scan_index'] + '_HA_RICE_COMP.fits', overwrite=True)
@@ -468,7 +468,7 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.scale(type='uint16')
+        primaryHDU.scale(bzero=32768, bscale=1)
         primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                            temp_dict['scan_index'] + '_FE_RICE_COMP.fits', overwrite=True)
         if_first_print.value = True
