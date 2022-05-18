@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-import jplephem
+#import jplephem
 import datetime
 import random
 import numpy as np
@@ -20,6 +20,7 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy import coordinates
 import multiprocessing as mp
+import cv2
 
 # 定义参数
 bin_count = config.bin_count
@@ -485,79 +486,109 @@ def getCircle(image):
     # plt.show()
 
     # 通过卷积，使用Sobel算子提取边界
-    # conv1 = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+    conv1 = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
     conv2 = np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])
     conv3 = np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]]) / 16
     image = signal.convolve2d(image, conv3, "valid")
     # gradient_Y = signal.convolve2d(image, conv1, "valid")
     gradient_X = signal.convolve2d(image, conv2, "valid")
     gradient = np.abs(gradient_X)  # + np.abs(gradient_Y)
-    gradient = np.clip(gradient, 0, np.max(gradient) * 0.6)
+    gradient = np.clip(gradient, 0, np.max(gradient) * 0.3)
     gradient_max = np.max(gradient)
     gradient = np.clip((gradient - gradient * 0.05) * 10, 0, 1)
 
     # plt.figure()
     # plt.imshow(gradient)
     # plt.show()
+    # H, W = gradient.shape
+    # gradient_reverse = np.array(gradient)
+    # for i in range(W):
+    #     gradient_reverse[:, i] = gradient[:, W - 1 - i]
+    #
+    # # plt.figure()
+    # # plt.imshow(gradient_reverse)
+    # # plt.show()
+    #
+    # # FFT变化
+    # imgFFT = np.fft.fft2(gradient)
+    # flatFFT = np.fft.fft2(gradient_reverse)
+    #
+    # # IFFT
+    # FR = imgFFT * np.conj(flatFFT)
+    # R = np.fft.ifft2(FR)
+    # R = np.fft.fftshift(R)
+    # # 获取最大值坐标
+    # pos = np.unravel_index(np.argmax(np.abs(R)), R.shape)
+    # # print(pos)
+    # # print((pos[1] + W / 2) / 2)  # 460 340
+    # Offset = int(pos[1] - W / 2)
+    # if Offset > 0:
+    #     gradient_reverse[:, Offset:] = gradient_reverse[:, 0:-Offset]
+    # else:
+    #     Offset *= -1
+    #     gradient_reverse[:, 0:-Offset] = gradient_reverse[:, Offset:]
+    # gradient *= gradient_reverse
 
-    gradient_reverse = np.array(gradient)
-    H, W = gradient.shape
-    for i in range(W):
-        gradient_reverse[:, i] = gradient[:, W - 1 - i]
-
-    # plt.figure()
-    # plt.imshow(gradient_reverse)
-    # plt.show()
-
-    # FFT变化
-    imgFFT = np.fft.fft2(gradient)
-    flatFFT = np.fft.fft2(gradient_reverse)
-
-    # IFFT
-    FR = imgFFT * np.conj(flatFFT)
-    R = np.fft.ifft2(FR)
-    R = np.fft.fftshift(R)
-    # 获取最大值坐标
-    pos = np.unravel_index(np.argmax(np.abs(R)), R.shape)
-    # print(pos)
-    # print((pos[1] + W / 2) / 2)  # 460 340
-    Offset = int(pos[1] - W / 2)
-    if Offset > 0:
-        gradient_reverse[:, Offset:] = gradient_reverse[:, 0:-Offset]
-    else:
-        Offset *= -1
-        gradient_reverse[:, 0:-Offset] = gradient_reverse[:, Offset:]
-    gradient *= gradient_reverse
     # plt.figure()
     # plt.imshow(gradient)
     # plt.show()
+
+    gradient = signal.medfilt(gradient, kernel_size=7)
+
+    H, W = gradient.shape
+
     points = []
     for i in range(H):
         for j in range(W):
-            if gradient[i][j] > 0.8:
+            if gradient[i][j] > 0.98:
                 points.append([i, j])
     L = len(points)
-    if L < 200:
-        print("圆检测失败")
-        return -1, -1, -1
-    flag = True
-    times = 0
-    while flag:
-        p1, p2, p3 = random.sample(range(1, int(L / 2)), 3)
-        # print(p1,p2,p3)
-        y, x, r = circle(points[p1][1], points[p1][0], points[p2][1], points[p2][0], points[p3][1], points[p3][0])
-        s = 0
-        for i in range(L):
-            if abs((points[i][0] - x) ** 2 + (points[i][1] - y) ** 2 - r ** 2) < 10000:
-                s += 1
-        times += 1
-        if times > 100 * 2.5:
-            return -1, -1, -1
-        if s > L * 0.3 or (times > 100 and s > L * (0.3 - times / 1000)):
-            flag = False
+
+    gradient *= 255  # 变换为0-255的灰度值
+    im = Image.fromarray(gradient)
+    im = im.convert('L')
+    im = np.array(im)
+    circles = cv2.HoughCircles(im, cv2.HOUGH_GRADIENT, 1, 500, param1=100, param2=10, minRadius=int(800 * 2 / bin_count),
+                               maxRadius=int(1000 * 2 / bin_count))
+    img = np.array(im)
+    if len(circles) == 0:
+        return -1,-1,-1
+    id = -1
+    goal = -1
+    now = 0
+
+    #print(circles)
+    for circle in circles[0]:
+    #     x = circle[0]
+    #     y = circle[1]
+    #     r = circle[2]
+    #     goali = 0
+    #     for i in range(L):
+    #         # goali += abs((points[i][0]-x)**2 + (points[i][1]-y)**2 - r**2)
+    #         if abs(math.sqrt((points[i][0]-x)**2 + (points[i][1]-y)**2) - r) < 1 and im[points[i][0]][points[i][1]]>254:
+    #             goali += 1
+    #     if goali > goal or id == -1:
+    #         id = now
+    #         goal = goali
+        now += 1
+        cv2.circle(img, (int(circles[0][now-1][0]), int(circles[0][now-1][1])), int(circles[0][now-1][2]), (255), 10)
+        #print(now-1,goali)
+    #print(id)
+    id = 0
+    cv2.circle(im, (int(circles[0][id][0]),int(circles[0][id][1])), int(circles[0][id][2]), (255), 10)
+    # plt.figure()
+    # plt.imshow(img)
+    # plt.show()
+    # plt.figure()
+    # plt.imshow(im)
+    # plt.show()
+    #
+    # gradient = signal.convolve2d(gradient, conv1, "valid")
+    # gradient = np.clip(gradient - 8, 0, 1)
     # print(times)
     # print(x,y,r*0.52)
-    return x + 4, y + 4, r - 20 / bin_count
+
+    return circles[0][id][1] + 2,circles[0][id][0] + 2,circles[0][id][2]
 
 
 # 辅助计算软件的运算
@@ -734,24 +765,34 @@ remaining_count = mp.Value('i', 0)
 
 if __name__ == "__main__":
     testPath = "circle/circle/"
-    type = "check over"
+    type = "check"
     if type == "test":
         Filelist = os.listdir(testPath)
-        I = Image.open(testPath + Filelist[178])
-        I_array = np.array(I.convert('L'))
-        # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
-        # I_array = np.array(fits.getdata(image_file), dtype=float)
-        # # print(np.shape(I_array))
-        rx, ry, r = getCircle(I_array)
-        H, W = I_array.shape
-        for i in range(H):
-            for j in range(W):
-                if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
-                    I_array[i][j] = 240
-        print(rx, ry, r * 0.52)
-        plt.figure()
-        plt.imshow(I_array)
-        plt.show()
+        if True:
+            id = 105
+            Filelist = os.listdir(testPath)
+            I = Image.open(testPath + Filelist[1+id])
+            I_array = np.array(I.convert('L'))
+
+
+            # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
+            # I_array = np.array(fits.getdata(image_file), dtype=float)
+            # # print(np.shape(I_array))
+            rx, ry, r = getCircle(I_array)
+            print(id,rx,ry,r)
+            H, W = I_array.shape
+            for i in range(H):
+                for j in range(W):
+                    if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
+                        I_array[i][j] = 240
+            # for point in points:
+            #     for i in range(20):
+            #         for j in range(20):
+            #             I_array[point[0]+i-8][point[1]+j-8] = 240
+            # print(rx, ry, r * 0.52)
+            plt.figure()
+            plt.imshow(I_array)
+            plt.show()
     # H,W = I_array.shape
     # print(rx,ry,r)
     # for i in range(H):
@@ -777,15 +818,26 @@ if __name__ == "__main__":
         print(Filelist)
         L = len(Filelist) - 1
         err = []
-        i = 0
-        while i < L:
-            I = Image.open(testPath + Filelist[i + 1])
+        id = 0
+        while id < L:
+            I = Image.open(testPath + Filelist[id + 1])
             I_array = np.array(I.convert('L'))
-            print("测试图像" + str(i) + ":", end="")
-            rx, ry, r = getCircle(I_array)
-            print(rx, ry, r * 0.52 * 2)
-            if r * 0.52 > 985 or r * 0.52 < 955:
-                err.append([i, Filelist[i + 1], r * 0.52])
-            i += 1
-        print(err)
-    test()
+
+            # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
+            # I_array = np.array(fits.getdata(image_file), dtype=float)
+            # # print(np.shape(I_array))
+            ry, rx, r = getCircle(I_array)
+            print(id, rx, ry, r)
+            H, W = I_array.shape
+            for i in range(H):
+                for j in range(W):
+                    if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
+                        I_array[i][j] = 240
+            plt.imsave("Result/result/"+str(id)+".jpg",I_array)
+            # for point in points:
+            #     for i in range(20):
+            #         for j in range(20):
+            #             I_array[point[0]+i-8][point[1]+j-8] = 240
+            # print(rx, ry, r * 0.52)=
+            id += 1
+    # test()
