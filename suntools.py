@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-#import jplephem
+import jplephem
 import datetime
 import random
 import numpy as np
@@ -548,34 +548,36 @@ def getCircle(image):
     im = Image.fromarray(gradient)
     im = im.convert('L')
     im = np.array(im)
-    circles = cv2.HoughCircles(im, cv2.HOUGH_GRADIENT, 1, 500, param1=100, param2=10, minRadius=int(800 * 2 / bin_count),
+    circles = cv2.HoughCircles(im, cv2.HOUGH_GRADIENT, 1, 500, param1=100, param2=10,
+                               minRadius=int(800 * 2 / bin_count),
                                maxRadius=int(1000 * 2 / bin_count))
     img = np.array(im)
     if len(circles) == 0:
-        return -1,-1,-1
+        return -1, -1, -1
     id = -1
     goal = -1
     now = 0
 
-    #print(circles)
+    # print(circles)
     for circle in circles[0]:
-    #     x = circle[0]
-    #     y = circle[1]
-    #     r = circle[2]
-    #     goali = 0
-    #     for i in range(L):
-    #         # goali += abs((points[i][0]-x)**2 + (points[i][1]-y)**2 - r**2)
-    #         if abs(math.sqrt((points[i][0]-x)**2 + (points[i][1]-y)**2) - r) < 1 and im[points[i][0]][points[i][1]]>254:
-    #             goali += 1
-    #     if goali > goal or id == -1:
-    #         id = now
-    #         goal = goali
+        #     x = circle[0]
+        #     y = circle[1]
+        #     r = circle[2]
+        #     goali = 0
+        #     for i in range(L):
+        #         # goali += abs((points[i][0]-x)**2 + (points[i][1]-y)**2 - r**2)
+        #         if abs(math.sqrt((points[i][0]-x)**2 + (points[i][1]-y)**2) - r) < 1 and im[points[i][0]][points[i][1]]>254:
+        #             goali += 1
+        #     if goali > goal or id == -1:
+        #         id = now
+        #         goal = goali
         now += 1
-        cv2.circle(img, (int(circles[0][now-1][0]), int(circles[0][now-1][1])), int(circles[0][now-1][2]), (255), 10)
-        #print(now-1,goali)
-    #print(id)
+        cv2.circle(img, (int(circles[0][now - 1][0]), int(circles[0][now - 1][1])), int(circles[0][now - 1][2]), (255),
+                   10)
+        # print(now-1,goali)
+    # print(id)
     id = 0
-    cv2.circle(im, (int(circles[0][id][0]),int(circles[0][id][1])), int(circles[0][id][2]), (255), 10)
+    cv2.circle(im, (int(circles[0][id][0]), int(circles[0][id][1])), int(circles[0][id][2]), (255), 10)
     # plt.figure()
     # plt.imshow(img)
     # plt.show()
@@ -588,7 +590,7 @@ def getCircle(image):
     # print(times)
     # print(x,y,r*0.52)
 
-    return circles[0][id][1] + 2,circles[0][id][0] + 2,circles[0][id][2]
+    return circles[0][id][1] + 2, circles[0][id][0] + 2, circles[0][id][2]
 
 
 # 辅助计算软件的运算
@@ -697,16 +699,15 @@ def getB0P0(q0, q1, q2, q3, strtime):
 
 
 def down_sample_quarter(data: np.array):
-    return_array = np.zeros(data.shape[0] / 4, data.shape[1] / 4)
-    for i in return_array.shape[0]:
-        for j in return_array.shape[1]:
+    return_array = np.zeros(int(data.shape[0] / 4), int(data.shape[1] / 4))
+    for i in range(return_array.shape[0]):
+        for j in range(return_array.shape[1]):
             scaled_i = i * 2
             scaled_j = j * 2
             if scaled_i < data.shape[0] and scaled_j < data.shape[1]:
                 return_array[i][j] = np.mean(data[scaled_i: scaled_i + 2, scaled_j: scaled_j + 2])
             else:
                 return_array[i][j] = 0
-
 
 
 def test():
@@ -784,15 +785,14 @@ if __name__ == "__main__":
         if True:
             id = 105
             Filelist = os.listdir(testPath)
-            I = Image.open(testPath + Filelist[1+id])
+            I = Image.open(testPath + Filelist[1 + id])
             I_array = np.array(I.convert('L'))
-
 
             # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
             # I_array = np.array(fits.getdata(image_file), dtype=float)
             # # print(np.shape(I_array))
             rx, ry, r = getCircle(I_array)
-            print(id,rx,ry,r)
+            print(id, rx, ry, r)
             H, W = I_array.shape
             for i in range(H):
                 for j in range(W):
@@ -846,7 +846,7 @@ if __name__ == "__main__":
                 for j in range(W):
                     if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
                         I_array[i][j] = 240
-            plt.imsave("Result/result/"+str(id)+".jpg",I_array)
+            plt.imsave("Result/result/" + str(id) + ".jpg", I_array)
             # for point in points:
             #     for i in range(20):
             #         for j in range(20):

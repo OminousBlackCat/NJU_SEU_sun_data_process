@@ -7,7 +7,6 @@ import time
 import numpy as np
 from astropy.io import fits
 import urllib.error as uEr
-import scipy.ndimage
 import config
 import matplotlib.pyplot as plt
 import ctypes as c
