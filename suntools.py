@@ -699,7 +699,7 @@ def getB0P0(q0, q1, q2, q3, strtime):
 
 
 def down_sample_quarter(data: np.array):
-    return_array = np.zeros(int(data.shape[0] / 4), int(data.shape[1] / 4))
+    return_array = np.zeros((int(data.shape[0] / 4), int(data.shape[1] / 4)))
     for i in range(return_array.shape[0]):
         for j in range(return_array.shape[1]):
             scaled_i = i * 2
