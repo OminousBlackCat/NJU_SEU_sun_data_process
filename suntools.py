@@ -665,6 +665,19 @@ def getB0P0(q0, q1, q2, q3, strtime):
     return B0, INST_ROT
 
 
+def down_sample_quarter(data: np.array):
+    return_array = np.zeros(data.shape[0] / 4, data.shape[1] / 4)
+    for i in return_array.shape[0]:
+        for j in return_array.shape[1]:
+            scaled_i = i * 2
+            scaled_j = j * 2
+            if scaled_i < data.shape[0] and scaled_j < data.shape[1]:
+                return_array[i][j] = np.mean(data[scaled_i: scaled_i + 2, scaled_j: scaled_j + 2])
+            else:
+                return_array[i][j] = 0
+
+
+
 def test():
     matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
     filepath_result = "testResult/"

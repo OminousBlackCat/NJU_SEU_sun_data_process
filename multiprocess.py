@@ -7,6 +7,7 @@ import time
 import numpy as np
 from astropy.io import fits
 import urllib.error as uEr
+import scipy.ndimage
 import config
 import matplotlib.pyplot as plt
 import ctypes as c
@@ -343,7 +344,7 @@ def target_task(filename):
         image_data = suntools.MedSmooth(image_data, HofH, HofFe, winSize=FILTER_KERNEL_SIZE)
         # 转为整型, 并将每行的最后部分置零
         image_data = np.array(image_data, dtype=np.int16)
-        image_data[-PIXEL_ZERO_COUNT: 0, :] = 0
+        image_data[:, image_data.shape[1] - PIXEL_ZERO_COUNT:] = 0
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
@@ -403,6 +404,10 @@ def main():
         temp_dict['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
         temp_dict['header'].set('CDELT2', PIXEL_RESOLUTION * GLOBAL_BINNING)
         temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
+        # 下采样 1/4
+        print('下采样中...')
+        sum_data_HA_save = suntools.down_sample_quarter(sum_data_HA)
+        sum_data_FE_save = suntools.down_sample_quarter(sum_data_FE)
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + temp_dict['scan_index'] + '的png...')
@@ -410,10 +415,10 @@ def main():
             sum_mean_fe = np.mean(sum_data_FE)
             plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
                        + '_' + temp_dict['scan_index'] + '_HA' + ".png",
-                       sum_data_HA, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha)
+                       sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha)
             plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
                        + '_' + temp_dict['scan_index'] + '_FE' + ".png",
-                       sum_data_FE, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe)
+                       sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe)
         if config.save_img_form == 'fts':
             # 不对data进行任何操作 直接输出为fts文件
             print('输出序号为' + temp_dict['scan_index'] + '的fits...')
@@ -443,6 +448,7 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
+        primaryHDU.scale(type='uint16')
         print(repr(primaryHDU.header))
         primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                            temp_dict['scan_index'] + '_HA_RICE_COMP.fits', overwrite=True)
@@ -463,6 +469,7 @@ def main():
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
+        primaryHDU.scale(type='uint16')
         primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                            temp_dict['scan_index'] + '_FE_RICE_COMP.fits', overwrite=True)
         if_first_print.value = True
