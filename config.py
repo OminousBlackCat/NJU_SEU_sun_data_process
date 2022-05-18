@@ -17,7 +17,7 @@ save_dir_path = "/data/chase/Chase/Lev1/2021/12/16/"
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
 # TODO: bin_count务必在程序运行前要确认
-bin_count = 1
+bin_count = 2
 
 
 # 日像汇总结果存放的文件夹, 相对路径与绝对路径均可
