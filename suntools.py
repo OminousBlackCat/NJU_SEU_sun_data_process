@@ -575,7 +575,7 @@ def getCircle(image):
         #print(now-1,goali)
     #print(id)
     id = 0
-    cv2.circle(im, (int(circles[0][id][0]),int(circles[0][id][1])), int(circles[0][id][2]), (255), 10)
+    # cv2.circle(im, (int(circles[0][id][0]),int(circles[0][id][1])), int(circles[0][id][2]), (255), 10)
     # plt.figure()
     # plt.imshow(img)
     # plt.show()
@@ -696,6 +696,19 @@ def getB0P0(q0, q1, q2, q3, strtime):
     return B0, INST_ROT
 
 
+def down_sample_quarter(data: np.array):
+    return_array = np.zeros((int(data.shape[0] / 4), int(data.shape[1] / 4)))
+    for i in range(return_array.shape[0]):
+        for j in range(return_array.shape[1]):
+            scaled_i = i * 4
+            scaled_j = j * 4
+            if scaled_i < data.shape[0] and scaled_j < data.shape[1]:
+                return_array[i][j] = np.mean(data[scaled_i: scaled_i + 4, scaled_j: scaled_j + 4])
+            else:
+                return_array[i][j] = 0
+    return return_array
+
+
 def test():
     matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
     filepath_result = "testResult/"
@@ -771,15 +784,14 @@ if __name__ == "__main__":
         if True:
             id = 105
             Filelist = os.listdir(testPath)
-            I = Image.open(testPath + Filelist[1+id])
+            I = Image.open(testPath + Filelist[1 + id])
             I_array = np.array(I.convert('L'))
-
 
             # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
             # I_array = np.array(fits.getdata(image_file), dtype=float)
             # # print(np.shape(I_array))
             rx, ry, r = getCircle(I_array)
-            print(id,rx,ry,r)
+            print(id, rx, ry, r)
             H, W = I_array.shape
             for i in range(H):
                 for j in range(W):
@@ -833,7 +845,7 @@ if __name__ == "__main__":
                 for j in range(W):
                     if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
                         I_array[i][j] = 240
-            plt.imsave("Result/result/"+str(id)+".jpg",I_array)
+            plt.imsave("Result/result/" + str(id) + ".jpg", I_array)
             # for point in points:
             #     for i in range(20):
             #         for j in range(20):
