@@ -548,36 +548,34 @@ def getCircle(image):
     im = Image.fromarray(gradient)
     im = im.convert('L')
     im = np.array(im)
-    circles = cv2.HoughCircles(im, cv2.HOUGH_GRADIENT, 1, 500, param1=100, param2=10,
-                               minRadius=int(800 * 2 / bin_count),
+    circles = cv2.HoughCircles(im, cv2.HOUGH_GRADIENT, 1, 500, param1=100, param2=10, minRadius=int(800 * 2 / bin_count),
                                maxRadius=int(1000 * 2 / bin_count))
     img = np.array(im)
     if len(circles) == 0:
-        return -1, -1, -1
-    id = -1
-    goal = -1
-    now = 0
+        return -1,-1,-1
+    # id = -1
+    # goal = -1
+    # now = 0
 
-    # print(circles)
-    for circle in circles[0]:
-        #     x = circle[0]
-        #     y = circle[1]
-        #     r = circle[2]
-        #     goali = 0
-        #     for i in range(L):
-        #         # goali += abs((points[i][0]-x)**2 + (points[i][1]-y)**2 - r**2)
-        #         if abs(math.sqrt((points[i][0]-x)**2 + (points[i][1]-y)**2) - r) < 1 and im[points[i][0]][points[i][1]]>254:
-        #             goali += 1
-        #     if goali > goal or id == -1:
-        #         id = now
-        #         goal = goali
-        now += 1
-        cv2.circle(img, (int(circles[0][now - 1][0]), int(circles[0][now - 1][1])), int(circles[0][now - 1][2]), (255),
-                   10)
-        # print(now-1,goali)
-    # print(id)
+    #print(circles)
+    # for circle in circles[0]:
+    #     x = circle[0]
+    #     y = circle[1]
+    #     r = circle[2]
+    #     goali = 0
+    #     for i in range(L):
+    #         # goali += abs((points[i][0]-x)**2 + (points[i][1]-y)**2 - r**2)
+    #         if abs(math.sqrt((points[i][0]-x)**2 + (points[i][1]-y)**2) - r) < 1 and im[points[i][0]][points[i][1]]>254:
+    #             goali += 1
+    #     if goali > goal or id == -1:
+    #         id = now
+    #         goal = goali
+    #     now += 1
+    #     cv2.circle(img, (int(circles[0][now-1][0]), int(circles[0][now-1][1])), int(circles[0][now-1][2]), (255), 10)
+        #print(now-1,goali)
+    #print(id)
     id = 0
-    cv2.circle(im, (int(circles[0][id][0]), int(circles[0][id][1])), int(circles[0][id][2]), (255), 10)
+    # cv2.circle(im, (int(circles[0][id][0]),int(circles[0][id][1])), int(circles[0][id][2]), (255), 10)
     # plt.figure()
     # plt.imshow(img)
     # plt.show()
@@ -590,7 +588,7 @@ def getCircle(image):
     # print(times)
     # print(x,y,r*0.52)
 
-    return circles[0][id][1] + 2, circles[0][id][0] + 2, circles[0][id][2]
+    return circles[0][id][0] + 2,circles[0][id][1] + 2,circles[0][id][2]
 
 
 # 辅助计算软件的运算
