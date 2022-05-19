@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-#import jplephem
+import jplephem
 import datetime
 import random
 import numpy as np
@@ -553,12 +553,12 @@ def getCircle(image):
     img = np.array(im)
     if len(circles) == 0:
         return -1,-1,-1
-    id = -1
-    goal = -1
-    now = 0
+    # id = -1
+    # goal = -1
+    # now = 0
 
     #print(circles)
-    for circle in circles[0]:
+    # for circle in circles[0]:
     #     x = circle[0]
     #     y = circle[1]
     #     r = circle[2]
@@ -570,8 +570,8 @@ def getCircle(image):
     #     if goali > goal or id == -1:
     #         id = now
     #         goal = goali
-        now += 1
-        cv2.circle(img, (int(circles[0][now-1][0]), int(circles[0][now-1][1])), int(circles[0][now-1][2]), (255), 10)
+    #     now += 1
+    #     cv2.circle(img, (int(circles[0][now-1][0]), int(circles[0][now-1][1])), int(circles[0][now-1][2]), (255), 10)
         #print(now-1,goali)
     #print(id)
     id = 0
@@ -588,7 +588,7 @@ def getCircle(image):
     # print(times)
     # print(x,y,r*0.52)
 
-    return circles[0][id][1] + 2,circles[0][id][0] + 2,circles[0][id][2]
+    return circles[0][id][0] + 2,circles[0][id][1] + 2,circles[0][id][2]
 
 
 # 辅助计算软件的运算
