@@ -326,8 +326,9 @@ def target_task(filename):
         # RSM 2021   12     22T060105   -   0008-     0001       .fts
         # 012 3456   78     901234567   8   90123     4567       8901
         #     [year] [mon]  [day_seq]       [index]   [position]
-        file_index = filename[19:23]
-        file_position = filename[24:28]
+        # 计算此文件在序列中的相对位置 给后续放入全局数组做准备
+        fileRelativePosition = int(filename.split('-')[2].split('.')[0]) - int(
+            global_multiprocess_list[GLOBAL_DICT_INDEX]['first_filename'].split('-')[2].split('.')[0])
         filePath = READ_DIR + filename
         file_data = fits.open(filePath)
         image_data = np.array(file_data[0].data, dtype=float)
@@ -357,7 +358,7 @@ def target_task(filename):
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
-        global_shared_array[:, int(file_position) - 1, :] = image_data
+        global_shared_array[:, fileRelativePosition, :] = image_data
         # 进度输出
         remaining_count.value += 1
         file_data.close()
@@ -415,8 +416,8 @@ def main():
         temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
         # 下采样 1/4
         print('下采样中...')
-        sum_data_HA_save = suntools.down_sample_quarter(sum_data_HA)
-        sum_data_FE_save = suntools.down_sample_quarter(sum_data_FE)
+        sum_data_HA_save = suntools.down_sample(sum_data_HA)
+        sum_data_FE_save = suntools.down_sample(sum_data_FE)
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             print('输出序号为' + temp_dict['scan_index'] + '的png...')
