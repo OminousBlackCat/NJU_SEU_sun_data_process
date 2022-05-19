@@ -96,14 +96,46 @@ print('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
 #     [year] [mon]  [day] [T hhMMSS]      [index]   [frame]
 global_multiprocess_list = []  # 存放序列dict的全局数组
 # 对list内的文件名排序
-data_file_lst.sort(key=lambda x: x.split('-')[0] + x.split('-')[1] + str(int(x.split('-')[2].split('.'))).zfill(6))
+print('对文件进行排序中...')
+data_file_lst.sort(key=lambda x: x.split('-')[0] + x.split('-')[1] + str(int(x.split('-')[2].split('.')[0])).zfill(6))
 global_wave_line_strength_list = []
 # 读取每个文件某一行的像素强度并记录在list内
+print('读取图像像素中...')
+have_read_count = 0
+if_read_first_print = True
 for filename in data_file_lst:
+    if if_read_first_print:
+        print('当前进度:' + str(have_read_count) + '/' + str(len(data_file_lst)), end='')
+        sys.stdout.flush()
+        if_read_first_print = False
+    else:
+        print('\b' * (9 + len(str(have_read_count)) + 1 + len(str(len(data_file_lst)))), end='')
+        print('当前进度:' + str(have_read_count) + '/' + str(len(data_file_lst)), end='')
+        sys.stdout.flush()
     temp_img = fits.open(READ_DIR + filename)
     temp_data = np.array(temp_img[0].data, dtype=float)
     temp_mean = np.mean(temp_data[SUM_ROW_INDEX_HA, :])
     global_wave_line_strength_list.append(temp_mean)
-for gwl in global_wave_line_strength_list:
-    print(gwl)
+    have_read_count += 1
+last_wave_line_strength = 0
+significant_point_list = []
+symmetry_axis_list = []
+# 以150为分界线寻找对称轴 记录这些关键点
+# 标记0为上升点 标记1为下降点
+for i in range(len(global_wave_line_strength_list)):
+    print(global_wave_line_strength_list[i])
+    if global_wave_line_strength_list[i] > 150 and last_wave_line_strength < 150:
+        significant_point_list.append([i, 0])
+    if global_wave_line_strength_list[i] < 150 and last_wave_line_strength > 150:
+        significant_point_list.append([i, 1])
+    last_wave_line_strength = global_wave_line_strength_list[i]
+for point in significant_point_list:
+    if point[1] == 0:
+        if significant_point_list[significant_point_list.index(point) + 1][1] == 1:
+            symmetry_axis_list.append(int((point[0] +
+                                           significant_point_list[significant_point_list.index(point) + 1][0]) / 2))
+print('寻找到的摆扫日心位置文件为: ')
+for axis in symmetry_axis_list:
+    print('文件名:' + data_file_lst[axis] + '/ 平均强度为:' + str(global_wave_line_strength_list[axis]))
+
 

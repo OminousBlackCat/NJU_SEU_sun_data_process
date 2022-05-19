@@ -111,6 +111,10 @@ pixel_resolution = 0.52
 # 右侧多少行的数据会被置0
 pixel_to_zero_count = 100
 
+# 摆扫模式参数
+# 计算日心位置时的均值阈值
+mean_t
+
 # 序列扫描时间偏移量(单位: 秒)
 # 会在写入头部的时候将对应的STR_TIME/OBS_TIME/END_TIME时间加上时间偏移量
 scan_time_offset = 0
