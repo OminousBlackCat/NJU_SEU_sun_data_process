@@ -83,7 +83,7 @@ except OSError:
     print('没有获得原始数据文件，请检查config中的读入数据目录')
     sys.exit("程序终止")
 print('文件总数为: ' + str(len(data_file_lst)))
-print('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
+print('当前运行处在 摆扫模式')
 
 # 将读入的文件按照序列分成不同的组
 # 此处坑比较大

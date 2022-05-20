@@ -697,13 +697,14 @@ def getB0P0(q0, q1, q2, q3, strtime):
 
 
 def down_sample(data: np.array):
-    return_array = np.zeros((int(data.shape[0] / (4 / bin_count)), int(data.shape[1] / (4 / bin_count))))
+    scale_factor = int(4 / bin_count)
+    return_array = np.zeros((int(data.shape[0] / scale_factor), int(data.shape[1] / scale_factor)))
     for i in range(return_array.shape[0]):
         for j in range(return_array.shape[1]):
-            scaled_i = i * (4 / bin_count)
-            scaled_j = j * (4 / bin_count)
+            scaled_i = i * scale_factor
+            scaled_j = j * scale_factor
             if scaled_i < data.shape[0] and scaled_j < data.shape[1]:
-                return_array[i][j] = np.mean(data[scaled_i: scaled_i + (4 / bin_count), scaled_j: scaled_j + (4 / bin_count)])
+                return_array[i][j] = np.mean(data[scaled_i: scaled_i + scale_factor, scaled_j: scaled_j + scale_factor])
             else:
                 return_array[i][j] = 0
     return return_array
