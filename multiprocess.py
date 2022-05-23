@@ -84,6 +84,7 @@ except OSError:
     sys.exit("程序终止")
 print('文件总数为: ' + str(len(data_file_lst)))
 print('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
+print('当前运行处在 正常序列处理模式')
 
 # 将读入的文件按照序列分成不同的组
 # 此处坑比较大
@@ -96,6 +97,7 @@ print('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
 #     [year] [mon]  [day] [T hhMMSS]      [index]   [frame]
 global_multiprocess_list = []  # 存放序列dict的全局数组
 # 对list内的文件名排序
+print('对文件进行排序中...')
 data_file_lst.sort(key=lambda x: x[3: 28].replace('-', ''))
 last_temp_index = None
 global_multiprocess_index = -1

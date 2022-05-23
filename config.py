@@ -19,6 +19,11 @@ save_dir_path = "/data/chase/Chase/Lev1/2021/12/16/"
 # TODO: bin_count务必在程序运行前要确认
 bin_count = 2
 
+# 摆扫模式时翻转的序列
+# 'odd'表示级数序列翻转 'even'表示偶数序列翻转 'none'表示不翻转
+# TODO: 如果运行在摆扫模式 请务必检查此参数
+reversal_mode = 'odd'
+
 
 # 日像汇总结果存放的文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
@@ -113,7 +118,8 @@ pixel_to_zero_count = 100
 
 # 摆扫模式参数
 # 计算日心位置时的均值阈值
-mean_t
+center_mean_threshold = 150
+
 
 # 序列扫描时间偏移量(单位: 秒)
 # 会在写入头部的时候将对应的STR_TIME/OBS_TIME/END_TIME时间加上时间偏移量

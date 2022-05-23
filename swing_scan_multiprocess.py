@@ -39,6 +39,8 @@ SCAN_TIME_OFFSET = config.scan_time_offset  # 时间偏差
 SIT_STARE_MODE = config.sit_stare_mode  # sit stare模式
 PIXEL_RESOLUTION = config.pixel_resolution  # 像素分辨率
 PIXEL_ZERO_COUNT = config.pixel_to_zero_count  # 置零区间
+CENTER_MEAN_THRESHOLD = config.center_mean_threshold  # (摆扫)计算序列中心的阈值
+REVERSAL_MODE = config.reversal_mode  # (摆扫)翻转模式
 if GLOBAL_BINNING == 1:
     FLAT_FITS_FILE = config.flat_fits_name_bin_1
     SUN_ROW_COUNT = config.sun_row_count_bin_1
@@ -83,7 +85,7 @@ except OSError:
     print('没有获得原始数据文件，请检查config中的读入数据目录')
     sys.exit("程序终止")
 print('文件总数为: ' + str(len(data_file_lst)))
-print('当前运行处在 摆扫模式')
+print('当前运行处在 摆扫序列处理模式')
 
 # 将读入的文件按照序列分成不同的组
 # 此处坑比较大
@@ -123,9 +125,9 @@ symmetry_axis_list = []
 # 以150为分界线寻找对称轴 记录这些关键点
 # 标记0为上升点 标记1为下降点
 for i in range(len(global_wave_line_strength_list)):
-    if global_wave_line_strength_list[i] > 150 and last_wave_line_strength < 150:
+    if global_wave_line_strength_list[i] > CENTER_MEAN_THRESHOLD > last_wave_line_strength:
         significant_point_list.append([i, 0])
-    if global_wave_line_strength_list[i] < 150 and last_wave_line_strength > 150:
+    if global_wave_line_strength_list[i] < CENTER_MEAN_THRESHOLD < last_wave_line_strength:
         significant_point_list.append([i, 1])
     last_wave_line_strength = global_wave_line_strength_list[i]
 for point in significant_point_list:
@@ -358,7 +360,12 @@ def target_task(filename):
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
-        global_shared_array[:, fileRelativePosition, :] = image_data
+        if REVERSAL_MODE == 'odd' and GLOBAL_DICT_INDEX % 2 == 1:
+            global_shared_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
+        elif REVERSAL_MODE == 'even' and GLOBAL_DICT_INDEX % 2 == 0:
+            global_shared_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
+        else:
+            global_shared_array[:, fileRelativePosition, :] = image_data
         # 进度输出
         remaining_count.value += 1
         file_data.close()
