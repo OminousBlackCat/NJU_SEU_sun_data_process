@@ -451,7 +451,7 @@ def main():
         primaryHDU.header.add_comment('Processed by RSM_prep')
         print(repr(primaryHDU.header))
         primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
-                           temp_dict['scan_index'] + '_HA_RICE_COMP.fits', overwrite=True)
+                           temp_dict['scan_index'] + '_HA.fits', overwrite=True)
         print('生成FE文件中...')
         # 修改header内的SPECLINE与WAVELNTH
         temp_dict['header'].set('SPECLINE', 'FEI')
@@ -470,7 +470,7 @@ def main():
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
         primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
-                           temp_dict['scan_index'] + '_FE_RICE_COMP.fits', overwrite=True)
+                           temp_dict['scan_index'] + '_FE.fits', overwrite=True)
         if_first_print.value = True
 
     time_end = time.time()
