@@ -396,7 +396,7 @@ def main():
             sum_data_FE[i] = global_shared_array[standard_HA_width + SUM_ROW_INDEX_FE, i, :].reshape(
                 sample_from_standard.shape[1])
         print('计算CCD太阳像半径中...')
-        R_y, R_x, radius = suntools.getCircle(sum_data_HA)
+        R_y, R_x, radius = suntools.getCircle(sum_data_FE)
         OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
         temp_dict['header'].set('CRPIX1', R_x)
         temp_dict['header'].set('CRPIX2', R_y)
