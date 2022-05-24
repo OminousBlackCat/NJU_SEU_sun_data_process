@@ -99,7 +99,8 @@ print('当前运行处在 摆扫序列处理模式')
 global_multiprocess_list = []  # 存放序列dict的全局数组
 # 对list内的文件名排序
 print('对文件进行排序中...')
-data_file_lst.sort(key=lambda x: x.split('-')[0] + x.split('-')[1] + str(int(x.split('-')[2].split('.')[0])).zfill(6))
+# 文件名排序关键字: yyyymmddThhMMSS0000-00000001(帧数补零8位) 可以直接按照时间与帧数排为正序
+data_file_lst.sort(key=lambda x: x.split('-')[0] + x.split('-')[1] + str(int(x.split('-')[2].split('.')[0])).zfill(8))
 global_wave_line_strength_list = []
 # 读取每个文件某一行的像素强度并记录在list内
 print('读取图像像素中...')
@@ -132,13 +133,24 @@ for i in range(len(global_wave_line_strength_list)):
     last_wave_line_strength = global_wave_line_strength_list[i]
 for point in significant_point_list:
     if point[1] == 0:
+        if significant_point_list.index(point) + 1 >= len(significant_point_list):
+            break
         if significant_point_list[significant_point_list.index(point) + 1][1] == 1:
             symmetry_axis_list.append(int((point[0] +
                                            significant_point_list[significant_point_list.index(point) + 1][0]) / 2))
 print('此文件夹共找到' + str(len(symmetry_axis_list)) + '个序列')
+last_symmetry_axis_frame_index = 0
+current_scan_index = 0
+current_track_index = 0
 for axis in symmetry_axis_list:
     print('*************************************************************************************')
     print('文件名:' + data_file_lst[axis] + '/ 平均强度为:' + str(global_wave_line_strength_list[axis]))
+    # 当前对称轴的帧数
+    current_axis_frame_index = int(data_file_lst[axis].split('-')[-1].split('.')[0])
+    # 如果当前的帧数小于上次的帧数 说明是新的轨道
+    if current_axis_frame_index < last_symmetry_axis_frame_index:
+        current_track_index += 1  # 轨道数加一
+        current_scan_index = 0  # 将扫描序列序号置0
     temp_start_file_index = axis - int(SUN_ROW_COUNT / 2)
     temp_last_file_index = axis + int(SUN_ROW_COUNT / 2)
     if temp_start_file_index < 0:
@@ -147,7 +159,8 @@ for axis in symmetry_axis_list:
         temp_last_file_index = len(data_file_lst) - 1
     global_multiprocess_list.append({
         'key_index': symmetry_axis_list.index(axis),  # 唯一序号
-        'scan_index': str(symmetry_axis_list.index(axis)).zfill(4),  # 扫描序号
+        'track_index': current_track_index,  # 轨道序号
+        'scan_index': str(current_scan_index).zfill(4),  # 扫描序列序号
         'file_list': data_file_lst[temp_start_file_index: temp_last_file_index + 1],  # 文件名列表
         'file_count': temp_last_file_index - temp_start_file_index + 1,  # 包含的文件数
         'standard_filename': data_file_lst[axis],  # 标准日心文件名
@@ -158,11 +171,14 @@ for axis in symmetry_axis_list:
         'header': fits.header.Header(),  # 此序列的头部, 构造了一个新的header
         'start_time': datetime.datetime.now()
     })
-    print('对应序列号为:' + str(symmetry_axis_list.index(axis)).zfill(4))
+    print('此序列处于第:' + str(current_track_index) + '轨')
+    print('对应序列序号为:' + str(current_scan_index).zfill(4))
     print('序列文件总数为:' + str(temp_last_file_index - temp_start_file_index + 1))
     print('起始文件名:' + data_file_lst[temp_start_file_index])
     print('结束文件名:' + data_file_lst[temp_last_file_index])
     print('*************************************************************************************')
+    current_scan_index += 1
+    last_symmetry_axis_frame_index = current_axis_frame_index
 
 # 读取头部参数文件
 # 为每个序列都创建头
@@ -220,7 +236,7 @@ sample_from_standard = None
 try:
     for temp_dict in global_multiprocess_list:
         # 对每个序列进行校正
-        print('校正扫描序列' + temp_dict['scan_index'] + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
+        print('校正扫描第' + str(temp_dict['track_index']) + '轨, 序列' + temp_dict['scan_index'] + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
         print('此序列首文件为:' + temp_dict['first_filename'])
         print('此序列末文件为:' + temp_dict['last_filename'])
         print("校正平场中...")
@@ -305,7 +321,6 @@ if_first_print = mp.Value('b', True)
 # 对于最后写入的文件 NAXIS顺序为: 狭缝宽度 文件序号(扫描序号)  波长深度
 # 因此np array的shape应为(波长深度, 文件序号, 狭缝宽度)
 # 每个单独文件对应的是 xy平面的一个二维数组
-# TODO: 是否需要将shape调转顺序？
 GLOBAL_ARRAY_X_COUNT = sample_from_standard.shape[0]
 GLOBAL_ARRAY_Y_COUNT = SUN_ROW_COUNT
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
@@ -341,9 +356,8 @@ def target_task(filename):
         # 谱线弯曲矫正
         image_data, HofH, HofFe = suntools.curve_correction(image_data, CURVE_X0, CURVE_C)
         # 搜索list
-        currentFlat = None
-        currentAbortion = None
         currentFlat = global_multiprocess_list[GLOBAL_DICT_INDEX]['flat_data']
+        currentScanIndex = int(global_multiprocess_list[GLOBAL_DICT_INDEX]['scan_index'])
         # currentAbortion = dataTemp['abortion_data']
         if currentFlat is None:
             print("文件：" + filename + "未找到平场数据, 请检查文件夹")
@@ -360,9 +374,9 @@ def target_task(filename):
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
-        if REVERSAL_MODE == 'odd' and GLOBAL_DICT_INDEX % 2 == 1:
+        if REVERSAL_MODE == 'odd' and currentScanIndex % 2 == 1:
             global_shared_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
-        elif REVERSAL_MODE == 'even' and GLOBAL_DICT_INDEX % 2 == 0:
+        elif REVERSAL_MODE == 'even' and currentScanIndex % 2 == 0:
             global_shared_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
         else:
             global_shared_array[:, fileRelativePosition, :] = image_data
