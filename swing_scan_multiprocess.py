@@ -403,7 +403,7 @@ def main():
     # 并行处理
     print('开启多核并行处理...')
     for temp_dict in global_multiprocess_list:
-        print('正在处理扫描序列:' + temp_dict['scan_index'] + '...')
+        print('正在处理第' + str(temp_dict['track_index']) + '轨,  扫描序列:' + temp_dict['scan_index'] + '...')
         file_count.value = temp_dict['file_count']
         remaining_count.value = 0
         pool = mp.Pool(processes=multiprocess_count)
