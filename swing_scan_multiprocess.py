@@ -135,7 +135,11 @@ for point in significant_point_list:
     if point[1] == 0:
         if significant_point_list.index(point) + 1 >= len(significant_point_list):
             break
-        if significant_point_list[significant_point_list.index(point) + 1][1] == 1:
+        temp_frame_index = int(data_file_lst[point[0]].split('-')[-1].split('.')[0])
+        next_frame_index = int(data_file_lst[significant_point_list[significant_point_list.index(point) + 1][0]]
+                               .split('-')[-1].split('.')[0])
+        if significant_point_list[significant_point_list.index(point) + 1][1] == 1 and\
+                next_frame_index > temp_frame_index:
             symmetry_axis_list.append(int((point[0] +
                                            significant_point_list[significant_point_list.index(point) + 1][0]) / 2))
 print('此文件夹共找到' + str(len(symmetry_axis_list)) + '个序列')
