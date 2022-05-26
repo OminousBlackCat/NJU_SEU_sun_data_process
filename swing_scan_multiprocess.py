@@ -138,6 +138,7 @@ for point in significant_point_list:
         temp_frame_index = int(data_file_lst[point[0]].split('-')[-1].split('.')[0])
         next_frame_index = int(data_file_lst[significant_point_list[significant_point_list.index(point) + 1][0]]
                                .split('-')[-1].split('.')[0])
+        # 如果下一个关键点的key为1 且 下一个关键点对应的帧数序号比当前关键点的序号高 则可以获得一个对称轴
         if significant_point_list[significant_point_list.index(point) + 1][1] == 1 and\
                 next_frame_index > temp_frame_index:
             symmetry_axis_list.append(int((point[0] +
