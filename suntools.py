@@ -696,6 +696,10 @@ def getB0P0(q0, q1, q2, q3, strtime):
     return B0, INST_ROT
 
 
+# 下采样 根据不同的bin_count 下采样不同的scale
+# 对于bin = 1 下采样1/4(16个像素->1个像素)
+# 对于bin = 2 下采样1/2(4个像素->1个像素)
+# 顺便将输出的数组上下翻转 以适配习惯
 def down_sample(data: np.array):
     scale_factor = int(4 / bin_count)
     return_array = np.zeros((int(data.shape[0] / scale_factor), int(data.shape[1] / scale_factor)))
@@ -704,9 +708,9 @@ def down_sample(data: np.array):
             scaled_i = i * scale_factor
             scaled_j = j * scale_factor
             if scaled_i < data.shape[0] and scaled_j < data.shape[1]:
-                return_array[i][j] = np.mean(data[scaled_i: scaled_i + scale_factor, scaled_j: scaled_j + scale_factor])
+                return_array[return_array.shape[0] - i - 1][j] = np.mean(data[scaled_i: scaled_i + scale_factor, scaled_j: scaled_j + scale_factor])
             else:
-                return_array[i][j] = 0
+                return_array[return_array.shape[0] - i - 1][j] = 0
     return return_array
 
 
