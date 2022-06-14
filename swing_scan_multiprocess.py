@@ -107,6 +107,12 @@ print('读取图像像素中...')
 have_read_count = 0
 if_read_first_print = True
 for filename in data_file_lst:
+    try:
+        if filename[0:3] != 'RSM':
+            raise ValueError
+    except ValueError as error:
+        print('文件<' + filename + '>文件命名非法! 已剔除')
+        continue
     if if_read_first_print:
         print('当前进度:' + str(have_read_count) + '/' + str(len(data_file_lst)), end='')
         sys.stdout.flush()

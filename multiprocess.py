@@ -107,8 +107,10 @@ for i in range(len(data_file_lst)):
     # 尝试按照正序获得当前的序列号
     try:
         temp_index = int(filename[19: 23])
+        if filename[0:3] != 'RSM':
+            raise ValueError
     except ValueError as error:
-        print('文件<' + filename + '>文件命名非常规, 无法获取序列号')
+        print('文件<' + filename + '>文件命名非法! 已剔除')
         continue
     # 如果和上一个序号相等 说明list已经有了需要的dict 直接根据索引赋值即可
     if temp_index == last_temp_index:
