@@ -300,7 +300,6 @@ if_first_print = mp.Value('b', True)
 # 对于最后写入的文件 NAXIS顺序为: 狭缝宽度 文件序号(扫描序号)  波长深度
 # 因此np array的shape应为(波长深度, 文件序号, 狭缝宽度)
 # 每个单独文件对应的是 xy平面的一个二维数组
-# TODO: 是否需要将shape调转顺序？
 GLOBAL_ARRAY_X_COUNT = sample_from_standard.shape[0]
 GLOBAL_ARRAY_Y_COUNT = SUN_ROW_COUNT
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
