@@ -1,70 +1,11 @@
 import config
 from astropy.io import fits
 import suntools
-from astropy.io.fits import HDUList, Header
 
-# 所有在header中需要制定默认值的项
-# 在下述dict中直接编辑value项即可改变输入值
-# 更改此文件仅会更改默认值
-# 如需更改基本的项名称或备注 请更改对应的HA(FE)_header.txt
-static_header_items = [
-    {
-        'key': 'TELESCOP',
-        'value': 'CHASE/HIS'
-    },
-    {
-        'key': 'CUNIT1',
-        'value': 'arcsec'
-    },
-    {
-        'key': 'CDELT1',
-        'value': 1.04
-    },
-    {
-        'key': 'CRVAL1',
-        'value': 0.00000000
-    },
-    {
-        'key': 'CUNIT2',
-        'value': 'arcsec'
-    },
-    {
-        'key': 'CDELT2',
-        'value': 1.04
-    },
-    {
-        'key': 'CRVAL2',
-        'value': 0.00000000
-    },
-    {
-        'key': 'CRPIX3',
-        'value': 0.00000000
-    },
-    {
-        'key': 'CUNIT3',
-        'value': 'angstrom'
-    },
-    {
-        'key': 'CDELT3',
-        'value': 0.0484
-    },
-    {
-        'key': 'STEPTIME',
-        'value': 0.01
-    },
-    {
-        'key': 'SPECLINE',
-        'value': 'HA'  # FE
-    },
-    {
-        'key': 'OBS_MOD',
-        'value': 'RSM'
-    },
-    {
-        'key': 'LVL_NUM',
-        'value': 1
-    }
-]
+'''
+此文件代码主要目的是读取data/header.txt中的头部项
+并将这些项构造成为一个astropy的header对象
+'''
 
 # 直接复制粘贴的项
 # 一般选取经过日心的文件
@@ -150,6 +91,14 @@ calculate_header_items = [
     }
 ]
 
+'''
+read_header_from_text()
+此方法用来读取txt 并将其构造成为一个dict并返回
+所有的value都先会尝试使用int构造
+再使用float构造: 如果是浮点数 请在txt内表明小数点 例如:5.000
+如果都失败才会使用String构造: 不要使用纯数字的字符串值
+'''
+
 
 def read_header_from_txt(txtPath):
     tempList = []
@@ -166,7 +115,15 @@ def read_header_from_txt(txtPath):
             continue
         l_split_second = l_split_first[1].split('/')
         tempDic['key'] = l_split_first[0].strip()
-        tempDic['value'] = l_split_first[1].strip()
+        true_value = None
+        try:
+            true_value = int(l_split_second[0].strip())
+        except ValueError:
+            try:
+                true_value = float(l_split_second[0].strip())
+            except ValueError:
+                true_value = l_split_second[0].strip('\'').strip()
+        tempDic['value'] = true_value
         tempDic['comment'] = l_split_second[1].strip()
         tempList.append(tempDic)
     return tempList

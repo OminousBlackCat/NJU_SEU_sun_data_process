@@ -166,10 +166,7 @@ global_header_list = header.read_header_from_txt(HEADER_FILE)
 for h in global_header_list:
     for temp_dict in global_multiprocess_list:
         temp_dict['header'].set(h['key'], value=h['value'], comment=h['comment'])
-# 将静态的值赋入header
-for item in header.static_header_items:
-    for temp_dict in global_multiprocess_list:
-        temp_dict['header'].set(item['key'], item['value'])
+print(repr(global_multiprocess_list[0]['header']))
 
 # 读取暗场文件
 temp_img = None
