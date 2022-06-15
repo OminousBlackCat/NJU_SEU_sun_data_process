@@ -1,13 +1,14 @@
 from astropy.io import fits
-from astropy.utils.data import get_pkg_data_filename
-import numpy as np
 
 
 def main():
     result = None
-    filename = 'data/decompression_test/RSM20220514T214718_0021_HA.fits'
+    filename = 'data/decompression_test/RSM20220130T191819_0000_FE.fits'
     with fits.open(filename) as hdul:
-        print(hdul.info())
+        imgData = hdul[1].data
+        header = hdul[1].header
+        print(repr(header))
+        print('Done!')
 
 
 if __name__ == '__main__':
