@@ -198,10 +198,7 @@ global_header_list = header.read_header_from_txt(HEADER_FILE)
 for h in global_header_list:
     for temp_dict in global_multiprocess_list:
         temp_dict['header'].set(h['key'], value=h['value'], comment=h['comment'])
-# 将静态的值赋入header
-for item in header.static_header_items:
-    for temp_dict in global_multiprocess_list:
-        temp_dict['header'].set(item['key'], item['value'])
+print(repr(global_multiprocess_list[0]['header']))
 
 # 读取暗场文件
 temp_img = None
@@ -264,7 +261,7 @@ try:
         standard_header = temp_img[0].header
         for item in header.copy_header_items:
             temp_dict['header'].set(item['key'], standard_header[item['key']])
-        temp_dict['header'].set('BIN', GLOBAL_BINNING)
+
         standard_img = np.array(temp_img[0].data, dtype=float)
         standard_img = suntools.moveImg(standard_img, -2)
         standard_img, standard_HA_width, standard_FE_width = suntools.curve_correction(standard_img - dark_img,
@@ -287,8 +284,7 @@ try:
         print('计算B0, INST_ROT中....')
         temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
                                                   standard_header['Q3'], standard_header['STR_TIME'])
-        temp_dict['header'].set('B0', temp_B0)
-        temp_dict['header'].set('INST_ROT', temp_INST_ROT)
+
         time_offset = datetime.timedelta(seconds=SCAN_TIME_OFFSET)
         first_name = temp_dict['first_filename']
         last_name = temp_dict['last_filename']
@@ -301,6 +297,10 @@ try:
                                           day=int(last_name[9: 11]), hour=int(last_name[12: 14]),
                                           minute=int(last_name[14:16]), second=int(last_name[16: 18]))
         end_temp_time = end_temp_time + time_offset
+        # 对头进行赋值
+        temp_dict['header'].set('BIN', GLOBAL_BINNING)
+        temp_dict['header'].set('B0', temp_B0)
+        temp_dict['header'].set('INST_ROT', temp_INST_ROT)
         temp_dict['header'].set('DATE_OBS', start_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('STR_TIME', start_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('END_TIME', end_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))

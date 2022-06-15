@@ -1,0 +1,83 @@
+TELESCOP=            CHASE-HIS / Telescop Name                                                  
+
+BIN     =                    2 / Binning mode                                   
+
+DATE_OBS= '2022-01-20T06:08:39' / Observation time                              
+
+CRPIX1  =        1170.30139160 / X coordinate of solar center in pixel          
+
+CUNIT1  =           ' arcsec ' / unit of x-axis                                 
+
+CDELT1  =                 1.04 / Pixel spatial resolution along x-axis          
+
+CRVAL1  =           0.00000000 / E-W arcsec of solar center                     
+
+CRPIX2  =        1237.35974121 / Y coordinate of solar center in pixel          
+
+CUNIT2  =           ' arcsec ' / unit of y-axis                                 
+
+CDELT2  =                 1.04 / Pixel spatial resolution along y-axis          
+
+CRVAL2  =           0.00000000 / N-S arcsec of solar center                     
+
+CRPIX3  =           0.00000000 / Reference pixel at the wavelength dimension    
+
+CUNIT3  =         ' angstrom ' / unit of z-axis                                 
+
+CDELT3  =               0.0484 / Angstrom per pixel                             
+
+CRVAL3  =              6559.58 / Wavelength at the reference pixel   
+
+BZERO 	=		0 / Data is Unsigned Integer
+
+BSCALE	=	            1  / deafult scaling factor          
+
+STEPTIME=                0.01  / One-step scanning duration,unit(s)             
+
+PRODATE = '2022-03-31T19:40:12' / File creation date                            
+
+STR_TIME= '2022-01-20T06:08:16' / scanning start time                           
+
+END_TIME= '2022-01-20T06:09:02' / scanning end time                             
+
+EXP_TIME=                0.005 / Exposure time for raster scanning,unit(s)      
+
+FRM_NUM =               1~2313 / Frame number of a scanning series              
+
+SPECLINE=                   HA / Spectral line                                  
+
+WAVE_LEN=              6562.82 / Wavelength of Ha line core                     
+
+SAT_POS1=             2413.951 / Satellite x-position in J2000 coordinate system
+
+SAT_POS2=              397.631 / Satellite y-position in J2000 coordinate system
+
+SAT_POS3=            -6441.249 / Satellite z-position in J2000 coordinate system
+
+SAT_VEL1=            -6.085816 / Satellite x-velocity in J2000 coordinate system
+
+SAT_VEL2=            -3.799173 / Satellite y-velocity in J2000 coordinate system
+
+SAT_VEL3=            -2.509373 / Satellite z-velocity in J2000 coordinate system
+
+INST_ROT=             342.6234/ Angle of Solar North wrt CMOS y-axis.     
+
+R_SUN   =       933.8009643555 / Radius of the Sun in pixels on the CCD         
+
+RSUN_OBS=        971.1529541016 / Apparent solar radius seen by CHASE           
+
+B0      =               0.0000/ latitude of point at disk center. 
+
+OBS_MOD =        RSM/ Raster scanning mode
+
+LVL_NUM =                1/ Data processing level
+
+Spectral curvature corrected                                                    
+
+Dark subtracted                                                                 
+
+Flat-field corrected                                                            
+
+Processed by RSM_prep                                                           
+
+END 

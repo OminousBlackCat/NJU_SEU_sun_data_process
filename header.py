@@ -122,7 +122,8 @@ def read_header_from_txt(txtPath):
             try:
                 true_value = float(l_split_second[0].strip())
             except ValueError:
-                true_value = l_split_second[0].strip('\'').strip()
+                true_value = l_split_second[0].replace("'", "")
+                true_value = true_value.strip()
         tempDic['value'] = true_value
         tempDic['comment'] = l_split_second[1].strip()
         tempList.append(tempDic)
