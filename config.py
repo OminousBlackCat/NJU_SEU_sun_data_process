@@ -115,6 +115,8 @@ height_Fe = 116
 pixel_resolution = 0.52
 # 右侧多少行的数据会被置0
 pixel_to_zero_count = 100
+# SIT_MODE下 预设数组大小(bin=2的情况下会默认除以2)
+sit_stare_array_size = 2400
 
 # 摆扫模式参数
 # 计算日心位置时的均值阈值

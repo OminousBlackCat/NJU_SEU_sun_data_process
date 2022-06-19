@@ -61,7 +61,7 @@ def show_SPEC(SPEC, DSPEC):
 
 
 def main():
-    filename = 'data/decompression_test/RSM20220130T191819_0000_FE.fits'
+    filename = 'data/decompression_test/RSM20220326T124304_0016_HA.fits'
     file = filename
     print('Reading fits file....')
     dat = fitsread(file)[0]

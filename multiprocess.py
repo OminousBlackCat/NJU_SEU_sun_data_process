@@ -57,6 +57,12 @@ if GLOBAL_BINNING == 2:
     WAVE_RESOLUTION = config.wavelength_resolution_bin_2
     SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_2
     SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_2
+if SIT_STARE_MODE is True:
+    SUN_ROW_COUNT = config.sit_stare_array_size / GLOBAL_BINNING
+
+# 检查输出文件夹是否存在 不存在则创建
+if not os.path.exists(OUT_DIR):
+    os.mkdir(OUT_DIR)
 
 multiprocess_count = 1
 if config.multiprocess_count != 'default':
@@ -145,7 +151,6 @@ for i in range(len(data_file_lst)):
         global_multiprocess_list[len(global_multiprocess_list) - 1]['first_filename'] = filename
         global_multiprocess_list[len(global_multiprocess_list) - 1]['last_filename'] = filename
     last_temp_index = temp_index
-
 
 # 剔除不完整序列
 print('当前SIT_STARE模式为:' + str(SIT_STARE_MODE))
@@ -282,10 +287,6 @@ except OSError as error:
 # 读取输出色谱
 color_map = suntools.get_color_map(COLOR_CAMP_FILE)
 
-# 检查输出文件夹是否存在 不存在则创建
-if not os.path.exists(OUT_DIR):
-    os.mkdir(OUT_DIR)
-
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))
 remaining_count = mp.Value('i', 1)
@@ -302,6 +303,12 @@ GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
 print('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
 # 创建共享内存 大小为 x*y*z*sizeof(int16)
 GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
+GLOBAL_DICT_INDEX = 0  # 全局dict序号控制 为了在pool.map之后让每个子进程知道自己的dict序号
+
+
+def INCREASE_DICT_INDEX():
+    global GLOBAL_DICT_INDEX
+    GLOBAL_DICT_INDEX += 1
 
 
 # 定义target task
@@ -313,7 +320,11 @@ def target_task(filename):
         # 012 3456   78     901234567   8   90123     4567       8901
         #     [year] [mon]  [day_seq]       [index]   [position]
         file_index = filename[19:23]
-        file_position = filename[24:28]
+        if SIT_STARE_MODE is True:
+            file_position = int(filename[24:28]) - int(
+                global_multiprocess_list[GLOBAL_DICT_INDEX]['first_filename'][24:28]) + 1
+        else:
+            file_position = int(filename[24:28])
         filePath = READ_DIR + filename
         file_data = fits.open(filePath)
         image_data = np.array(file_data[0].data, dtype=float)
@@ -346,7 +357,7 @@ def target_task(filename):
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
-        global_shared_array[:, int(file_position) - 1, :] = image_data
+        global_shared_array[:, file_position - 1, :] = image_data
         # 进度输出
         remaining_count.value += 1
         file_data.close()

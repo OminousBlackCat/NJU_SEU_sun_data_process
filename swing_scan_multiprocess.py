@@ -60,6 +60,10 @@ if GLOBAL_BINNING == 2:
     SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_2
     SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_2
 
+# 检查输出文件夹是否存在 不存在则创建
+if not os.path.exists(OUT_DIR):
+    os.mkdir(OUT_DIR)
+
 multiprocess_count = 1
 if config.multiprocess_count != 'default':
     multiprocess_count = config.multiprocess_count
@@ -317,9 +321,6 @@ except OSError as error:
 # 读取输出色谱
 color_map = suntools.get_color_map(COLOR_CAMP_FILE)
 
-# 检查输出文件夹是否存在 不存在则创建
-if not os.path.exists(OUT_DIR):
-    os.mkdir(OUT_DIR)
 
 # 全局进度控制
 file_count = mp.Value('i', len(read_fits_directory()))

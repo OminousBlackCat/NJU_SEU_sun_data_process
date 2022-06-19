@@ -14,6 +14,38 @@ read_header_from_text()
 再使用float构造: 如果是浮点数 请在txt内表明小数点 例如:5.000
 如果都失败才会使用String构造: 不要使用纯数字的字符串值
 '''
+# 直接复制粘贴的项
+# 一般选取经过日心的文件
+copy_header_items = [
+    {
+        'key': 'EXP_TIME',
+        'typeOfValue': 'number'
+    },
+    {
+        'key': 'SAT_POS1',
+        'typeOfValue': 'number'
+    },
+    {
+        'key': 'SAT_POS2',
+        'typeOfValue': 'number'
+    },
+    {
+        'key': 'SAT_POS3',
+        'typeOfValue': 'number'
+    },
+    {
+        'key': 'SAT_VEL1',
+        'typeOfValue': 'number'
+    },
+    {
+        'key': 'SAT_VEL2',
+        'typeOfValue': 'number'
+    },
+    {
+        'key': 'SAT_VEL3',
+        'typeOfValue': 'number'
+    }
+]
 
 
 def read_header_from_txt(txtPath):
