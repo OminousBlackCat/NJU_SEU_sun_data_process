@@ -480,6 +480,7 @@ def main():
         primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                            temp_dict['scan_index'] + '_FE.fits', overwrite=True)
         if_first_print.value = True
+        INCREASE_DICT_INDEX()
 
     time_end = time.time()
     print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
