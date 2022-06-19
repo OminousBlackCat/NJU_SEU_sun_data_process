@@ -306,11 +306,6 @@ GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_CO
 GLOBAL_DICT_INDEX = 0  # 全局dict序号控制 为了在pool.map之后让每个子进程知道自己的dict序号
 
 
-def INCREASE_DICT_INDEX():
-    global GLOBAL_DICT_INDEX
-    GLOBAL_DICT_INDEX += 1
-
-
 # 定义target task
 # 传入一个文件名，读取此文件名对应的fits文件并对其做曲线矫正
 def target_task(filename):
@@ -335,13 +330,8 @@ def target_task(filename):
         # 谱线弯曲矫正
         image_data, HofH, HofFe = suntools.curve_correction(image_data, CURVE_X0, CURVE_C)
         # 搜索list
-        currentFlat = None
+        currentFlat = global_multiprocess_list[GLOBAL_DICT_INDEX]['flat_data']
         currentAbortion = None
-        for dataTemp in global_multiprocess_list:
-            if int(dataTemp['scan_index']) == int(file_index):
-                currentFlat = dataTemp['flat_data']
-                # currentAbortion = dataTemp['abortion_data']
-                break
         if currentFlat is None:
             print("文件：" + filename + "未找到平场数据, 请检查文件夹")
             return
@@ -480,7 +470,8 @@ def main():
         primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                            temp_dict['scan_index'] + '_FE.fits', overwrite=True)
         if_first_print.value = True
-        INCREASE_DICT_INDEX()
+        global GLOBAL_DICT_INDEX
+        GLOBAL_DICT_INDEX += 1
 
     time_end = time.time()
     print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
