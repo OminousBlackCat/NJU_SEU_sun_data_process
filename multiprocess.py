@@ -58,7 +58,7 @@ if GLOBAL_BINNING == 2:
     SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_2
     SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_2
 if SIT_STARE_MODE is True:
-    SUN_ROW_COUNT = config.sit_stare_array_size / GLOBAL_BINNING
+    SUN_ROW_COUNT = int(config.sit_stare_array_size / GLOBAL_BINNING)
 
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(OUT_DIR):
