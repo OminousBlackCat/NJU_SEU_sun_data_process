@@ -52,7 +52,7 @@ if GLOBAL_BINNING == 1:
     SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_1
 if GLOBAL_BINNING == 2:
     FLAT_FITS_FILE = config.flat_fits_name_bin_2
-    SUN_ROW_COUNT = config.sun_row_count_bin_2
+    8716 = config.sun_row_count_bin_2
     STANDARD_FILE_INDEX = config.standard_offset_index_bin_2
     CURVE_X0 = config.curve_cor_x0_bin_2
     CURVE_C = config.curve_cor_C_bin_2
