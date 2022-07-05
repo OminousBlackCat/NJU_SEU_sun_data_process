@@ -52,7 +52,7 @@ if GLOBAL_BINNING == 1:
     SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_1
 if GLOBAL_BINNING == 2:
     FLAT_FITS_FILE = config.flat_fits_name_bin_2
-    8716 = config.sun_row_count_bin_2
+    SUN_ROW_COUNT = config.sun_row_count_bin_2
     STANDARD_FILE_INDEX = config.standard_offset_index_bin_2
     CURVE_X0 = config.curve_cor_x0_bin_2
     CURVE_C = config.curve_cor_C_bin_2
@@ -337,7 +337,12 @@ GLOBAL_ARRAY_Y_COUNT = SUN_ROW_COUNT
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
 print('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
 # 创建共享内存 大小为 x*y*z*sizeof(int16)
-GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
+GLOBAL_SHARED_MEM = None
+try:
+    GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
+except BaseException as e:
+    print("内存不足, 无法创建共享数组")
+    sys.exit("程序结束")
 GLOBAL_DICT_INDEX = 0  # 全局dict序号控制 为了在pool.map之后让每个子进程知道自己的dict序号
 
 

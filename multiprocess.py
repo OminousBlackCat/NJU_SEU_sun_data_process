@@ -302,7 +302,13 @@ GLOBAL_ARRAY_Y_COUNT = SUN_ROW_COUNT
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
 print('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
 # 创建共享内存 大小为 x*y*z*sizeof(int16)
-GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
+GLOBAL_SHARED_MEM = None
+try:
+    GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
+except BaseException as e:
+    print(e)
+    print("内存不足, 无法创建共享数组")
+    sys.exit("程序结束")
 GLOBAL_DICT_INDEX = 0  # 全局dict序号控制 为了在pool.map之后让每个子进程知道自己的dict序号
 
 
@@ -359,8 +365,8 @@ def target_task(filename):
             print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
             print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
             sys.stdout.flush()
-    except BaseException as e:
-        print(e)
+    except BaseException as exception:
+        print(exception)
         print('文件:' + filename + '处理失败, 请检查此文件')
 
 
