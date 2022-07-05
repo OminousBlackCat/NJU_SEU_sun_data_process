@@ -11,7 +11,7 @@ import math
 import scipy.signal as signal
 import config
 import astropy
-import jplephem
+# import jplephem
 import datetime
 import random
 import numpy as np
@@ -477,7 +477,7 @@ def circle(x1, y1, x2, y2, x3, y3):
 
 
 # 通过灰度图拟合图中的圆
-def getCircle(image):
+def getCircle(image,idd = 0):
     # 二值化
     image_max = np.max(image)
     image = np.clip((image - image_max * 0.05) * 10, 0, 1)
@@ -535,6 +535,7 @@ def getCircle(image):
 
     gradient = signal.medfilt(gradient, kernel_size=7)
 
+
     H, W = gradient.shape
 
     points = []
@@ -551,7 +552,10 @@ def getCircle(image):
     circles = cv2.HoughCircles(im, cv2.HOUGH_GRADIENT, 1, 500, param1=100, param2=10, minRadius=int(800 * 2 / bin_count),
                                maxRadius=int(1000 * 2 / bin_count))
     img = np.array(im)
-    if len(circles) == 0:
+    try:
+        if len(circles) == 0:
+            return -1,-1,-1
+    except IOError:
         return -1,-1,-1
     # id = -1
     # goal = -1
@@ -575,7 +579,7 @@ def getCircle(image):
         #print(now-1,goali)
     #print(id)
     id = 0
-    # cv2.circle(im, (int(circles[0][id][0]),int(circles[0][id][1])), int(circles[0][id][2]), (255), 10)
+    cv2.circle(gradient, (int(circles[0][id][0]),int(circles[0][id][1])), int(circles[0][id][2]), (100), 3)
     # plt.figure()
     # plt.imshow(img)
     # plt.show()
@@ -587,7 +591,7 @@ def getCircle(image):
     # gradient = np.clip(gradient - 8, 0, 1)
     # print(times)
     # print(x,y,r*0.52)
-
+    plt.imsave("Result/result/" + str(idd) + "_.jpg", gradient)
     return circles[0][id][0] + 2,circles[0][id][1] + 2,circles[0][id][2]
 
 
@@ -843,12 +847,12 @@ if __name__ == "__main__":
             # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
             # I_array = np.array(fits.getdata(image_file), dtype=float)
             # # print(np.shape(I_array))
-            ry, rx, r = getCircle(I_array)
+            ry, rx, r = getCircle(I_array,id)
             print(id, rx, ry, r)
             H, W = I_array.shape
             for i in range(H):
                 for j in range(W):
-                    if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
+                    if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000/bin_count:
                         I_array[i][j] = 240
             plt.imsave("Result/result/" + str(id) + ".jpg", I_array)
             # for point in points:
