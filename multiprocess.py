@@ -357,14 +357,14 @@ def target_task(filename):
         # 进度输出
         remaining_count.value += 1
         file_data.close()
-        if if_first_print.value:
-            print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
-            sys.stdout.flush()
-            if_first_print.value = False
-        else:
-            print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
-            print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
-            sys.stdout.flush()
+        # if if_first_print.value:
+        #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        #     sys.stdout.flush()
+        #     if_first_print.value = False
+        # else:
+        #     print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
+        #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        #     sys.stdout.flush()
     except BaseException as exception:
         print(exception)
         print('文件:' + filename + '处理失败, 请检查此文件')
@@ -386,95 +386,99 @@ def main():
         pool.join()
         print('\n扫描序列' + temp_dict['scan_index'] + '预处理完成...')
         print('生成完整日像中...')
-        sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
-        sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
-        global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
-        global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
-                                                          GLOBAL_ARRAY_Z_COUNT)
-        # 将小于0的值全部赋为0
-        global_shared_array[global_shared_array < 0] = 0
-        print("SHAPE为：" + str(global_shared_array.shape))
-        # 输出太阳像
-        for i in range(global_shared_array.shape[1]):
-            sum_data_HA[i] = global_shared_array[SUM_ROW_INDEX_HA, i, :].reshape(sample_from_standard.shape[1])
-            sum_data_FE[i] = global_shared_array[standard_HA_width + SUM_ROW_INDEX_FE, i, :].reshape(
-                sample_from_standard.shape[1])
-        print('计算CCD太阳像半径中...')
-        R_y, R_x, radius = suntools.getCircle(sum_data_FE)
-        OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
-        temp_dict['header'].set('CRPIX1', R_x)
-        temp_dict['header'].set('CRPIX2', R_y)
-        temp_dict['header'].set('R_SUN', radius)
-        temp_dict['header'].set('RSUN_OBS', OBS_Radius)
-        temp_dict['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
-        temp_dict['header'].set('CDELT2', PIXEL_RESOLUTION * GLOBAL_BINNING)
-        temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
-        # 下采样 1/4
-        print('下采样中...')
-        sum_data_HA_save = suntools.down_sample(sum_data_HA)
-        sum_data_FE_save = suntools.down_sample(sum_data_FE)
-        if config.save_img_form == 'default':
-            # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
-            print('输出序号为' + temp_dict['scan_index'] + '的png...')
-            sum_mean_ha = np.mean(sum_data_HA)
-            sum_mean_fe = np.mean(sum_data_FE)
-            plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + temp_dict['scan_index'] + '_HA' + ".png",
-                       sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha)
-            plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + temp_dict['scan_index'] + '_FE' + ".png",
-                       sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe)
-        if config.save_img_form == 'fts':
-            # 不对data进行任何操作 直接输出为fts文件
-            print('输出序号为' + temp_dict['scan_index'] + '的fits...')
-            primaryHDU = fits.PrimaryHDU(sum_data_HA)
-            greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                            + '_' + temp_dict['scan_index'] + '_HA' + '.fts', overwrite=True)
-            greyHDU.close()
-            primaryHDU = fits.PrimaryHDU(sum_data_FE)
-            greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
-                            + '_' + temp_dict['scan_index'] + '_FE' + '.fts', overwrite=True)
-            greyHDU.close()
-        print('生成HA文件中...')
-        temp_dict['header'].set('SPECLINE', 'HA')
-        temp_dict['header'].set('WAVE_LEN', HA_LINE_CORE)
-        temp_dict['header'].set('CRVAL3', HA_START)
-        temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-        primaryHDU = fits.CompImageHDU(global_shared_array[0: standard_HA_width, :, :]
-                                       .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-                                       , header=temp_dict['header'], compression_type='RICE_1')
-        primaryHDU.header.set('NAXIS', comment='Number of data axes')
-        primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
-        primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
-        primaryHDU.header.set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
-        primaryHDU.header.add_comment('Spectral curvature corrected')
-        primaryHDU.header.add_comment('Dark subtracted')
-        primaryHDU.header.add_comment('Flat-field corrected')
-        primaryHDU.header.add_comment('Processed by RSM_prep')
-        print(repr(primaryHDU.header))
-        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
-                           temp_dict['scan_index'] + '_HA.fits', overwrite=True)
-        print('生成FE文件中...')
-        # 修改header内的SPECLINE与WAVELNTH
-        temp_dict['header'].set('SPECLINE', 'FEI')
-        temp_dict['header'].set('WAVE_LEN', FE_LINE_CORE)
-        temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-        temp_dict['header'].set('CRVAL3', FE_START)
-        primaryHDU = fits.CompImageHDU(global_shared_array[standard_HA_width:, :, :]
-                                       .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
-                                       , header=temp_dict['header'], compression_type='RICE_1')
-        primaryHDU.header.set('NAXIS', comment='Number of data axes')
-        primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
-        primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
-        primaryHDU.header.set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
-        primaryHDU.header.add_comment('Spectral curvature corrected')
-        primaryHDU.header.add_comment('Dark subtracted')
-        primaryHDU.header.add_comment('Flat-field corrected')
-        primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
-                           temp_dict['scan_index'] + '_FE.fits', overwrite=True)
+        try:
+            sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
+            sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
+            global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
+            global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
+                                                              GLOBAL_ARRAY_Z_COUNT)
+            # 将小于0的值全部赋为0
+            global_shared_array[global_shared_array < 0] = 0
+            print("SHAPE为：" + str(global_shared_array.shape))
+            # 输出太阳像
+            for i in range(global_shared_array.shape[1]):
+                sum_data_HA[i] = global_shared_array[SUM_ROW_INDEX_HA, i, :].reshape(sample_from_standard.shape[1])
+                sum_data_FE[i] = global_shared_array[standard_HA_width + SUM_ROW_INDEX_FE, i, :].reshape(
+                    sample_from_standard.shape[1])
+            print('计算CCD太阳像半径中...')
+            R_y, R_x, radius = suntools.getCircle(sum_data_FE)
+            OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
+            temp_dict['header'].set('CRPIX1', R_x)
+            temp_dict['header'].set('CRPIX2', R_y)
+            temp_dict['header'].set('R_SUN', radius)
+            temp_dict['header'].set('RSUN_OBS', OBS_Radius)
+            temp_dict['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
+            temp_dict['header'].set('CDELT2', PIXEL_RESOLUTION * GLOBAL_BINNING)
+            temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
+            # 下采样 1/4
+            print('下采样中...')
+            sum_data_HA_save = suntools.down_sample(sum_data_HA)
+            sum_data_FE_save = suntools.down_sample(sum_data_FE)
+            if config.save_img_form == 'default':
+                # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
+                print('输出序号为' + temp_dict['scan_index'] + '的png...')
+                sum_mean_ha = np.mean(sum_data_HA)
+                sum_mean_fe = np.mean(sum_data_FE)
+                plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
+                           + '_' + temp_dict['scan_index'] + '_HA' + ".png",
+                           sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha)
+                plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
+                           + '_' + temp_dict['scan_index'] + '_FE' + ".png",
+                           sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe)
+            if config.save_img_form == 'fts':
+                # 不对data进行任何操作 直接输出为fts文件
+                print('输出序号为' + temp_dict['scan_index'] + '的fits...')
+                primaryHDU = fits.PrimaryHDU(sum_data_HA)
+                greyHDU = fits.HDUList([primaryHDU])
+                greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
+                                + '_' + temp_dict['scan_index'] + '_HA' + '.fts', overwrite=True)
+                greyHDU.close()
+                primaryHDU = fits.PrimaryHDU(sum_data_FE)
+                greyHDU = fits.HDUList([primaryHDU])
+                greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
+                                + '_' + temp_dict['scan_index'] + '_FE' + '.fts', overwrite=True)
+                greyHDU.close()
+            print('生成HA文件中...')
+            temp_dict['header'].set('SPECLINE', 'HA')
+            temp_dict['header'].set('WAVE_LEN', HA_LINE_CORE)
+            temp_dict['header'].set('CRVAL3', HA_START)
+            temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+            primaryHDU = fits.CompImageHDU(global_shared_array[0: standard_HA_width, :, :]
+                                           .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                           , header=temp_dict['header'], compression_type='RICE_1')
+            primaryHDU.header.set('NAXIS', comment='Number of data axes')
+            primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
+            primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
+            primaryHDU.header.set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
+            primaryHDU.header.add_comment('Spectral curvature corrected')
+            primaryHDU.header.add_comment('Dark subtracted')
+            primaryHDU.header.add_comment('Flat-field corrected')
+            primaryHDU.header.add_comment('Processed by RSM_prep')
+            print(repr(primaryHDU.header))
+            primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
+                               temp_dict['scan_index'] + '_HA.fits', overwrite=True)
+            print('生成FE文件中...')
+            # 修改header内的SPECLINE与WAVELNTH
+            temp_dict['header'].set('SPECLINE', 'FEI')
+            temp_dict['header'].set('WAVE_LEN', FE_LINE_CORE)
+            temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+            temp_dict['header'].set('CRVAL3', FE_START)
+            primaryHDU = fits.CompImageHDU(global_shared_array[standard_HA_width:, :, :]
+                                           .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
+                                           , header=temp_dict['header'], compression_type='RICE_1')
+            primaryHDU.header.set('NAXIS', comment='Number of data axes')
+            primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
+            primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
+            primaryHDU.header.set('NAXIS3', comment='Length of data axis 3 (wavelength dimension)')
+            primaryHDU.header.add_comment('Spectral curvature corrected')
+            primaryHDU.header.add_comment('Dark subtracted')
+            primaryHDU.header.add_comment('Flat-field corrected')
+            primaryHDU.header.add_comment('Processed by RSM_prep')
+            primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
+                               temp_dict['scan_index'] + '_FE.fits', overwrite=True)
+        except BaseException as uniformException:
+            print(uniformException)
+            print("当前序列输出出错, 已跳过")
         if_first_print.value = True
         global GLOBAL_DICT_INDEX
         GLOBAL_DICT_INDEX += 1

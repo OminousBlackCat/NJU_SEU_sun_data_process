@@ -477,7 +477,7 @@ def circle(x1, y1, x2, y2, x3, y3):
 
 
 # 通过灰度图拟合图中的圆
-def getCircle(image,idd = 0):
+def getCircle(image, idd=0):
     # 二值化
     image_max = np.max(image)
     image = np.clip((image - image_max * 0.05) * 10, 0, 1)
@@ -535,7 +535,6 @@ def getCircle(image,idd = 0):
 
     gradient = signal.medfilt(gradient, kernel_size=7)
 
-
     H, W = gradient.shape
 
     points = []
@@ -549,19 +548,19 @@ def getCircle(image,idd = 0):
     im = Image.fromarray(gradient)
     im = im.convert('L')
     im = np.array(im)
-    circles = cv2.HoughCircles(im, cv2.HOUGH_GRADIENT, 1, 500, param1=100, param2=10, minRadius=int(800 * 2 / bin_count),
+    circles = cv2.HoughCircles(im, cv2.HOUGH_GRADIENT, 1, 500, param1=100, param2=10,
+                               minRadius=int(800 * 2 / bin_count),
                                maxRadius=int(1000 * 2 / bin_count))
     img = np.array(im)
-    try:
-        if len(circles) == 0:
-            return -1,-1,-1
-    except IOError:
-        return -1,-1,-1
+    if circles is None:
+        raise ValueError
+    if len(circles) == 0:
+        raise ValueError
     # id = -1
     # goal = -1
     # now = 0
 
-    #print(circles)
+    # print(circles)
     # for circle in circles[0]:
     #     x = circle[0]
     #     y = circle[1]
@@ -576,10 +575,10 @@ def getCircle(image,idd = 0):
     #         goal = goali
     #     now += 1
     #     cv2.circle(img, (int(circles[0][now-1][0]), int(circles[0][now-1][1])), int(circles[0][now-1][2]), (255), 10)
-        #print(now-1,goali)
-    #print(id)
+    # print(now-1,goali)
+    # print(id)
     id = 0
-    cv2.circle(gradient, (int(circles[0][id][0]),int(circles[0][id][1])), int(circles[0][id][2]), (100), 3)
+    cv2.circle(gradient, (int(circles[0][id][0]), int(circles[0][id][1])), int(circles[0][id][2]), (100), 3)
     # plt.figure()
     # plt.imshow(img)
     # plt.show()
@@ -592,7 +591,7 @@ def getCircle(image,idd = 0):
     # print(times)
     # print(x,y,r*0.52)
     plt.imsave("Result/result/" + str(idd) + "_.jpg", gradient)
-    return circles[0][id][0] + 2,circles[0][id][1] + 2,circles[0][id][2]
+    return circles[0][id][0] + 2, circles[0][id][1] + 2, circles[0][id][2]
 
 
 # 辅助计算软件的运算
@@ -712,7 +711,8 @@ def down_sample(data: np.array):
             scaled_i = i * scale_factor
             scaled_j = j * scale_factor
             if scaled_i < data.shape[0] and scaled_j < data.shape[1]:
-                return_array[return_array.shape[0] - i - 1][j] = np.mean(data[scaled_i: scaled_i + scale_factor, scaled_j: scaled_j + scale_factor])
+                return_array[return_array.shape[0] - i - 1][j] = np.mean(
+                    data[scaled_i: scaled_i + scale_factor, scaled_j: scaled_j + scale_factor])
             else:
                 return_array[return_array.shape[0] - i - 1][j] = 0
     return return_array
@@ -847,12 +847,12 @@ if __name__ == "__main__":
             # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
             # I_array = np.array(fits.getdata(image_file), dtype=float)
             # # print(np.shape(I_array))
-            ry, rx, r = getCircle(I_array,id)
+            ry, rx, r = getCircle(I_array, id)
             print(id, rx, ry, r)
             H, W = I_array.shape
             for i in range(H):
                 for j in range(W):
-                    if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000/bin_count:
+                    if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000 / bin_count:
                         I_array[i][j] = 240
             plt.imsave("Result/result/" + str(id) + ".jpg", I_array)
             # for point in points:
