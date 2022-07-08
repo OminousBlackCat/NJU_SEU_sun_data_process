@@ -590,7 +590,6 @@ def getCircle(image, idd=0):
     # gradient = np.clip(gradient - 8, 0, 1)
     # print(times)
     # print(x,y,r*0.52)
-    plt.imsave("Result/result/" + str(idd) + "_.jpg", gradient)
     return circles[0][id][0] + 2, circles[0][id][1] + 2, circles[0][id][2]
 
 
