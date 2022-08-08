@@ -778,6 +778,13 @@ def test():
 
     # grey = fits.PrimaryHDU(image_file)
 
+def add_time(I_array):
+    I_array = np.array(I.convert('L'))
+    H, W = I_array.shape
+    text1 = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+    cv2.putText(I_array, text1, (500, 700), cv2.FONT_HERSHEY_PLAIN, 1.2, (240), 2)
+
+
 
 # 全局进度控制
 file_count = mp.Value('i', 20)
@@ -785,34 +792,43 @@ if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
 
 if __name__ == "__main__":
-    testPath = "circle/circle/"
-    type = "check"
-    if type == "test":
-        Filelist = os.listdir(testPath)
-        if True:
-            id = 105
-            Filelist = os.listdir(testPath)
-            I = Image.open(testPath + Filelist[1 + id])
-            I_array = np.array(I.convert('L'))
+    I = Image.open("123.png")
 
-            # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
-            # I_array = np.array(fits.getdata(image_file), dtype=float)
-            # # print(np.shape(I_array))
-            rx, ry, r = getCircle(I_array)
-            print(id, rx, ry, r)
-            H, W = I_array.shape
-            for i in range(H):
-                for j in range(W):
-                    if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
-                        I_array[i][j] = 240
-            # for point in points:
-            #     for i in range(20):
-            #         for j in range(20):
-            #             I_array[point[0]+i-8][point[1]+j-8] = 240
-            # print(rx, ry, r * 0.52)
-            plt.figure()
-            plt.imshow(I_array)
-            plt.show()
+    I_array = np.array(I.convert('L'))
+    H, W = I_array.shape
+    text1 = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+    cv2.putText(I_array, text1, (500, 700), cv2.FONT_HERSHEY_PLAIN, 1.2, (240), 2)
+    plt.figure()
+    plt.imshow(I_array, cmap="gray")
+    plt.show()
+    # testPath = "circle/circle/"
+    # type = "check"
+    # if type == "test":
+    #     Filelist = os.listdir(testPath)
+    #     if True:
+    #         id = 105
+    #         Filelist = os.listdir(testPath)
+    #         I = Image.open(testPath + Filelist[1 + id])
+    #         I_array = np.array(I.convert('L'))
+    #
+    #         # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
+    #         # I_array = np.array(fits.getdata(image_file), dtype=float)
+    #         # # print(np.shape(I_array))
+    #         rx, ry, r = getCircle(I_array)
+    #         print(id, rx, ry, r)
+    #         H, W = I_array.shape
+    #         for i in range(H):
+    #             for j in range(W):
+    #                 if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
+    #                     I_array[i][j] = 240
+    #         # for point in points:
+    #         #     for i in range(20):
+    #         #         for j in range(20):
+    #         #             I_array[point[0]+i-8][point[1]+j-8] = 240
+    #         # print(rx, ry, r * 0.52)
+    #         plt.figure()
+    #         plt.imshow(I_array)
+    #         plt.show()
     # H,W = I_array.shape
     # print(rx,ry,r)
     # for i in range(H):
@@ -833,31 +849,31 @@ if __name__ == "__main__":
     #             remaining_count.value) + '/' + str(file_count.value), end='')
     #     time.sleep(0.5)
     # test()
-    if type == "check":
-        Filelist = os.listdir(testPath)
-        print(Filelist)
-        L = len(Filelist) - 1
-        err = []
-        id = 0
-        while id < L:
-            I = Image.open(testPath + Filelist[id + 1])
-            I_array = np.array(I.convert('L'))
-
-            # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
-            # I_array = np.array(fits.getdata(image_file), dtype=float)
-            # # print(np.shape(I_array))
-            ry, rx, r = getCircle(I_array, id)
-            print(id, rx, ry, r)
-            H, W = I_array.shape
-            for i in range(H):
-                for j in range(W):
-                    if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000 / bin_count:
-                        I_array[i][j] = 240
-            plt.imsave("Result/result/" + str(id) + ".jpg", I_array)
-            # for point in points:
-            #     for i in range(20):
-            #         for j in range(20):
-            #             I_array[point[0]+i-8][point[1]+j-8] = 240
-            # print(rx, ry, r * 0.52)=
-            id += 1
+    # if type == "check":
+    #     Filelist = os.listdir(testPath)
+    #     print(Filelist)
+    #     L = len(Filelist) - 1
+    #     err = []
+    #     id = 0
+    #     while id < L:
+    #         I = Image.open(testPath + Filelist[id + 1])
+    #         I_array = np.array(I.convert('L'))
+    #
+    #         # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
+    #         # I_array = np.array(fits.getdata(image_file), dtype=float)
+    #         # # print(np.shape(I_array))
+    #         ry, rx, r = getCircle(I_array, id)
+    #         print(id, rx, ry, r)
+    #         H, W = I_array.shape
+    #         for i in range(H):
+    #             for j in range(W):
+    #                 if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000 / bin_count:
+    #                     I_array[i][j] = 240
+    #         plt.imsave("Result/result/" + str(id) + ".jpg", I_array)
+    #         # for point in points:
+    #         #     for i in range(20):
+    #         #         for j in range(20):
+    #         #             I_array[point[0]+i-8][point[1]+j-8] = 240
+    #         # print(rx, ry, r * 0.52)=
+    #         id += 1
     # test()
