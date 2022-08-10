@@ -778,12 +778,13 @@ def test():
 
     # grey = fits.PrimaryHDU(image_file)
 
-def add_time(I_array):
+def add_time(I_array,time_txt):
     I_array = np.array(I.convert('L'))
     H, W = I_array.shape
-    text1 = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-    cv2.putText(I_array, text1, (500, 700), cv2.FONT_HERSHEY_PLAIN, 1.2, (240), 2)
-
+    h1 = int(H*0.7)
+    w1 = int(W*0.92)
+    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, 1.2, (240), 2)
+    return I_array
 
 
 # 全局进度控制
@@ -797,7 +798,7 @@ if __name__ == "__main__":
     I_array = np.array(I.convert('L'))
     H, W = I_array.shape
     text1 = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-    cv2.putText(I_array, text1, (500, 700), cv2.FONT_HERSHEY_PLAIN, 1.2, (240), 2)
+    I_array=add_time(I_array,text1)
     plt.figure()
     plt.imshow(I_array, cmap="gray")
     plt.show()
