@@ -456,6 +456,10 @@ def main():
             print('下采样中...')
             sum_data_HA_save = suntools.down_sample(sum_data_HA)
             sum_data_FE_save = suntools.down_sample(sum_data_FE)
+            sum_data_HA_save = suntools.add_time(sum_data_HA_save, temp_dict['start_time'].strftime('%Y-%m-%d '
+                                                                                                    '%H:%M:%S UT'))
+            sum_data_FE_save = suntools.add_time(sum_data_FE_save, temp_dict['start_time'].strftime('%Y-%m-%d '
+                                                                                                    '%H:%M:%S UT'))
             if config.save_img_form == 'default':
                 # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
                 print('输出序号为' + temp_dict['scan_index'] + '的png...')
