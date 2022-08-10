@@ -5,7 +5,6 @@ import time
 import matplotlib
 import matplotlib.pyplot as plt
 from astropy.utils.data import get_pkg_data_filename
-from astropy.io import fits
 from PIL import Image
 import math
 import scipy.signal as signal
@@ -14,7 +13,6 @@ import astropy
 # import jplephem
 import datetime
 import random
-import numpy as np
 from math import *
 from astropy.io import fits
 from astropy.time import Time

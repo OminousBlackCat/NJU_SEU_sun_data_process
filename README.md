@@ -5,14 +5,11 @@
 ## 目前使用的第三方库:
 
 * numpy
-
 * matplotlib
-
 * astropy （用于读入FITS格式的图片）
-
 * scipy（用于中值滤波）
-
 * jplephem (用于读取星表)
+* opencv (用于修正图片与修正圆)
 
 ## 安装与使用说明书 
 
