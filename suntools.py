@@ -43,6 +43,8 @@ else:
     x0 = config.curve_cor_x0_bin_2
     C = config.curve_cor_C_bin_2
 
+txt_size = config.size# 字体大小
+txt_thick = config.thick# 字体粗细
 
 # 谱线矫正
 # 参数data: 图像数据(numpy标准格式, 二维数组)
@@ -778,12 +780,16 @@ def test():
 
     # grey = fits.PrimaryHDU(image_file)
 
+
+# 灰度图添加文字
+# I_array为目标图 time_txt为目标文字
+# 字体和粗细可通过config调整
 def add_time(I_array,time_txt):
     I_array = np.array(I.convert('L'))
     H, W = I_array.shape
     h1 = int(H*0.7)
     w1 = int(W*0.92)
-    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, 1.2, (240), 2)
+    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (240), txt_thick)
     return I_array
 
 
