@@ -782,7 +782,7 @@ def test():
 # 灰度图添加文字
 # I_array为目标图 time_txt为目标文字
 # 字体和粗细可通过config调整
-def add_time(I_array,time_txt):
+def add_time(I_array, time_txt):
     I_array = np.array(I.convert('L'))
     H, W = I_array.shape
     h1 = int(H*0.7)
