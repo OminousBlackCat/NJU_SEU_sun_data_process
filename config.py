@@ -120,11 +120,15 @@ sit_stare_array_size = 2400
 # 输出图像日期标记的字体大小与字体厚度
 # 使用数字输入
 date_font_size = 15
-date_font_thick = 5
+date_font_thick = 1
 
 # 摆扫模式参数
 # 计算日心位置时的均值阈值
 center_mean_threshold = 150
+# 使用的线心位置
+# 目前使用Fe窗口的第10行作为获取的线心初始 往下4行求平均
+center_mean_index = int(height_Ha / 2) + 9
+center_mean_count = 4
 
 
 # 序列扫描时间偏移量(单位: 秒)

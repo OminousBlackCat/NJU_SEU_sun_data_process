@@ -62,7 +62,7 @@ if SIT_STARE_MODE is True:
 
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(OUT_DIR):
-    os.mkdir(OUT_DIR)
+    os.makedirs(OUT_DIR)
 
 multiprocess_count = 1
 if config.multiprocess_count != 'default':

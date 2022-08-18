@@ -786,9 +786,9 @@ def test():
 def add_time(Input_array, time_txt):
     I_array = np.array(Input_array)
     H, W = I_array.shape
-    h1 = int(H * 0.7)
-    w1 = int(W * 0.92)
-    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (240), txt_thick)
+    h1 = int(H * 0.55)
+    w1 = int(W * 0.95)
+    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (I_array.max()), txt_thick)
     return I_array
 
 

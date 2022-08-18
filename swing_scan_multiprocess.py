@@ -40,6 +40,8 @@ SIT_STARE_MODE = config.sit_stare_mode  # sit stare模式
 PIXEL_RESOLUTION = config.pixel_resolution  # 像素分辨率
 PIXEL_ZERO_COUNT = config.pixel_to_zero_count  # 置零区间
 CENTER_MEAN_THRESHOLD = config.center_mean_threshold  # (摆扫)计算序列中心的阈值
+CENTER_MEAN_INDEX = config.center_mean_index  # (摆扫)使用的线心位置
+CENTER_MEAN_COUNT = config.center_mean_count  # (摆扫)使用的线心数量
 REVERSAL_MODE = config.reversal_mode  # (摆扫)翻转模式
 if GLOBAL_BINNING == 1:
     FLAT_FITS_FILE = config.flat_fits_name_bin_1
@@ -62,7 +64,7 @@ if GLOBAL_BINNING == 2:
 
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(OUT_DIR):
-    os.mkdir(OUT_DIR)
+    os.makedirs(OUT_DIR)
 
 multiprocess_count = 1
 if config.multiprocess_count != 'default':
@@ -127,7 +129,7 @@ for filename in data_file_lst:
     #     sys.stdout.flush()
     temp_img = fits.open(READ_DIR + filename)
     temp_data = np.array(temp_img[0].data, dtype=float)
-    temp_mean = np.mean(temp_data[SUM_ROW_INDEX_HA, :])
+    temp_mean = np.mean(temp_data[CENTER_MEAN_INDEX: CENTER_MEAN_INDEX + CENTER_MEAN_COUNT, :])
     global_wave_line_strength_list.append(temp_mean)
     have_read_count += 1
 last_wave_line_strength = 0
@@ -136,9 +138,9 @@ symmetry_axis_list = []
 # 以150为分界线寻找对称轴 记录这些关键点
 # 标记0为上升点 标记1为下降点
 for i in range(len(global_wave_line_strength_list)):
-    if global_wave_line_strength_list[i] > CENTER_MEAN_THRESHOLD > last_wave_line_strength:
+    if global_wave_line_strength_list[i] >= CENTER_MEAN_THRESHOLD >= last_wave_line_strength:
         significant_point_list.append([i, 0])
-    if global_wave_line_strength_list[i] < CENTER_MEAN_THRESHOLD < last_wave_line_strength:
+    if global_wave_line_strength_list[i] <= CENTER_MEAN_THRESHOLD <= last_wave_line_strength:
         significant_point_list.append([i, 1])
     last_wave_line_strength = global_wave_line_strength_list[i]
 for point in significant_point_list:
