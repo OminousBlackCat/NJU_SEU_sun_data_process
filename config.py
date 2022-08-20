@@ -119,8 +119,8 @@ pixel_to_zero_count = 100
 sit_stare_array_size = 2400
 # 输出图像日期标记的字体大小与字体厚度
 # 使用数字输入
-date_font_size = 15
-date_font_thick = 1
+date_font_size = 2
+date_font_thick = 2
 
 # 摆扫模式参数
 # 计算日心位置时的均值阈值
