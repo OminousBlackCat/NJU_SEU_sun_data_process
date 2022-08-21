@@ -45,6 +45,15 @@ txt_size = config.date_font_size  # 字体大小
 txt_thick = config.date_font_thick  # 字体粗细
 
 
+#二次插值
+def QuadraticInterpolation(x1,y1,x2,y2,x3,y3,x):
+    d1 = x - x1
+    d2 = x - x2
+    d3 = x - x3
+    return d2 * d3 / (x1 - x2) / (x1 - x3) * y1 + d1 * d3 / (x2 - x1) / (x2 - x3) * y2 + d1 * d2 / (x3 - x1) \
+           / (x3 - x2) * y3
+
+
 # 谱线矫正
 # 参数data: 图像数据(numpy标准格式, 二维数组)
 # 参数x0: 曲线矫正对称轴
@@ -82,7 +91,11 @@ def curve_correction(imgData, x0, C):
                     bad_Ha = y
             else:
                 # 计算插值
-                imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                if now > 1:
+                    imgData[y][x] = QuadraticInterpolation(stdx[now - 2], stdy[now - 2] ,stdx[now - 1], stdy[now - 1] ,
+                                                           stdx[now], stdy[now] , y)
+                else:
+                    imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                         y - stdx[now - 1])
 
         # 对于Fe窗口进行操作
@@ -105,9 +118,12 @@ def curve_correction(imgData, x0, C):
                     bad_Fe = y
             else:
                 # 计算插值
-                imgData[y + int(height_Ha / bin_count)][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (
-                        stdx[now] - stdx[now - 1]) * (
-                                                                     y - stdx[now - 1])
+                if now > 1:
+                    imgData[y][x] = QuadraticInterpolation(stdx[now - 2], stdy[now - 2], stdx[now - 1], stdy[now - 1],
+                                                           stdx[now], stdy[now], y)
+                else:
+                    imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                            y - stdx[now - 1])
     if bad_Ha < int(height_Ha / bin_count) - int(29 / bin_count):
         bad_Ha = int(height_Ha / bin_count) - int(29 / bin_count)
     if bad_Fe < int(height_Fe / bin_count) - int(29 / bin_count):
@@ -165,8 +181,12 @@ def get_Sunstd(filepath):
         while dataX[now] < stdx[i] and now < len(dataX) - 1:
             now += 1
         # 进行插值操作
-        ansY.append(
-            dataY[now - 1] + (dataY[now] - dataY[now - 1]) / (dataX[now] - dataX[now - 1]) * (stdx[i] - dataX[now - 1]))
+        if now > 1:
+            ansY.append(QuadraticInterpolation(dataX[now - 2], dataY[now - 2], dataX[now - 1], dataY[now - 1],
+                                                   dataX[now], dataY[now], stdx[i]))
+        else:
+            ansY.append(
+                dataY[now - 1] + (dataY[now] - dataY[now - 1]) / (dataX[now] - dataX[now - 1]) * (stdx[i] - dataX[now - 1]))
     # 类型转换
     ansY = np.array(ansY)
     # 归一化输出
@@ -277,6 +297,7 @@ def MeanSmooth(imgData, winSize=4):
 
 
 def DivFlat(imgData, flatData):
+    np.seterr(divide='ignore', invalid='ignore')
     return imgData / flatData
 
 
@@ -400,6 +421,8 @@ def get_color_map(fname):
     return clrmap
 
 
+
+#将bin=2的图转换为bin=1（测试时使用）
 def change(img):
     if bin_count == 1:
         return img
@@ -412,6 +435,8 @@ def change(img):
     return ans
 
 
+
+#获取图片所在的bin值
 def getBin(imgData):
     H, W = imgData.shape
     print(H, W, height_Ha + height_Fe)
@@ -420,6 +445,8 @@ def getBin(imgData):
     return 2
 
 
+
+#完整的工作流程
 def entireWork(filename, darkDate, flatData, abortion):
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
@@ -430,6 +457,7 @@ def entireWork(filename, darkDate, flatData, abortion):
     plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
     # print(HofHa, HofFe)
+    print(flatData.min())
     imgData = DivFlat(imgData, flatData)
     # plt.figure()
     # plt.imshow(imgData, cmap="gray", aspect='auto')
@@ -738,10 +766,10 @@ def test():
     img_data = np.array(fits.getdata(image_file), dtype=float)
     # img_data = change(img_data)
     # bin = getBin(img_data)
-    print(bin)
+    print(bin_count)
     img_data = moveImg(img_data, -2)
     # flat_data = change(flat_data)
-    dark_data = change(dark_data)
+    # dark_data = change(dark_data)
     flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
     img_data, HofHa, HofFe = curve_correction(img_data - dark_data, x0, C)
     flat_data = getFlatOffset(flat_data, img_data)
@@ -797,8 +825,12 @@ file_count = mp.Value('i', 20)
 if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
 
+
+
+
 if __name__ == "__main__":
-    I = Image.open("123.png")
+    test()
+    #I = Image.open("123.png")
 
     # I_array = np.array(I.convert('L'))
     # H, W = I_array.shape
