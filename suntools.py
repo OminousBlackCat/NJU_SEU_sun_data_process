@@ -54,6 +54,8 @@ Interpolation_back = int(Interpolation_paramter/2) + 1 #    插值终点
 #多次插值
 def Interpolation(X_data,Y_data,x):
     N = len(X_data)
+    if N==1:
+        return Y_data[0]
     ans = np.ones(N)
     output = 0
     for i in range(N):
