@@ -41,18 +41,27 @@ else:
     x0 = config.curve_cor_x0_bin_2
     C = config.curve_cor_C_bin_2
 
+
+
 txt_size = config.date_font_size  # 字体大小
 txt_thick = config.date_font_thick  # 字体粗细
+Interpolation_paramter = 3  # 插值算法次数
+# 以第一个大于目标坐标为起点
+Interpolation_front = int((Interpolation_paramter+1)/2) + 1 #   插值起点
+Interpolation_back = int(Interpolation_paramter/2) + 1 #    插值终点
 
 
-#二次插值
-def QuadraticInterpolation(x1,y1,x2,y2,x3,y3,x):
-    d1 = x - x1
-    d2 = x - x2
-    d3 = x - x3
-    return d2 * d3 / (x1 - x2) / (x1 - x3) * y1 + d1 * d3 / (x2 - x1) / (x2 - x3) * y2 + d1 * d2 / (x3 - x1) \
-           / (x3 - x2) * y3
-
+#多次插值
+def Interpolation(X_data,Y_data,x):
+    N = len(X_data)
+    ans = np.ones(N)
+    output = 0
+    for i in range(N):
+        for j in range(N):
+            if i!=j :
+                ans[i] = ans[i] * (x - X_data[j]) / (X_data[i] - X_data[j])
+        output = output + ans[i] * Y_data[j]
+    return output
 
 # 谱线矫正
 # 参数data: 图像数据(numpy标准格式, 二维数组)
@@ -86,17 +95,21 @@ def curve_correction(imgData, x0, C):
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now]:
-                imgData[y][x] = stdx[now]
+                imgData[y][x] = stdy[now]
                 if y < bad_Ha:
                     bad_Ha = y
             else:
                 # 计算插值
-                if now > 1:
-                    imgData[y][x] = QuadraticInterpolation(stdx[now - 2], stdy[now - 2] ,stdx[now - 1], stdy[now - 1] ,
-                                                           stdx[now], stdy[now] , y)
-                else:
-                    imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
-                        y - stdx[now - 1])
+                imgData[y][x] = Interpolation(stdx[max(0,now - Interpolation_front):min(now + Interpolation_back,int(height_Ha / bin_count))] ,
+                                              stdy[max(0,now - Interpolation_front):min(now + Interpolation_back,int(height_Ha / bin_count))],
+                                              y)
+                # 计算插值
+                # if now > 1:
+                #     imgData[y][x] = QuadraticInterpolation(stdx[now - 2], stdy[now - 2] ,stdx[now - 1], stdy[now - 1] ,
+                #                                            stdx[now], stdy[now] , y)
+                # else:
+                #     imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                #         y - stdx[now - 1])
 
         # 对于Fe窗口进行操作
         # 计算原坐标经过变换之后对应的坐标
@@ -113,17 +126,22 @@ def curve_correction(imgData, x0, C):
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now]:
-                imgData[y + int(height_Ha / bin_count)][x] = stdx[now]
+                imgData[y + int(height_Ha / bin_count)][x] = stdy[now]
                 if y < bad_Fe:
                     bad_Fe = y
             else:
                 # 计算插值
-                if now > 1:
-                    imgData[y][x] = QuadraticInterpolation(stdx[now - 2], stdy[now - 2], stdx[now - 1], stdy[now - 1],
-                                                           stdx[now], stdy[now], y)
-                else:
-                    imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
-                            y - stdx[now - 1])
+                imgData[y][x] = Interpolation(
+                    stdx[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
+                    stdy[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
+                    y)
+                # 计算插值
+                # if now > 1:
+                #     imgData[y][x] = QuadraticInterpolation(stdx[now - 2], stdy[now - 2], stdx[now - 1], stdy[now - 1],
+                #                                            stdx[now], stdy[now], y)
+                # else:
+                #     imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
+                #             y - stdx[now - 1])
     if bad_Ha < int(height_Ha / bin_count) - int(29 / bin_count):
         bad_Ha = int(height_Ha / bin_count) - int(29 / bin_count)
     if bad_Fe < int(height_Fe / bin_count) - int(29 / bin_count):
@@ -180,13 +198,18 @@ def get_Sunstd(filepath):
         # 找到插值所需的两侧点
         while dataX[now] < stdx[i] and now < len(dataX) - 1:
             now += 1
+            # 计算插值
+        ansY.append(Interpolation(
+            dataX[max(0, now - Interpolation_front):min(now + Interpolation_back, len(dataX))],
+            dataY[max(0, now - Interpolation_front):min(now + Interpolation_back, len(dataX))],
+            stdx[i]))
         # 进行插值操作
-        if now > 1:
-            ansY.append(QuadraticInterpolation(dataX[now - 2], dataY[now - 2], dataX[now - 1], dataY[now - 1],
-                                                   dataX[now], dataY[now], stdx[i]))
-        else:
-            ansY.append(
-                dataY[now - 1] + (dataY[now] - dataY[now - 1]) / (dataX[now] - dataX[now - 1]) * (stdx[i] - dataX[now - 1]))
+        # if now > 1:
+        #     ansY.append(QuadraticInterpolation(dataX[now - 2], dataY[now - 2], dataX[now - 1], dataY[now - 1],
+        #                                            dataX[now], dataY[now], stdx[i]))
+        # else:
+        #     ansY.append(
+        #         dataY[now - 1] + (dataY[now] - dataY[now - 1]) / (dataX[now] - dataX[now - 1]) * (stdx[i] - dataX[now - 1]))
     # 类型转换
     ansY = np.array(ansY)
     # 归一化输出
