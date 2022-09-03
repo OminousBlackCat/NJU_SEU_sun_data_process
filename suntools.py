@@ -62,7 +62,7 @@ def Interpolation(X_data,Y_data,x):
         for j in range(N):
             if i!=j :
                 ans[i] = ans[i] * (x - X_data[j]) / (X_data[i] - X_data[j])
-        output = output + ans[i] * Y_data[j]
+        output = output + ans[i] * Y_data[i]
     return output
 
 # 谱线矫正
