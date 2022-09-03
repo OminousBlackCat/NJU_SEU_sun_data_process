@@ -121,6 +121,10 @@ sit_stare_array_size = 2400
 # 使用数字输入
 date_font_size = 2
 date_font_thick = 2
+#插值参数，使用几次插值
+interpolation_paramter = 3
+
+
 
 # 摆扫模式参数
 # 计算日心位置时的均值阈值
