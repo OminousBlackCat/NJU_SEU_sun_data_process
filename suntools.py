@@ -45,9 +45,9 @@ else:
 
 txt_size = config.date_font_size  # 字体大小
 txt_thick = config.date_font_thick  # 字体粗细
-Interpolation_paramter = 3  # 插值算法次数
+Interpolation_paramter = config.interpolation_paramter # 插值算法次数
 # 以第一个大于目标坐标为起点
-Interpolation_front = int((Interpolation_paramter+1)/2) + 1 #   插值起点
+Interpolation_front = int((Interpolation_paramter+1)/2) #   插值起点
 Interpolation_back = int(Interpolation_paramter/2) + 1 #    插值终点
 
 
