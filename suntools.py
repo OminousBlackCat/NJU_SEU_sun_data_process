@@ -41,29 +41,28 @@ else:
     x0 = config.curve_cor_x0_bin_2
     C = config.curve_cor_C_bin_2
 
-
-
 txt_size = config.date_font_size  # 字体大小
 txt_thick = config.date_font_thick  # 字体粗细
-Interpolation_paramter = config.interpolation_paramter # 插值算法次数
+Interpolation_paramter = config.interpolation_parameter  # 插值算法次数
 # 以第一个大于目标坐标为起点
-Interpolation_front = int((Interpolation_paramter+1)/2) #   插值起点
-Interpolation_back = int(Interpolation_paramter/2) + 1 #    插值终点
+Interpolation_front = int((Interpolation_paramter + 1) / 2)  # 插值起点
+Interpolation_back = int(Interpolation_paramter / 2) + 1  # 插值终点
 
 
-#多次插值
-def Interpolation(X_data,Y_data,x):
+# 多次插值
+def Interpolation(X_data, Y_data, x):
     N = len(X_data)
-    if N==1:
+    if N == 1:
         return Y_data[0]
     ans = np.ones(N)
     output = 0
     for i in range(N):
         for j in range(N):
-            if i!=j :
+            if i != j:
                 ans[i] = ans[i] * (x - X_data[j]) / (X_data[i] - X_data[j])
         output = output + ans[i] * Y_data[i]
     return output
+
 
 # 谱线矫正
 # 参数data: 图像数据(numpy标准格式, 二维数组)
@@ -102,9 +101,10 @@ def curve_correction(imgData, x0, C):
                     bad_Ha = y
             else:
                 # 计算插值
-                imgData[y][x] = Interpolation(stdx[max(0,now - Interpolation_front):min(now + Interpolation_back,int(height_Ha / bin_count))] ,
-                                              stdy[max(0,now - Interpolation_front):min(now + Interpolation_back,int(height_Ha / bin_count))],
-                                              y)
+                imgData[y][x] = Interpolation(
+                    stdx[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
+                    stdy[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
+                    y)
                 # 计算插值
                 # if now > 1:
                 #     imgData[y][x] = QuadraticInterpolation(stdx[now - 2], stdy[now - 2] ,stdx[now - 1], stdy[now - 1] ,
@@ -446,8 +446,7 @@ def get_color_map(fname):
     return clrmap
 
 
-
-#将bin=2的图转换为bin=1（测试时使用）
+# 将bin=2的图转换为bin=1（测试时使用）
 def change(img):
     if bin_count == 1:
         return img
@@ -460,8 +459,7 @@ def change(img):
     return ans
 
 
-
-#获取图片所在的bin值
+# 获取图片所在的bin值
 def getBin(imgData):
     H, W = imgData.shape
     print(H, W, height_Ha + height_Fe)
@@ -470,8 +468,7 @@ def getBin(imgData):
     return 2
 
 
-
-#完整的工作流程
+# 完整的工作流程
 def entireWork(filename, darkDate, flatData, abortion):
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
@@ -850,12 +847,9 @@ file_count = mp.Value('i', 20)
 if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
 
-
-
-
 if __name__ == "__main__":
     test()
-    #I = Image.open("123.png")
+    # I = Image.open("123.png")
 
     # I_array = np.array(I.convert('L'))
     # H, W = I_array.shape

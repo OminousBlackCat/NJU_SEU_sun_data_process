@@ -24,7 +24,6 @@ bin_count = 1
 # TODO: 如果运行在摆扫模式 请务必检查此参数
 reversal_mode = 'odd'
 
-
 # 日像汇总结果存放的文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
 # 文件夹最后的结尾需要带'/'
@@ -60,7 +59,6 @@ header_file = 'data/header.txt'
 # 若为'default' 则程序自动根据获得的cpu核数设定并行数
 # 默认使用可支配核数-4的并行数量
 multiprocess_count = 'default'
-
 
 # sit stare模式
 # 若为Ture, 则不对序列进行数额判断, 所有序列都会尝试进行处理
@@ -98,7 +96,6 @@ sum_row_index_HA_bin_2 = 68
 # 合并FE日像时使用的行数
 sum_row_index_FE_bin_2 = 10
 
-
 # 通用参数
 # 红蓝移修正内 波长相关数据
 HA_start = 6559.58  # HA窗口零像素波长
@@ -121,10 +118,8 @@ sit_stare_array_size = 2400
 # 使用数字输入
 date_font_size = 2
 date_font_thick = 2
-#插值参数，使用几次插值
-interpolation_paramter = 3
-
-
+# 插值参数，使用几次插值
+interpolation_parameter = 3
 
 # 摆扫模式参数
 # 计算日心位置时的均值阈值
@@ -133,7 +128,6 @@ center_mean_threshold = 150
 # 目前使用Fe窗口的第10行作为获取的线心初始 往下4行求平均
 center_mean_index = int(height_Ha / 2) + 9
 center_mean_count = 4
-
 
 # 序列扫描时间偏移量(单位: 秒)
 # 会在写入头部的时候将对应的STR_TIME/OBS_TIME/END_TIME时间加上时间偏移量
