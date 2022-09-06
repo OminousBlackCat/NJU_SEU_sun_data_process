@@ -133,7 +133,7 @@ def curve_correction(imgData, x0, C):
                     bad_Fe = y
             else:
                 # 计算插值
-                imgData[y][x] = Interpolation(
+                imgData[y + int(height_Ha / bin_count)][x] = Interpolation(
                     stdx[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
                     stdy[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
                     y)
@@ -475,8 +475,16 @@ def entireWork(filename, darkDate, flatData, abortion):
     # imgData = change(imgData)
     imgData = moveImg(imgData, -2)
     imgData, HofHa, HofFe = curve_correction(imgData - darkDate, x0, C)
+    print("去暗场")
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
+    plt.show()
+    print("去平场")
+    plt.figure()
+    plt.imshow(flatData, cmap="gray", aspect='auto')
+    plt.show()
+    plt.figure()
+    plt.imshow(DivFlat(imgData, flatData), cmap="gray", aspect='auto')
     plt.show()
     # print(HofHa, HofFe)
     print(flatData.min())
@@ -486,24 +494,15 @@ def entireWork(filename, darkDate, flatData, abortion):
     # plt.show()
     # print(HofHa)
     plt.figure()
-    plt.plot(imgData[HofHa:, 2200].reshape(-1))
+    plt.plot(imgData[HofHa:, 1100].reshape(-1))
     imgDataRB = RB_repair(imgData, abortion)
-    plt.plot(imgDataRB[HofHa:, 2200].reshape(-1))
-    imgData = MedSmooth(np.array(imgDataRB), HofHa, HofFe, 3)
-    # H,W = imgDataRB.shape
-    # img = np.zeros([HofHa+HofFe+4,W])
-    # img[1:1+HofHa] = imgDataRB[0:HofHa]
-    # img[0] = imgDataRB[0]
-    # img[1+HofHa] = imgDataRB[HofHa]
-    #
-    # img[3 + HofHa:3 + HofHa + HofFe] = imgDataRB[HofHa:]
-    # img[2 + HofHa] = imgDataRB[HofHa]
-    # img[3 + HofHa + HofFe] = imgDataRB[HofHa + HofFe -1]
-    #
-    # img = MedSmooth(img, 3)
-    # imgDataRB[:HofHa] = img[1:1+HofHa]
-    # imgDataRB[HofHa:] = img[HofHa + 3: 3 + HofHa + HofFe]
-    plt.plot(imgData[HofHa:, 2200].reshape(-1))
+    plt.plot(imgDataRB[HofHa:, 1100].reshape(-1))
+    imgData = MedSmooth(np.array(imgDataRB), HofHa, HofFe, 5)
+
+    plt.plot(imgData[HofHa:, 1100].reshape(-1))
+    plt.show()
+    plt.figure()
+    plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
     return imgDataRB, imgData
 
@@ -777,33 +776,22 @@ def test():
     # print(base)
     image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     dark_data = np.array(fits.getdata(image_file), dtype=float)
-    image_file = get_pkg_data_filename(filepath_test + 'for_flat.fits')
+    dark_data = change(dark_data)
+    image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
     flat_data = np.array(fits.getdata(image_file), dtype=float)
     # RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
     # RSM20220120T062536-0017-1081.fts
     H, W = flat_data.shape
     print(H, W)
-    filelist = os.listdir(filepath_test)
-    image_file = get_pkg_data_filename(filepath_test + 'RSM20211222T060119-0008-1353.fts')
-    img_data = np.array(fits.getdata(image_file), dtype=float)
-    # img_data = change(img_data)
-    # bin = getBin(img_data)
     print(bin_count)
-    img_data = moveImg(img_data, -2)
-    # flat_data = change(flat_data)
-    # dark_data = change(dark_data)
     flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
-    img_data, HofHa, HofFe = curve_correction(img_data - dark_data, x0, C)
-    flat_data = getFlatOffset(flat_data, img_data)
-    # print(flat_data)
     flat_data = getFlat(flat_data)
-
-    filename = filepath_test + 'RSM20211222T060119-0008-1353.fts'
+    filename = filepath_test + 'RSM20220808T005114-0000-1837.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
-    # imgData = change(imgData)
-    imgData = moveImg(imgData, -2)
+    imgData = moveImg(imgData, -1)
     imgData, HofHa, HofFe = curve_correction(imgData - dark_data, x0, C)
+    print("pic1")
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
     plt.show()
@@ -820,7 +808,7 @@ def test():
     plt.imshow(flat_data, cmap="gray", aspect='auto')
     plt.show()
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + 'RSM20211203T184958-0001-2555.fts', dark_data, flat_data, abortion)
+    image_file, imgData = entireWork(filepath_test + 'RSM20220808T005114-0000-1837.fts', dark_data, flat_data, abortion)
     #
     print("OK")
     plt.figure()
