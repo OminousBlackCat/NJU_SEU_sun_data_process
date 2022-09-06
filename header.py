@@ -1,6 +1,5 @@
 import config
 from astropy.io import fits
-import suntools
 
 '''
 此文件代码主要目的是读取data/header.txt中的头部项
@@ -44,6 +43,10 @@ copy_header_items = [
     {
         'key': 'SAT_VEL3',
         'typeOfValue': 'number'
+    },
+    {
+        'key': 'ORID',
+        'typeOfValue': 'string'
     }
 ]
 
@@ -79,16 +82,10 @@ def read_header_from_txt(txtPath):
 
 
 def main():
-    file_data = fits.open(config.data_dir_path + '/' + 'RSM20211222T060105-0008-0001.fts')
+    file_data = fits.open('C:\\Users\\seu-wxy\\Desktop\\太阳\\data\\raw_data_test\\RSM20220903T205603-0000-80735.fts')
     h = file_data[0].header
     print(repr(h))
-    q0 = h['Q0']
-    q1 = h['Q1']
-    q2 = h['Q2']
-    q3 = h['Q3']
-    strtime = h['STR_TIME']
-    B0, INST = suntools.getB0P0(q0, q1, q2, q3, strtime)
-    print(B0)
+
 
     # b = fits.header.Header()
     # temp = read_header_from_txt('D:\\QQ\\WechatTemp\\WeChat Files\\wxid_vch2mdk54tie22\\FileStorage\\File\\2022-03'
