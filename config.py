@@ -17,7 +17,7 @@ save_dir_path = "/data/chase/Chase/Lev1/2021/12/16/"
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
 # TODO: bin_count务必在程序运行前要确认
-bin_count = 1
+bin_count = 2
 
 # 摆扫模式时翻转的序列 序号标号模式为: 0, 1, 2, 3, ...
 # 'odd'表示奇数序列翻转 'even'表示偶数序列翻转 'none'表示不翻转
