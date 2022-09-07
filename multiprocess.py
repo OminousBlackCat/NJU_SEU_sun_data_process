@@ -274,7 +274,8 @@ try:
         temp_dict['header'].set('STR_TIME', start_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('END_TIME', end_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('FRM_NUM', '1~' + str(temp_dict['file_count']))
-
+except KeyError as error:
+    print(error)
 except uEr.URLError as error:
     print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
     print(error)
