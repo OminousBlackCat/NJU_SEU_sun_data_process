@@ -146,10 +146,10 @@ def curve_correction(imgData, x0, C):
                 #             y - stdx[now - 1])
 
     # print(bad_Ha,bad_Fe)
-    if bad_Ha > int(height_Ha / bin_count) - int(24 / bin_count):
-        bad_Ha = int(height_Ha / bin_count) - int(24 / bin_count)
-    if bad_Fe > int(height_Fe / bin_count) - int(24 / bin_count):
-        bad_Fe = int(height_Fe / bin_count) - int(24 / bin_count)
+    # if bad_Ha > int(height_Ha / bin_count) - int(24 / bin_count):
+    bad_Ha = int(height_Ha / bin_count) - int(24 / bin_count)
+    # if bad_Fe > int(height_Fe / bin_count) - int(24 / bin_count):
+    bad_Fe = int(height_Fe / bin_count) - int(24 / bin_count)
     # print(bad_Ha,bad_Fe,int(height_Ha / bin_count) - int(24 / bin_count),int(height_Fe / bin_count) - int(24 / bin_count))
     # 删除坏行 并输出两窗口最后的行数
     imgData[bad_Ha:bad_Ha + int(height_Fe / bin_count)] = imgData[
