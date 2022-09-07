@@ -95,7 +95,7 @@ def curve_correction(imgData, x0, C):
             while now < int(height_Ha / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
-            if y > stdx[now]:
+            if y > stdx[now] and x > 400 /  bin_count and x < W - 400 /  bin_count:
                 imgData[y][x] = stdy[now]
                 if y < bad_Ha:
                     bad_Ha = y
@@ -127,7 +127,7 @@ def curve_correction(imgData, x0, C):
             while now < int(height_Fe / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
-            if y > stdx[now]:
+            if y > stdx[now] and x > 400 /  bin_count and x < W - 400 /  bin_count:
                 imgData[y + int(height_Ha / bin_count)][x] = stdy[now]
                 if y < bad_Fe:
                     bad_Fe = y
@@ -144,11 +144,13 @@ def curve_correction(imgData, x0, C):
                 # else:
                 #     imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                 #             y - stdx[now - 1])
-    if bad_Ha < int(height_Ha / bin_count) - int(29 / bin_count):
-        bad_Ha = int(height_Ha / bin_count) - int(29 / bin_count)
-    if bad_Fe < int(height_Fe / bin_count) - int(29 / bin_count):
-        bad_Fe = int(height_Fe / bin_count) - int(29 / bin_count)
+
     # print(bad_Ha,bad_Fe)
+    if bad_Ha > int(height_Ha / bin_count) - int(24 / bin_count):
+        bad_Ha = int(height_Ha / bin_count) - int(24 / bin_count)
+    if bad_Fe > int(height_Fe / bin_count) - int(24 / bin_count):
+        bad_Fe = int(height_Fe / bin_count) - int(24 / bin_count)
+    # print(bad_Ha,bad_Fe,int(height_Ha / bin_count) - int(24 / bin_count),int(height_Fe / bin_count) - int(24 / bin_count))
     # 删除坏行 并输出两窗口最后的行数
     imgData[bad_Ha:bad_Ha + int(height_Fe / bin_count)] = imgData[
                                                           int(height_Ha / bin_count):int(height_Fe / bin_count) + int(
