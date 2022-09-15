@@ -10,6 +10,7 @@ import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
 import ctypes as c
+import createVideo
 import sys
 
 # 读入配置文件 引入参数
@@ -542,6 +543,8 @@ def main():
 
     time_end = time.time()
     print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
+    print('生成视频中...')
+    createVideo.createVideo(global_multiprocess_list[0]['start_time'])
     print('程序结束！')
 
 
