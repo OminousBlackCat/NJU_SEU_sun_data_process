@@ -1,10 +1,13 @@
+"""
+此文件代码主要目的是读取data/header.txt中的头部项
+并将这些项构造成为一个astropy的header对象
+@author: seu_wxy
+"""
+
+
 import config
 from astropy.io import fits
 
-'''
-此文件代码主要目的是读取data/header.txt中的头部项
-并将这些项构造成为一个astropy的header对象
-'''
 
 '''
 read_header_from_text()

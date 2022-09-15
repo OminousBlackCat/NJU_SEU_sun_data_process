@@ -1,3 +1,13 @@
+"""
+本py文件对应安装后的run_scan_solar文件 使用source指令可以执行该主程序
+本程序对应摆扫扫描模式下对图像数据的预处理操作
+与multiprocess.py的主要区别体现在对读入文件列表的处理 增添了对每一个扫描序列的判断
+注意在使用前修改config.py内的参数!
+
+@author: seu_wxy
+"""
+
+
 import multiprocessing as mp
 import datetime
 import os
@@ -12,6 +22,7 @@ import matplotlib.pyplot as plt
 import ctypes as c
 import createVideo
 import sys
+
 
 # 读入配置文件 引入参数
 GLOBAL_BINNING = config.bin_count  # binning 数值

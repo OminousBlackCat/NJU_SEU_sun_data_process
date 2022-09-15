@@ -1,3 +1,12 @@
+"""
+本py文件内部包含了所有在对图像预处理时使用的处理函数与工具函数
+所有与算法相关的代码都在本文件内
+
+@author: seu_lcl
+@editor: seu_wxy
+"""
+
+
 import numpy as np
 import re
 import os

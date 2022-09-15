@@ -1,16 +1,20 @@
+"""
+此py文件用来封装生成视频的函数
+主要用途: 读取当前文件夹内的所有PNG文件, 将其分为两组(FE窗口图像与HA窗口图片)
+同时生成两个视频, 每张图片占据视频的10帧
+视频帧率固定为 10 frame/s, 格式固定为avi
+视频像素大小固定为config内的序列长度与图像宽度
+
+@author: seu_wxy
+"""
+
 import cv2
 import numpy as np
 import os
 import config
 import datetime
 
-'''
-此py文件用来封装生成视频的函数
-主要用途: 读取当前文件夹内的所有PNG文件, 将其分为两组(FE窗口图像与HA窗口图片)
-同时生成两个视频, 每张图片占据视频的10帧
-视频帧率固定为 10 frame/s, 格式固定为avi
-视频像素大小固定为config内的序列长度与图像宽度
-'''
+
 framePerSec = 10
 fileDir = config.save_dir_path
 sourceDir = config.data_dir_path
