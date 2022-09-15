@@ -9,15 +9,13 @@
 """
 
 import cv2
-import numpy as np
 import os
 import config
 import datetime
 
-
 framePerSec = 10
 fileDir = config.save_dir_path
-sourceDir = config.data_dir_path
+saveDir = config.video_dir_path
 ha_list = []
 fe_list = []
 
@@ -35,22 +33,25 @@ def getPNGList():
 
 
 def createVideo(fileDate: datetime.datetime):
+    # 检查输出文件夹是否存在 不存在则创建
+    if not os.path.exists(saveDir):
+        os.makedirs(saveDir)
     getPNGList()
     frameShape = cv2.imread(fileDir + ha_list[0]).shape
-    ha_videoOut = cv2.VideoWriter(fileDir + fileDate.strftime('%Y-%m-%d-') + sourceDir.split('/')[-2] + '_HA.avi',
+    ha_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_HA.avi',
                                   cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
-    fe_videoOut = cv2.VideoWriter(fileDir + fileDate.strftime('%Y-%m-%d-') + sourceDir.split('/')[-2] + '_FE.avi',
-                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
+    # fe_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_FE.avi',
+    #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
     for ha in ha_list:
         ha_img = cv2.imread(fileDir + ha)
         for i in range(framePerSec):
             ha_videoOut.write(ha_img)  # 写入对应帧(1s)
-    for fe in fe_list:
-        fe_img = cv2.imread(fileDir + fe)
-        for i in range(framePerSec):
-            fe_videoOut.write(fe_img)
+    # for fe in fe_list:
+    #     fe_img = cv2.imread(fileDir + fe)
+    #     for i in range(framePerSec):
+    #         fe_videoOut.write(fe_img)
     ha_videoOut.release()
-    fe_videoOut.release()
+    # fe_videoOut.release()
 
 
 def main():

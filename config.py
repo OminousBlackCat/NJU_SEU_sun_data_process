@@ -20,6 +20,13 @@ data_dir_path = "/data/chase/Chase/2021/12/16-962/"
 # TODO: 在程序运行前需要修改此目录
 save_dir_path = "/data/chase/Chase/Lev1/2021/12/16/"
 
+# 存储视频的文件夹, 相对路径与绝对路径均可
+# 请确保此文件夹存在并拥有写入权限
+# 可以不需要手动创建文件夹  会自动创建文件夹
+# 文件夹最后的结尾需要带'/'
+# TODO: 每个月需要修改此目录
+video_dir_path = "/data/chase/Chase/Lev1/2021/12/video/"
+
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
 # TODO: bin_count务必在程序运行前要确认
