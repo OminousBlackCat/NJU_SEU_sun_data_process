@@ -4,10 +4,8 @@
 @author: seu_wxy
 """
 
-
 import config
 from astropy.io import fits
-
 
 '''
 read_header_from_text()
@@ -88,7 +86,6 @@ def main():
     file_data = fits.open('C:\\Users\\seu-wxy\\Desktop\\太阳\\data\\raw_data_test\\RSM20220903T205603-0000-80735.fts')
     h = file_data[0].header
     print(repr(h))
-
 
     # b = fits.header.Header()
     # temp = read_header_from_txt('D:\\QQ\\WechatTemp\\WeChat Files\\wxid_vch2mdk54tie22\\FileStorage\\File\\2022-03'
