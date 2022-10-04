@@ -396,7 +396,7 @@ def main():
         pool.map(target_task, temp_dict['file_list'])
         pool.close()
         pool.join()
-        suntools.log('\n扫描序列' + temp_dict['scan_index'] + '预处理完成...')
+        suntools.log('扫描序列' + temp_dict['scan_index'] + '预处理完成...')
         suntools.log('生成完整日像中...')
         try:
             sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
@@ -415,7 +415,7 @@ def main():
             suntools.log('计算CCD太阳像半径中...')
             R_y, R_x, radius = suntools.getCircle(sum_data_FE)
             OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
-            wavelength_calibrate_input = global_shared_array[:, R_y - 100: R_y + 99, R_x - 100: R_x + 99]
+            wavelength_calibrate_input = global_shared_array[:, int(R_y) - 100: int(R_y) + 99, int(R_x) - 100: int(R_x) + 99]
             cdel_t3, crval_l3 = suntools.cal_center_mean(wavelength_calibrate_input)
             temp_dict['header'].set('CRPIX1', R_x)
             temp_dict['header'].set('CRPIX2', R_y)

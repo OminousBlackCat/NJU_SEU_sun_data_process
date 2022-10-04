@@ -875,7 +875,7 @@ def cal_center_mean(Input_np):
 # log所用函数
 def log(*args):
     print(datetime.datetime.now().strftime("[%Y-%m-%d-%H:%M:%S]"), end='')
-    print(args)
+    print(*args)
 
 
 if __name__ == "__main__":
