@@ -6,7 +6,6 @@
 @editor: seu_wxy
 """
 
-
 import numpy as np
 import re
 import os
@@ -104,7 +103,7 @@ def curve_correction(imgData, x0, C):
             while now < int(height_Ha / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
-            if y > stdx[now] and x > 400 /  bin_count and x < W - 400 /  bin_count:
+            if y > stdx[now] and x > 400 / bin_count and x < W - 400 / bin_count:
                 imgData[y][x] = stdy[now]
                 if y < bad_Ha:
                     bad_Ha = y
@@ -136,7 +135,7 @@ def curve_correction(imgData, x0, C):
             while now < int(height_Fe / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
-            if y > stdx[now] and x > 400 /  bin_count and x < W - 400 /  bin_count:
+            if y > stdx[now] and x > 400 / bin_count and x < W - 400 / bin_count:
                 imgData[y + int(height_Ha / bin_count)][x] = stdy[now]
                 if y < bad_Fe:
                     bad_Fe = y
@@ -839,6 +838,12 @@ def add_time(Input_array, time_txt):
     w1 = int(W * 0.95)
     cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (I_array.max()), txt_thick)
     return I_array
+
+
+# log所用函数
+def log(*args):
+    print(datetime.datetime.now().strftime("[%Y-%m-%d-%H:%M:%S]"), end='')
+    print(args)
 
 
 # 全局进度控制

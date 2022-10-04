@@ -80,7 +80,7 @@ if config.multiprocess_count != 'default':
     multiprocess_count = config.multiprocess_count
 else:
     multiprocess_count = mp.cpu_count() - 4
-print('多核并行数:' + str(multiprocess_count))
+suntools.log('多核并行数:' + str(multiprocess_count))
 
 
 # 读取数据文件夹所有文件
@@ -97,11 +97,11 @@ def read_fits_directory():
 try:
     data_file_lst = read_fits_directory()
 except OSError:
-    print('没有获得原始数据文件，请检查config中的读入数据目录')
+    suntools.log('没有获得原始数据文件，请检查config中的读入数据目录')
     sys.exit("程序终止")
-print('文件总数为: ' + str(len(data_file_lst)))
-print('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
-print('当前运行处在 正常序列处理模式')
+suntools.log('文件总数为: ' + str(len(data_file_lst)))
+suntools.log('共包含:' + str(len(data_file_lst) / SUN_ROW_COUNT) + '个序列')
+suntools.log('当前运行处在 正常序列处理模式')
 
 # 将读入的文件按照序列分成不同的组
 # 此处坑比较大
@@ -114,7 +114,7 @@ print('当前运行处在 正常序列处理模式')
 #     [year] [mon]  [day] [T hhMMSS]      [index]   [frame]
 global_multiprocess_list = []  # 存放序列dict的全局数组
 # 对list内的文件名排序
-print('对文件进行排序中...')
+suntools.log('对文件进行排序中...')
 data_file_lst.sort(key=lambda x: x[3: 28].replace('-', ''))
 last_temp_index = None
 global_multiprocess_index = -1
@@ -127,7 +127,7 @@ for i in range(len(data_file_lst)):
         if filename[0:3] != 'RSM':
             raise ValueError
     except ValueError as error:
-        print('文件<' + filename + '>文件命名非法! 已剔除')
+        suntools.log('文件<' + filename + '>文件命名非法! 已剔除')
         continue
     # 如果和上一个序号相等 说明list已经有了需要的dict 直接根据索引赋值即可
     if temp_index == last_temp_index:
@@ -164,15 +164,15 @@ for i in range(len(data_file_lst)):
     last_temp_index = temp_index
 
 # 剔除不完整序列
-print('当前SIT_STARE模式为:' + str(SIT_STARE_MODE))
+suntools.log('当前SIT_STARE模式为:' + str(SIT_STARE_MODE))
 if not SIT_STARE_MODE:
-    print('检验序列中..将剔除不完整序列...')
+    suntools.log('检验序列中..将剔除不完整序列...')
     for temp_dict in global_multiprocess_list[:]:
-        print('序列:' + temp_dict['scan_index'] + '包含文件总数:' + str(temp_dict['file_count']))
+        suntools.log('序列:' + temp_dict['scan_index'] + '包含文件总数:' + str(temp_dict['file_count']))
         if temp_dict['file_count'] < SUN_ROW_COUNT - 500 or \
                 temp_dict['standard_filename'] == '':
-            print('文件夹中包含不完整序列, 序列序号为:' + temp_dict['scan_index'])
-            print('本次数据处理将不此序列进行处理.....')
+            suntools.log('文件夹中包含不完整序列, 序列序号为:' + temp_dict['scan_index'])
+            suntools.log('本次数据处理将不此序列进行处理.....')
             global_multiprocess_list.remove(temp_dict)
 
 # 读取头部参数文件
@@ -187,13 +187,13 @@ for h in global_header_list:
 temp_img = None
 dark_img = None
 try:
-    print("正在读取原始暗场文件")
+    suntools.log("正在读取原始暗场文件")
     temp_img = fits.open(DARK_FITS_FILE)
 except uEr.URLError:
-    print("Error: 暗场文件未找到, 请检查config文件或存放目录")
+    suntools.log("Error: 暗场文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
 except OSError:
-    print("Error: 暗场文件读取发生错误, 请检查文件读取权限")
+    suntools.log("Error: 暗场文件读取发生错误, 请检查文件读取权限")
     sys.exit("程序终止")
 if temp_img is not None:
     dark_img = np.array(temp_img[0].data, dtype=float)
@@ -204,13 +204,13 @@ temp_img.close()
 flat_img = None
 standard_HA_width, standard_FE_width = None, None
 try:
-    print("正在读取原始平场文件")
+    suntools.log("正在读取原始平场文件")
     temp_img = fits.open(FLAT_FITS_FILE)
 except uEr.URLError:
-    print("Error: 原始平场文件未找到, 请检查config文件或存放目录")
+    suntools.log("Error: 原始平场文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
 except OSError:
-    print("Error: 原始平场文件读取发生错误, 请检查文件读取权限")
+    suntools.log("Error: 原始平场文件读取发生错误, 请检查文件读取权限")
     sys.exit("程序终止")
 if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
@@ -227,13 +227,13 @@ sample_from_standard = None
 try:
     for temp_dict in global_multiprocess_list:
         # 对每个序列进行校正
-        print('校正扫描序列' + temp_dict['scan_index'] + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
-        print('此序列首文件为:' + temp_dict['first_filename'])
-        print('此序列末文件为:' + temp_dict['last_filename'])
-        print("校正平场中...")
+        suntools.log('校正扫描序列' + temp_dict['scan_index'] + '中...使用标准校正文件为:' + temp_dict['standard_filename'])
+        suntools.log('此序列首文件为:' + temp_dict['first_filename'])
+        suntools.log('此序列末文件为:' + temp_dict['last_filename'])
+        suntools.log("校正平场中...")
         standard_name = None
         if temp_dict['standard_filename'] == '' and SIT_STARE_MODE:
-            print('此序列不完整且不包含标准序列文件, 将使用最靠近中心的文件作为矫正基准')
+            suntools.log('此序列不完整且不包含标准序列文件, 将使用最靠近中心的文件作为矫正基准')
             if int(temp_dict['first_filename'][24: 28]) < 100:
                 standard_name = temp_dict['last_filename']
             if int(temp_dict['last_filename'][24: 28]) > 4000 / GLOBAL_BINNING:
@@ -254,7 +254,7 @@ try:
         # 先平移矫正 减去暗场 再谱线弯曲矫正
         flatTemp = suntools.getFlatOffset(flat_img, standard_img)
         flatTemp = suntools.getFlat(flatTemp)
-        print("获得标准太阳光谱数据中...")
+        suntools.log("获得标准太阳光谱数据中...")
         # 以标准文件作为基准 计算红蓝移吸收系数
         # 需要先对标注文件进行一系列操作 去暗场 去平场 再进行红蓝移修正
         standard_img = suntools.DivFlat(standard_img, flatTemp)
@@ -263,8 +263,8 @@ try:
         temp_dict['flat_data'] = flatTemp
         # temp_dict['abortion_data'] = abortion
         temp_img.close()
-        print("序列:" + str(int(standard_name[19:23])).zfill(4) + "矫正完成")
-        print('计算B0, INST_ROT中....')
+        suntools.log("序列:" + str(int(standard_name[19:23])).zfill(4) + "矫正完成")
+        suntools.log('计算B0, INST_ROT中....')
         temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
                                                   standard_header['Q3'], standard_header['STR_TIME'])
         temp_dict['header'].set('B0', temp_B0)
@@ -286,14 +286,14 @@ try:
         temp_dict['header'].set('END_TIME', end_temp_time.strftime('%Y-%m-%dT%H:%M:%S'))
         temp_dict['header'].set('FRM_NUM', '1~' + str(temp_dict['file_count']))
 except KeyError as error:
-    print(error)
+    suntools.log(error)
 except uEr.URLError as error:
-    print("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
-    print(error)
+    suntools.log("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
+    suntools.log(error)
     sys.exit("程序终止")
 except OSError as error:
-    print("Error: 标准日心校准文件读取发生错误, 请检查文件读取权限")
-    print(error)
+    suntools.log("Error: 标准日心校准文件读取发生错误, 请检查文件读取权限")
+    suntools.log(error)
     sys.exit("程序终止")
 
 # 读取输出色谱
@@ -312,14 +312,14 @@ if_first_print = mp.Value('b', True)
 GLOBAL_ARRAY_X_COUNT = sample_from_standard.shape[0]
 GLOBAL_ARRAY_Y_COUNT = SUN_ROW_COUNT
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
-print('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
+suntools.log('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
 # 创建共享内存 大小为 x*y*z*sizeof(int16)
 GLOBAL_SHARED_MEM = None
 try:
     GLOBAL_SHARED_MEM = mp.Array(c.c_int16, GLOBAL_ARRAY_X_COUNT * GLOBAL_ARRAY_Y_COUNT * GLOBAL_ARRAY_Z_COUNT)
 except BaseException as e:
-    print(e)
-    print("内存不足, 无法创建共享数组")
+    suntools.log(e)
+    suntools.log("内存不足, 无法创建共享数组")
     sys.exit("程序结束")
 GLOBAL_DICT_INDEX = 0  # 全局dict序号控制 为了在pool.map之后让每个子进程知道自己的dict序号
 
@@ -351,7 +351,7 @@ def target_task(filename):
         currentFlat = global_multiprocess_list[GLOBAL_DICT_INDEX]['flat_data']
         currentAbortion = None
         if currentFlat is None:
-            print("文件：" + filename + "未找到平场数据, 请检查文件夹")
+            suntools.log("文件：" + filename + "未找到平场数据, 请检查文件夹")
             return
         # 去平场
         image_data = suntools.DivFlat(image_data, currentFlat)
@@ -370,16 +370,16 @@ def target_task(filename):
         remaining_count.value += 1
         file_data.close()
         # if if_first_print.value:
-        #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        #     suntools.log('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
         #     sys.stdout.flush()
         #     if_first_print.value = False
         # else:
-        #     print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
-        #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        #     suntools.log('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
+        #     suntools.log('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
         #     sys.stdout.flush()
     except BaseException as exception:
-        print(exception)
-        print('文件:' + filename + '处理失败, 请检查此文件')
+        suntools.log(exception)
+        suntools.log('文件:' + filename + '处理失败, 请检查此文件')
 
 
 def main():
@@ -387,17 +387,17 @@ def main():
     time_start = time.time()
     # 获得文件夹列表 读取相关参数
     # 并行处理
-    print('开启多核并行处理...')
+    suntools.log('开启多核并行处理...')
     for temp_dict in global_multiprocess_list:
-        print('正在处理扫描序列:' + temp_dict['scan_index'] + '...')
+        suntools.log('正在处理扫描序列:' + temp_dict['scan_index'] + '...')
         file_count.value = temp_dict['file_count']
         remaining_count.value = 0
         pool = mp.Pool(processes=multiprocess_count)
         pool.map(target_task, temp_dict['file_list'])
         pool.close()
         pool.join()
-        print('\n扫描序列' + temp_dict['scan_index'] + '预处理完成...')
-        print('生成完整日像中...')
+        suntools.log('\n扫描序列' + temp_dict['scan_index'] + '预处理完成...')
+        suntools.log('生成完整日像中...')
         try:
             sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
             sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
@@ -406,13 +406,13 @@ def main():
                                                               GLOBAL_ARRAY_Z_COUNT)
             # 将小于0的值全部赋为0
             global_shared_array[global_shared_array < 0] = 0
-            print("SHAPE为：" + str(global_shared_array.shape))
+            suntools.log("SHAPE为：" + str(global_shared_array.shape))
             # 输出太阳像
             for i in range(global_shared_array.shape[1]):
                 sum_data_HA[i] = global_shared_array[SUM_ROW_INDEX_HA, i, :].reshape(sample_from_standard.shape[1])
                 sum_data_FE[i] = global_shared_array[standard_HA_width + SUM_ROW_INDEX_FE, i, :].reshape(
                     sample_from_standard.shape[1])
-            print('计算CCD太阳像半径中...')
+            suntools.log('计算CCD太阳像半径中...')
             R_y, R_x, radius = suntools.getCircle(sum_data_FE)
             OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
             temp_dict['header'].set('CRPIX1', R_x)
@@ -423,7 +423,7 @@ def main():
             temp_dict['header'].set('CDELT2', PIXEL_RESOLUTION * GLOBAL_BINNING)
             temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
             # 下采样 1/4
-            print('下采样中...')
+            suntools.log('下采样中...')
             sum_data_HA_save = suntools.down_sample(sum_data_HA)
             sum_data_FE_save = suntools.down_sample(sum_data_FE)
             sum_data_HA_save = suntools.add_time(sum_data_HA_save, temp_dict['start_time'].strftime('%Y-%m-%d '
@@ -432,7 +432,7 @@ def main():
                                                                                                     '%H:%M:%S UT'))
             if config.save_img_form == 'default':
                 # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
-                print('输出序号为' + temp_dict['scan_index'] + '的png...')
+                suntools.log('输出序号为' + temp_dict['scan_index'] + '的png...')
                 sum_mean_ha = np.mean(sum_data_HA)
                 sum_mean_fe = np.mean(sum_data_FE)
                 plt.imsave(SUM_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
@@ -443,7 +443,7 @@ def main():
                            sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe)
             if config.save_img_form == 'fts':
                 # 不对data进行任何操作 直接输出为fts文件
-                print('输出序号为' + temp_dict['scan_index'] + '的fits...')
+                suntools.log('输出序号为' + temp_dict['scan_index'] + '的fits...')
                 primaryHDU = fits.PrimaryHDU(sum_data_HA)
                 greyHDU = fits.HDUList([primaryHDU])
                 greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
@@ -454,7 +454,7 @@ def main():
                 greyHDU.writeto(SUM_DIR + 'SUM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S')
                                 + '_' + temp_dict['scan_index'] + '_FE' + '.fts', overwrite=True)
                 greyHDU.close()
-            print('生成HA文件中...')
+            suntools.log('生成HA文件中...')
             temp_dict['header'].set('SPECLINE', 'HA')
             temp_dict['header'].set('WAVE_LEN', HA_LINE_CORE)
             temp_dict['header'].set('CRVAL3', HA_START)
@@ -470,10 +470,10 @@ def main():
             primaryHDU.header.add_comment('Dark subtracted')
             primaryHDU.header.add_comment('Flat-field corrected')
             primaryHDU.header.add_comment('Processed by RSM_prep')
-            print(repr(primaryHDU.header))
+            suntools.log(repr(primaryHDU.header))
             primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                                temp_dict['scan_index'] + '_HA.fits', overwrite=True)
-            print('生成FE文件中...')
+            suntools.log('生成FE文件中...')
             # 修改header内的SPECLINE与WAVELNTH
             temp_dict['header'].set('SPECLINE', 'FEI')
             temp_dict['header'].set('WAVE_LEN', FE_LINE_CORE)
@@ -493,17 +493,17 @@ def main():
             primaryHDU.writeto(OUT_DIR + 'RSM' + temp_dict['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                                temp_dict['scan_index'] + '_FE.fits', overwrite=True)
         except BaseException as uniformException:
-            print(uniformException)
-            print("当前序列输出出错, 已跳过")
+            suntools.log(uniformException)
+            suntools.log("当前序列输出出错, 已跳过")
         if_first_print.value = True
         global GLOBAL_DICT_INDEX
         GLOBAL_DICT_INDEX += 1
 
     time_end = time.time()
-    print('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
-    print('生成视频中...')
+    suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
+    suntools.log('生成视频中...')
     createVideo.createVideo(global_multiprocess_list[0]['start_time'])
-    print('程序结束！')
+    suntools.log('程序结束！')
 
 
 if __name__ == "__main__":
