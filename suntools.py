@@ -421,8 +421,7 @@ def getFlatOffset(flatData, imgData):
     # 计算偏移量
     mx = int((pos[1] - int((w + 1) / 2)) / 10)
     my = (pos[1] - int((w + 1) / 2)) - mx * 10
-    print("偏移量：", end='')
-    print(mx, my)
+    log("偏移量：" + str(mx) + str(my))
 
     # 偏移操作
     if mx * 10 + my < 0:
@@ -480,7 +479,7 @@ def change(img):
 # 获取图片所在的bin值
 def getBin(imgData):
     H, W = imgData.shape
-    print(H, W, height_Ha + height_Fe)
+    log(H, W, height_Ha + height_Fe)
     if H >= height_Ha + height_Fe:
         return 1
     return 2
@@ -873,26 +872,17 @@ def cal_center_mean(Input_np):
     return mean_b, mean_b + mean_K * (5430 - 5096) / bin_count
 
 
-
 # log所用函数
 def log(*args):
     print(datetime.datetime.now().strftime("[%Y-%m-%d-%H:%M:%S]"), end='')
     print(args)
 
 
-
-
-# 全局进度控制
-file_count = mp.Value('i', 20)
-if_first_print = mp.Value('b', True)
-remaining_count = mp.Value('i', 0)
-
 if __name__ == "__main__":
-
     A = config.FE_start - config.HA_start
-    B = A/K
-    C = (5430 - 5096)/bin_count
-    print(A,B,C)
+    B = A / K
+    C = (5430 - 5096) / bin_count
+    print(A, B, C)
     A = height_Ha
     B = 5430 - 5096
     print(A, B)
