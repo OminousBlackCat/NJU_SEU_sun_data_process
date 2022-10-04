@@ -49,7 +49,6 @@ else:
     x0 = config.curve_cor_x0_bin_2
     C = config.curve_cor_C_bin_2
 
-
 Ha_lower = config.Ha_lower / bin_count
 Ha_Upper = config.Ha_Upper / bin_count
 Fe_lower = config.Fe_lower / bin_count
@@ -57,7 +56,6 @@ Fe_Upper = config.Fe_Upper / bin_count
 
 HA_lineCore = config.HA_lineCore
 FE_lineCore = config.FE_lineCore
-
 
 txt_size = config.date_font_size  # 字体大小
 txt_thick = config.date_font_thick  # 字体粗细
@@ -850,30 +848,29 @@ def add_time(Input_array, time_txt):
     return I_array
 
 
-
 def cal_center_mean(Input_np):
-    data = Input_np.mean(axis = 1).mean(axis = 1)
+    data = Input_np.mean(axis=1).mean(axis=1)
     height_ha = height_Ha / bin_count
     height_fe = height_Fe / bin_count
-    Ha_B = (data[Ha_lower]+data[Ha_Upper])/2
-    Fe_B = (data[height_ha + Fe_lower]+data[height_ha + Fe_Upper])/2
+    Ha_B = (data[Ha_lower] + data[Ha_Upper]) / 2
+    Fe_B = (data[height_ha + Fe_lower] + data[height_ha + Fe_Upper]) / 2
     Ha_U = Ha_L = 0
     Fe_U = Fe_L = 0
 
-    for i in range(Ha_lower,Ha_Upper + 1):
-        Ha_U = Ha_U + (data[i]-Ha_B) * i
-        Ha_L = Ha_L + (data[i]-Ha_B)
+    for i in range(Ha_lower, Ha_Upper + 1):
+        Ha_U = Ha_U + (data[i] - Ha_B) * i
+        Ha_L = Ha_L + (data[i] - Ha_B)
 
-    for i in range(height_ha + Fe_lower,height_ha + Fe_Upper + 1):
+    for i in range(height_ha + Fe_lower, height_ha + Fe_Upper + 1):
         Fe_U = Fe_U + (data[i] - Fe_B) * i
         Fe_L = Fe_L + (data[i] - Fe_B)
 
     Ha_mean = Ha_U / Ha_L
     Fe_mean = Fe_U / Fe_L + (5430 - 5096) / bin_count
 
-    mean_K = (FE_lineCore - HA_lineCore)/(Fe_mean - Ha_mean)
+    mean_K = (FE_lineCore - HA_lineCore) / (Fe_mean - Ha_mean)
     mean_b = FE_lineCore - Fe_mean * mean_K
-    return mean_b , mean_b + mean_K * (5430 - 5096) / bin_count
+    return mean_b, mean_b + mean_K * (5430 - 5096) / bin_count
 
 
 
@@ -896,6 +893,9 @@ if __name__ == "__main__":
     B = A/K
     C = (5430 - 5096)/bin_count
     print(A,B,C)
+    A = height_Ha
+    B = 5430 - 5096
+    print(A, B)
     # cal_center_mean(np.array([[[1,2],[3,4]],[[5,6],[7,8]]]))
     # test()
     # I = Image.open("123.png")

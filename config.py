@@ -5,7 +5,6 @@
 @author: seu_wxy
 """
 
-
 # 读入数据存放的文件夹, 相对路径与绝对路径均可
 # 文件夹最后的结尾需要带'/'
 # TODO: 在运行程序前一定要修改此目录, 此目录应精确到当日的扫描序列文件夹
@@ -150,7 +149,7 @@ scan_time_offset = 0
 # 'fts'输出fts格式灰度文件, 'default'则输出以color map为camp的png图片
 save_img_form = 'default'
 
-#质心计算依赖数值
+# 质心计算依赖数值
 Ha_lower = 104
 Ha_Upper = 164
 Fe_lower = 50
