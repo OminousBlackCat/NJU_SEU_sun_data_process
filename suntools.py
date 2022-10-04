@@ -860,9 +860,9 @@ def cal_center_mean(Input_np):
         Ha_U = Ha_U + (data[i] - Ha_B) * i
         Ha_L = Ha_L + (data[i] - Ha_B)
 
-    for i in range(height_ha + Fe_lower, height_ha + Fe_Upper + 1):
-        Fe_U = Fe_U + (data[i] - Fe_B) * i
-        Fe_L = Fe_L + (data[i] - Fe_B)
+    for i in range(Fe_lower, Fe_Upper + 1):
+        Fe_U = Fe_U + (data[height_ha + i] - Fe_B) * i
+        Fe_L = Fe_L + (data[height_ha + i] - Fe_B)
 
     Ha_mean = Ha_U / Ha_L
     Fe_mean = Fe_U / Fe_L + (5430 - 5096) / bin_count
