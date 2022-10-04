@@ -871,9 +871,9 @@ def cal_center_mean(Input_np):
     Ha_mean = Ha_U / Ha_L
     Fe_mean = Fe_U / Fe_L + (5430 - 5096) / bin_count
 
-    K = (FE_lineCore - HA_lineCore)/(Fe_mean - Ha_mean)
-    b = FE_lineCore - Fe_mean * K
-    return b , b + K * (5430 - 5096) / bin_count
+    mean_K = (FE_lineCore - HA_lineCore)/(Fe_mean - Ha_mean)
+    mean_b = FE_lineCore - Fe_mean * mean_K
+    return mean_b , mean_b + mean_K * (5430 - 5096) / bin_count
 
 
 
