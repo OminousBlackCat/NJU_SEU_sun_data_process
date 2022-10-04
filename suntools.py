@@ -891,9 +891,11 @@ if_first_print = mp.Value('b', True)
 remaining_count = mp.Value('i', 0)
 
 if __name__ == "__main__":
-    A = height_Ha
-    B = 5430-5096
-    print(A,B)
+
+    A = config.FE_start - config.HA_start
+    B = A/K
+    C = (5430 - 5096)/bin_count
+    print(A,B,C)
     # cal_center_mean(np.array([[[1,2],[3,4]],[[5,6],[7,8]]]))
     # test()
     # I = Image.open("123.png")
