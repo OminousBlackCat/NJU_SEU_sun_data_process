@@ -415,6 +415,8 @@ def main():
             suntools.log('计算CCD太阳像半径中...')
             R_y, R_x, radius = suntools.getCircle(sum_data_FE)
             OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
+            wavelength_calibrate_input = global_shared_array[:, R_y - 100: R_y + 99, R_x - 100: R_x + 99]
+            cdel_t3, crval_l3 = suntools.cal_center_mean(wavelength_calibrate_input)
             temp_dict['header'].set('CRPIX1', R_x)
             temp_dict['header'].set('CRPIX2', R_y)
             temp_dict['header'].set('R_SUN', radius)
@@ -422,6 +424,8 @@ def main():
             temp_dict['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
             temp_dict['header'].set('CDELT2', PIXEL_RESOLUTION * GLOBAL_BINNING)
             temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
+            temp_dict['header'].set('CDELT3', cdel_t3)
+            temp_dict['header'].set('CRVAL3', crval_l3)
             # 下采样 1/4
             suntools.log('下采样中...')
             sum_data_HA_save = suntools.down_sample(sum_data_HA)
