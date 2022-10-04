@@ -849,10 +849,11 @@ def add_time(Input_array, time_txt):
 
 def cal_center_mean(Input_np):
     data = Input_np.mean(axis=1).mean(axis=1)
-    # print(data,Ha_Lower,Ha_Upper)
-    height_ha = int(height_Ha / bin_count)
-    height_fe = int(height_Fe / bin_count)
+    # print(data.shape)
+    height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
+    height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
     Ha_B = (data[Ha_Lower] + data[Ha_Upper]) / 2
+    print(height_ha,Fe_Upper)
     Fe_B = (data[height_ha + Fe_Lower] + data[height_ha + Fe_Upper]) / 2
     Ha_U = Ha_L = 0
     Fe_U = Fe_L = 0
@@ -860,7 +861,6 @@ def cal_center_mean(Input_np):
     for i in range(Ha_Lower, Ha_Upper + 1):
         Ha_U = Ha_U + (data[i] - Ha_B) * i
         Ha_L = Ha_L + (data[i] - Ha_B)
-
     for i in range(Fe_Lower, Fe_Upper + 1):
         Fe_U = Fe_U + (data[height_ha + i] - Fe_B) * i
         Fe_L = Fe_L + (data[height_ha + i] - Fe_B)
@@ -890,7 +890,7 @@ if __name__ == "__main__":
     Q =  np.array([1,2,3,4,5,6,7])
     D = 3
     print(Q[3:int(D)+3])
-    print(cal_center_mean(np.zeros((500,3,3))))
+    print(cal_center_mean(np.zeros((164,3,3))))
     # cal_center_mean(np.array([[[1,2],[3,4]],[[5,6],[7,8]]]))
     # test()
     # I = Image.open("123.png")
