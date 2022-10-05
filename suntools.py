@@ -870,7 +870,8 @@ def cal_center_mean(Input_np):
 
     mean_K = (FE_lineCore - HA_lineCore) / (Fe_mean - Ha_mean)
     mean_b = FE_lineCore - Fe_mean * mean_K
-    return mean_b, mean_b + mean_K * (5430 - 5096) / bin_count
+    print(Fe_mean,Ha_mean)
+    return mean_K, mean_b, mean_b + mean_K * (5430 - 5096) / bin_count
 
 
 # log所用函数
