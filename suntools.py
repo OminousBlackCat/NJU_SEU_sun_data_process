@@ -853,7 +853,7 @@ def cal_center_mean(Input_np):
     height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
     height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
     Ha_B = (data[Ha_Lower] + data[Ha_Upper]) / 2
-    print(height_ha,Fe_Upper)
+    print(height_ha, Fe_Upper)
     Fe_B = (data[height_ha + Fe_Lower] + data[height_ha + Fe_Upper]) / 2
     Ha_U = Ha_L = 0
     Fe_U = Fe_L = 0
@@ -870,7 +870,7 @@ def cal_center_mean(Input_np):
 
     mean_K = (FE_lineCore - HA_lineCore) / (Fe_mean - Ha_mean)
     mean_b = FE_lineCore - Fe_mean * mean_K
-    print(Fe_mean,Ha_mean)
+    print(Fe_mean, Ha_mean)
     return mean_K, mean_b, mean_b + mean_K * (5430 - 5096) / bin_count
 
 
@@ -888,10 +888,10 @@ if __name__ == "__main__":
     A = height_Ha
     B = 5430 - 5096
     print(A, B)
-    Q =  np.array([1,2,3,4,5,6,7])
+    Q = np.array([1, 2, 3, 4, 5, 6, 7])
     D = 3
-    print(Q[3:int(D)+3])
-    print(cal_center_mean(np.zeros((164,3,3))))
+    print(Q[3:int(D) + 3])
+    print(cal_center_mean(np.zeros((164, 3, 3))))
     # cal_center_mean(np.array([[[1,2],[3,4]],[[5,6],[7,8]]]))
     # test()
     # I = Image.open("123.png")

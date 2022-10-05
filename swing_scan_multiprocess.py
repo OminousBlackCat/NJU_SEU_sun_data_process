@@ -471,16 +471,15 @@ def main():
             OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
             suntools.log('波长定标中...')
             wavelength_calibrate_input = global_shared_array[:, int(R_y) - 100: int(R_y) + 99, int(R_x) - 100: int(R_x) + 99]
-            cdel_t3, crval_l3 = suntools.cal_center_mean(wavelength_calibrate_input)
+            cdel_t3, crval_l3_ha, crval_l3_fe = suntools.cal_center_mean(wavelength_calibrate_input)
             temp_dict['header'].set('CRPIX1', R_x)
             temp_dict['header'].set('CRPIX2', R_y)
             temp_dict['header'].set('R_SUN', radius)
             temp_dict['header'].set('RSUN_OBS', OBS_Radius)
             temp_dict['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
             temp_dict['header'].set('CDELT2', PIXEL_RESOLUTION * GLOBAL_BINNING)
-            temp_dict['header'].set('CDELT3', WAVE_RESOLUTION)
             temp_dict['header'].set('CDELT3', cdel_t3)
-            temp_dict['header'].set('CRVAL3', crval_l3)
+            temp_dict['header'].set('CRVAL3', crval_l3_ha)
             # 下采样 1/4
             suntools.log('下采样中...')
             sum_data_HA_save = suntools.down_sample(sum_data_HA)
@@ -516,7 +515,6 @@ def main():
             suntools.log('生成HA文件中...')
             temp_dict['header'].set('SPECLINE', 'HA')
             temp_dict['header'].set('WAVE_LEN', HA_LINE_CORE)
-            temp_dict['header'].set('CRVAL3', HA_START)
             temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
             primaryHDU = fits.CompImageHDU(global_shared_array[0: standard_HA_width, :, :]
                                            .reshape((standard_HA_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
@@ -537,7 +535,7 @@ def main():
             temp_dict['header'].set('SPECLINE', 'FEI')
             temp_dict['header'].set('WAVE_LEN', FE_LINE_CORE)
             temp_dict['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-            temp_dict['header'].set('CRVAL3', FE_START)
+            temp_dict['header'].set('CRVAL3', crval_l3_fe)
             primaryHDU = fits.CompImageHDU(global_shared_array[standard_HA_width:, :, :]
                                            .reshape((standard_FE_width, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT))
                                            , header=temp_dict['header'], compression_type='RICE_1')

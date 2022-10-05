@@ -83,8 +83,8 @@ def read_header_from_txt(txtPath):
 
 
 def main():
-    file_data = fits.open('C:\\Users\\seu-wxy\\Desktop\\太阳\\data\\raw_data_test\\RSM20220903T205603-0000-80735.fts')
-    h = file_data[0].header
+    file_data = fits.open('C:\\Users\\seu-wxy\\Desktop\\太阳\\data\\raw_data_test\\RSM20220903T093109_0000_FE.fits')
+    h = file_data[1].header
     print(repr(h))
 
     # b = fits.header.Header()
