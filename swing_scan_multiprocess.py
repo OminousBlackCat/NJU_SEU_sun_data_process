@@ -23,6 +23,7 @@ import ctypes as c
 import createVideo
 import sys
 
+time_start = time.time()
 
 # 读入配置文件 引入参数
 GLOBAL_BINNING = config.bin_count  # binning 数值
@@ -438,7 +439,6 @@ def target_task(filename):
 
 def main():
     # 测试消耗时间 时间起点
-    time_start = time.time()
     # 获得文件夹列表 读取相关参数
     # 并行处理
     suntools.log('开启多核并行处理...')
