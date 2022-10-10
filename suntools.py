@@ -852,9 +852,10 @@ def cal_center_mean(Input_np):
     # print(data.shape)
     height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
     height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
+    log("HA 与FE 窗口大小为:", height_ha, height_fe)
     Ha_B = (data[Ha_Lower] + data[Ha_Upper]) / 2 * 0.9
-    print(height_ha, Fe_Upper)
     Fe_B = (data[height_ha + Fe_Lower] + data[height_ha + Fe_Upper]) / 2 * 0.9
+    log("HA与FE的窗口平均值: ", Ha_B, Fe_B)
     Ha_U = Ha_L = 0
     Fe_U = Fe_L = 0
 
@@ -867,10 +868,13 @@ def cal_center_mean(Input_np):
 
     Ha_mean = Ha_U / Ha_L
     Fe_mean = Fe_U / Fe_L + (5430 - 5096) / bin_count
+    log("HA_U 与 Ha_L:", Ha_U, Ha_L)
+    log("Fe_U 与 Fe_L:", Fe_U, Fe_L)
 
     mean_K = (FE_lineCore - HA_lineCore) / (Fe_mean - Ha_mean)
     mean_b = FE_lineCore - Fe_mean * mean_K
-    print(Fe_mean, Ha_mean)
+    log("线心像元为: ", Fe_mean, Ha_mean)
+    log("结果为:", mean_K, mean_b)
     return mean_K, mean_b, mean_b + mean_K * (5430 - 5096) / bin_count
 
 
