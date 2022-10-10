@@ -103,6 +103,7 @@ try:
 except OSError:
     suntools.log('没有获得原始数据文件，请检查config中的读入数据目录')
     sys.exit("程序终止")
+suntools.log("程序目标文件夹为：" + READ_DIR)
 suntools.log('文件总数为: ' + str(len(data_file_lst)))
 suntools.log('当前运行处在 摆扫序列处理模式')
 
