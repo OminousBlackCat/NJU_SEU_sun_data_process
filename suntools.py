@@ -860,11 +860,13 @@ def cal_center_mean(Input_np):
     Fe_U = Fe_L = 0
 
     for i in range(Ha_Lower, Ha_Upper + 1):
-        Ha_U = Ha_U + (data[i] - Ha_B) * i
-        Ha_L = Ha_L + (data[i] - Ha_B)
+        if data[i] < Ha_B:
+            Ha_U = Ha_U + (data[i] - Ha_B) * i
+            Ha_L = Ha_L + (data[i] - Ha_B)
     for i in range(Fe_Lower, Fe_Upper + 1):
-        Fe_U = Fe_U + (data[height_ha + i] - Fe_B) * i
-        Fe_L = Fe_L + (data[height_ha + i] - Fe_B)
+        if data[height_ha + i] < Fe_B:
+            Fe_U = Fe_U + (data[height_ha + i] - Fe_B) * i
+            Fe_L = Fe_L + (data[height_ha + i] - Fe_B)
 
     Ha_mean = Ha_U / Ha_L
     Fe_mean = Fe_U / Fe_L + (5430 - 5096) / bin_count
@@ -885,6 +887,9 @@ def log(*args):
 
 
 if __name__ == "__main__":
+    height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
+    height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
+    print(height_ha)
     A = config.FE_start - config.HA_start
     B = A / K
     C = (5430 - 5096) / bin_count
@@ -895,7 +900,7 @@ if __name__ == "__main__":
     Q = np.array([1, 2, 3, 4, 5, 6, 7])
     D = 3
     print(Q[3:int(D) + 3])
-    print(cal_center_mean(np.zeros((164, 3, 3))))
+    # print(cal_center_mean(np.zeros((164, 3, 3))))
     # cal_center_mean(np.array([[[1,2],[3,4]],[[5,6],[7,8]]]))
     # test()
     # I = Image.open("123.png")
