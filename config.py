@@ -150,7 +150,7 @@ scan_time_offset = 0
 save_img_form = 'default'
 
 # 质心计算依赖数值
-Ha_lower = 104
-Ha_Upper = 164
-Fe_lower = 50
-Fe_Upper = 74
+Ha_lower = 94
+Ha_Upper = 172
+Fe_lower = 38
+Fe_Upper = 84

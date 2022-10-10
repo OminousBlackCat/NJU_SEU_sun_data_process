@@ -852,9 +852,9 @@ def cal_center_mean(Input_np):
     # print(data.shape)
     height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
     height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
-    Ha_B = (data[Ha_Lower] + data[Ha_Upper]) / 2
+    Ha_B = (data[Ha_Lower] + data[Ha_Upper]) / 2 * 0.9
     print(height_ha, Fe_Upper)
-    Fe_B = (data[height_ha + Fe_Lower] + data[height_ha + Fe_Upper]) / 2
+    Fe_B = (data[height_ha + Fe_Lower] + data[height_ha + Fe_Upper]) / 2 * 0.9
     Ha_U = Ha_L = 0
     Fe_U = Fe_L = 0
 
