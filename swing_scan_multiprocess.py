@@ -471,7 +471,7 @@ def main():
             R_y, R_x, radius = suntools.getCircle(sum_data_FE)
             OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
             suntools.log('波长定标中...')
-            wavelength_calibrate_input = global_shared_array[:, int(R_y) - 100: int(R_y) + 99, int(R_x) - 100: int(R_x) + 99]
+            wavelength_calibrate_input = global_shared_array[:, int(R_y) - 50: int(R_y) + 49, int(R_x) - 50: int(R_x) + 49]
             cdel_t3, crval_l3_ha, crval_l3_fe = suntools.cal_center_mean(wavelength_calibrate_input)
             temp_dict['header'].set('CRPIX1', R_x)
             temp_dict['header'].set('CRPIX2', R_y)
