@@ -64,6 +64,12 @@ Interpolation_parameter = config.interpolation_parameter  # 插值算法次数
 Interpolation_front = int((Interpolation_parameter + 1) / 2)  # 插值起点
 Interpolation_back = int(Interpolation_parameter / 2) + 1  # 插值终点
 
+# 修改平场
+def FlatNormalization(flatData):
+    minn = min(min(row) for row in flatData)
+    return flatData / minn
+
+
 
 # 多次插值
 def Interpolation(X_data, Y_data, x):
@@ -887,19 +893,20 @@ def log(*args):
 
 
 if __name__ == "__main__":
-    height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
-    height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
-    print(height_ha)
-    A = config.FE_start - config.HA_start
-    B = A / K
-    C = (5430 - 5096) / bin_count
-    print(A, B, C)
-    A = height_Ha
-    B = 5430 - 5096
-    print(A, B)
-    Q = np.array([1, 2, 3, 4, 5, 6, 7])
-    D = 3
-    print(Q[3:int(D) + 3])
+    print(FlatNormalization(np.array([[0.66,3],[6,9]])))
+    # height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
+    # height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
+    # print(height_ha)
+    # A = config.FE_start - config.HA_start
+    # B = A / K
+    # C = (5430 - 5096) / bin_count
+    # print(A, B, C)
+    # A = height_Ha
+    # B = 5430 - 5096
+    # print(A, B)
+    # Q = np.array([1, 2, 3, 4, 5, 6, 7])
+    # D = 3
+    # print(Q[3:int(D) + 3])
     # print(cal_center_mean(np.zeros((164, 3, 3))))
     # cal_center_mean(np.array([[[1,2],[3,4]],[[5,6],[7,8]]]))
     # test()
