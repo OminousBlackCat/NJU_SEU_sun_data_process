@@ -262,6 +262,8 @@ if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
     flat_img, standard_HA_width, standard_FE_width = suntools.curve_correction(flat_img - dark_img, CURVE_X0,
                                                                                CURVE_C)
+    # 对平场进行归一化
+    flat_img = suntools.FlatNormalization(flat_img)
 temp_img.close()
 
 # 读取经过日心的图片 作为基准
