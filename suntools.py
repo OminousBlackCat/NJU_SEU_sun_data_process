@@ -64,11 +64,13 @@ Interpolation_parameter = config.interpolation_parameter  # 插值算法次数
 Interpolation_front = int((Interpolation_parameter + 1) / 2)  # 插值起点
 Interpolation_back = int(Interpolation_parameter / 2) + 1  # 插值终点
 
-
 # 修改平场
 def FlatNormalization(flatData):
     minn = min(min(row) for row in flatData)
+    if minn <= 0:
+       return flatData
     return flatData / minn
+
 
 
 # 多次插值
@@ -893,7 +895,20 @@ def log(*args):
 
 
 if __name__ == "__main__":
-    print(FlatNormalization(np.array([[0.66, 3], [6, 9]])))
+    filepath_test = "testData/"
+    image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
+    dark_data = np.array(fits.getdata(image_file), dtype=float)
+    dark_data = change(dark_data)
+    image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
+    flat_data = np.array(fits.getdata(image_file), dtype=float)
+    print(flat_data.shape)
+    flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
+    flat_data = getFlat(flat_data)
+    flat_data = FlatNormalization(flat_data)
+    primaryHDU = fits.PrimaryHDU(data=flat_data)
+    greyHDU = fits.HDUList([primaryHDU])
+    greyHDU.writeto('FLAT.fts', overwrite=True)
+    # print(FlatNormalization(np.array([[0.66,3],[6,9]])))
     # height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
     # height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
     # print(height_ha)
