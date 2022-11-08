@@ -66,10 +66,12 @@ Interpolation_back = int(Interpolation_parameter / 2) + 1  # 插值终点
 
 # 修改平场
 def FlatNormalization(flatData):
-    minn = min(min(row) for row in flatData)
-    if minn <= 0:
-       return flatData
-    return flatData / minn
+    flatData = flatData * 2
+    flatData = np.clip(flatData,0.2,20000)
+    addData = np.clip(0.2001 - flatData,0,0.0001)
+    flatData =flatData + 18000 * addData
+    return flatData
+
 
 
 
@@ -908,6 +910,10 @@ if __name__ == "__main__":
     primaryHDU = fits.PrimaryHDU(data=flat_data)
     greyHDU = fits.HDUList([primaryHDU])
     greyHDU.writeto('FLAT.fts', overwrite=True)
+    plt.figure()
+    plt.imshow(flat_data, cmap="gray", aspect='auto')
+    plt.show()
+    print(min(min(row) for row in flat_data))
     # print(FlatNormalization(np.array([[0.66,3],[6,9]])))
     # height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
     # height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
