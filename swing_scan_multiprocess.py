@@ -144,12 +144,12 @@ have_read_count = 0
 if_read_first_print = True
 for filename in data_file_lst:
     # if if_read_first_print:
-    #     suntools.log('当前进度:' + str(have_read_count) + '/' + str(len(data_file_lst)), end='')
+    #     print('当前进度:' + str(have_read_count) + '/' + str(len(data_file_lst)), end='')
     #     sys.stdout.flush()
     #     if_read_first_print = False
     # else:
-    #     suntools.log('\b' * (9 + len(str(have_read_count)) + 1 + len(str(len(data_file_lst)))), end='')
-    #     suntools.log('当前进度:' + str(have_read_count) + '/' + str(len(data_file_lst)), end='')
+    #     print('\b' * (9 + len(str(have_read_count)) + 1 + len(str(len(data_file_lst)))), end='')
+    #     print('当前进度:' + str(have_read_count) + '/' + str(len(data_file_lst)), end='')
     #     sys.stdout.flush()
     temp_img = fits.open(READ_DIR + filename)
     temp_data = np.array(temp_img[0].data, dtype=float)
@@ -311,7 +311,7 @@ try:
         temp_dict['flat_data'] = flatTemp
         # temp_dict['abortion_data'] = abortion
         temp_img.close()
-        suntools.log("序列:" + str(int(standard_name[19:23])).zfill(4) + "矫正完成")
+        suntools.log("序列:" + temp_dict['scan_index'] + "矫正完成")
         suntools.log('计算B0, INST_ROT中....')
         temp_B0, temp_INST_ROT = suntools.getB0P0(standard_header['Q0'], standard_header['Q1'], standard_header['Q2'],
                                                   standard_header['Q3'], standard_header['STR_TIME'])
@@ -402,7 +402,6 @@ def target_task(filename):
         # 搜索list
         currentFlat = global_multiprocess_list[GLOBAL_DICT_INDEX]['flat_data']
         currentScanIndex = int(global_multiprocess_list[GLOBAL_DICT_INDEX]['scan_index'])
-        # currentAbortion = dataTemp['abortion_data']
         if currentFlat is None:
             suntools.log("文件：" + filename + "未找到平场数据, 请检查文件夹")
             return
@@ -424,16 +423,17 @@ def target_task(filename):
             global_shared_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
         else:
             global_shared_array[:, fileRelativePosition, :] = image_data
+        suntools.log("结束")
         # 进度输出
         remaining_count.value += 1
         file_data.close()
         # if if_first_print.value:
-        #     suntools.log('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
         #     sys.stdout.flush()
         #     if_first_print.value = False
         # else:
-        #     suntools.log('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
-        #     suntools.log('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
+        #     print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
+        #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
         #     sys.stdout.flush()
     except BaseException as e:
         suntools.log(e)
