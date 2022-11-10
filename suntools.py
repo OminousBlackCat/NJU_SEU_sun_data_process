@@ -27,6 +27,10 @@ from astropy.time import Time
 from astropy import coordinates
 import multiprocessing as mp
 import cv2
+import numba
+from numba import jit
+
+
 
 # 定义参数
 bin_count = config.bin_count
@@ -75,7 +79,8 @@ def FlatNormalization(flatData):
 
 
 # 多次插值
-def Interpolation(X_data, Y_data, x):
+@jit(nopython=True)
+def Interpolation(X_data: np.array, Y_data: np.array, x: float)-> float:
     N = len(X_data)
     if N == 1:
         return Y_data[0]
@@ -95,14 +100,15 @@ def Interpolation(X_data, Y_data, x):
 # 参数C: 曲线矫正二次系数
 # 参数bin: 模式参数
 # 输出：矫正后的图像数据
+@jit(nopython=True)
 def curve_correction(imgData, x0, C):
     # 获取图片高度和宽度
     H, W = imgData.shape
     x0 = x0 - 1
     # 定义两个窗口的高度 H窗口height_Ha行 Fe窗口height_Fe行
-    bad_Ha = height_Ha / bin_count
-    bad_Fe = height_Fe / bin_count
-
+    bad_Ha = int(height_Ha / bin_count) - int(24 / bin_count)
+    bad_Fe = int(height_Fe / bin_count) - int(24 / bin_count)
+    ansData = np.zeros((bad_Fe+bad_Ha,W))
     # 进行矫正操作
     # 分两个窗口分别操作
     for x in range(W):
@@ -115,18 +121,16 @@ def curve_correction(imgData, x0, C):
         stdy = imgData[:, x]
         # 确定插值的坐标
         now = 1
-        for y in range(int(height_Ha / bin_count)):
+        for y in range(bad_Ha):
             # 移动到第一个大于该坐标的地方
             while now < int(height_Ha / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now] and x > 400 / bin_count and x < W - 400 / bin_count:
-                imgData[y][x] = stdy[now]
-                if y < bad_Ha:
-                    bad_Ha = y
+                ansData[y][x] = stdy[now]
             else:
                 # 计算插值
-                imgData[y][x] = Interpolation(
+                ansData[y][x] = Interpolation(
                     stdx[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
                     stdy[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
                     y)
@@ -147,18 +151,18 @@ def curve_correction(imgData, x0, C):
         stdy = imgData[int(height_Ha / bin_count):int(height_Fe / bin_count) + int(height_Ha / bin_count), x]
         # 确定插值的坐标
         now = 1
-        for y in range(int(height_Fe / bin_count)):
+        for y in range(bad_Fe):
             # 移动到第一个大于该坐标的地方
             while now < int(height_Fe / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now] and x > 400 / bin_count and x < W - 400 / bin_count:
-                imgData[y + int(height_Ha / bin_count)][x] = stdy[now]
+                ansData[y + +bad_Ha][x] = stdy[now]
                 if y < bad_Fe:
                     bad_Fe = y
             else:
                 # 计算插值
-                imgData[y + int(height_Ha / bin_count)][x] = Interpolation(
+                ansData[y + +bad_Ha][x] = Interpolation(
                     stdx[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
                     stdy[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
                     y)
@@ -170,17 +174,10 @@ def curve_correction(imgData, x0, C):
                 #     imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                 #             y - stdx[now - 1])
 
-    # print(bad_Ha,bad_Fe)
-    # if bad_Ha > int(height_Ha / bin_count) - int(24 / bin_count):
-    bad_Ha = int(height_Ha / bin_count) - int(24 / bin_count)
-    # if bad_Fe > int(height_Fe / bin_count) - int(24 / bin_count):
-    bad_Fe = int(height_Fe / bin_count) - int(24 / bin_count)
-    # print(bad_Ha,bad_Fe,int(height_Ha / bin_count) - int(24 / bin_count),int(height_Fe / bin_count) - int(24 / bin_count))
+    print(bad_Ha,bad_Fe)
     # 删除坏行 并输出两窗口最后的行数
-    imgData[bad_Ha:bad_Ha + int(height_Fe / bin_count)] = imgData[
-                                                          int(height_Ha / bin_count):int(height_Fe / bin_count) + int(
-                                                              height_Ha / bin_count)]
-    return imgData[0:bad_Ha + bad_Fe], bad_Ha, bad_Fe
+
+    return ansData, bad_Ha, bad_Fe
 
 
 # 平场计算
@@ -500,7 +497,10 @@ def entireWork(filename, darkDate, flatData, abortion):
     imgData = np.array(fits.getdata(image_file), dtype=float)
     # imgData = change(imgData)
     imgData = moveImg(imgData, -2)
+    T1 = time.perf_counter()
     imgData, HofHa, HofFe = curve_correction(imgData - darkDate, x0, C)
+    T2 = time.perf_counter()
+    print('程序运行时间:%s毫秒' % ((T2 - T1) * 1000))
     print("去暗场")
     plt.figure()
     plt.imshow(imgData, cmap="gray", aspect='auto')
@@ -896,24 +896,29 @@ def log(*args):
 
 
 if __name__ == "__main__":
-    filepath_test = "testData/"
-    image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
-    dark_data = np.array(fits.getdata(image_file), dtype=float)
-    dark_data = change(dark_data)
-    image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
-    flat_data = np.array(fits.getdata(image_file), dtype=float)
-    print(flat_data.shape)
-    flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
-    flat_data = getFlat(flat_data)
-    flat_data = FlatNormalization(flat_data)
-    primaryHDU = fits.PrimaryHDU(data=flat_data)
-    greyHDU = fits.HDUList([primaryHDU])
-    greyHDU.writeto('FLAT.fts', overwrite=True)
-    plt.figure()
-    plt.imshow(flat_data, cmap="gray", aspect='auto')
-    plt.show()
-    print(min(min(row) for row in flat_data))
-    print(max(max(row) for row in flat_data))
+    test()
+
+
+    # filepath_test = "testData/"
+    # image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
+    # dark_data = np.array(fits.getdata(image_file), dtype=float)
+    # dark_data = change(dark_data)
+    # image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
+    # flat_data = np.array(fits.getdata(image_file), dtype=float)
+    # print(flat_data.shape)
+    # flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
+    # flat_data = getFlat(flat_data)
+    # flat_data = FlatNormalization(flat_data)
+    # primaryHDU = fits.PrimaryHDU(data=flat_data)
+    # greyHDU = fits.HDUList([primaryHDU])
+    # greyHDU.writeto('FLAT.fts', overwrite=True)
+    # plt.figure()
+    # plt.imshow(flat_data, cmap="gray", aspect='auto')
+    # plt.show()
+    # print(min(min(row) for row in flat_data))
+    # print(max(max(row) for row in flat_data))
+
+
     # print(FlatNormalization(np.array([[0.66,3],[6,9]])))
     # height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
     # height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
