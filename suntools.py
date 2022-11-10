@@ -157,12 +157,10 @@ def curve_correction(imgData, x0, C):
                 now += 1
             # 若越界则标记为坏点
             if y > stdx[now] and x > 400 / bin_count and x < W - 400 / bin_count:
-                ansData[y + +bad_Ha][x] = stdy[now]
-                if y < bad_Fe:
-                    bad_Fe = y
+                ansData[y + bad_Ha][x] = stdy[now]
             else:
                 # 计算插值
-                ansData[y + +bad_Ha][x] = Interpolation(
+                ansData[y + bad_Ha][x] = Interpolation(
                     stdx[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
                     stdy[max(0, now - Interpolation_front):min(now + Interpolation_back, int(height_Ha / bin_count))],
                     y)
