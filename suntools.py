@@ -169,7 +169,7 @@ def curve_correction(imgData, x0, C):
                 #     imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                 #             y - stdx[now - 1])
 
-    print(bad_Ha, bad_Fe)
+    # print(bad_Ha, bad_Fe)
     # 删除坏行 并输出两窗口最后的行数
 
     return ansData, bad_Ha, bad_Fe
