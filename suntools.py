@@ -30,8 +30,6 @@ import cv2
 import numba
 from numba import jit
 
-
-
 # 定义参数
 bin_count = config.bin_count
 if bin_count == 1:
@@ -68,19 +66,18 @@ Interpolation_parameter = config.interpolation_parameter  # 插值算法次数
 Interpolation_front = int((Interpolation_parameter + 1) / 2)  # 插值起点
 Interpolation_back = int(Interpolation_parameter / 2) + 1  # 插值终点
 
+
 # 修改平场
 def FlatNormalization(flatData):
-    H,W = flatData.shape
-    flatData[:,0:int(20/bin_count)] = np.ones((H,int(20/bin_count)))
+    H, W = flatData.shape
+    flatData[:, 0:int(20 / bin_count)] = np.ones((H, int(20 / bin_count)))
     flatData[:, -int(68 / bin_count):] = np.ones((H, int(68 / bin_count)))
     return flatData * 1.4
 
 
-
-
 # 多次插值
 @jit(nopython=True)
-def Interpolation(X_data: np.array, Y_data: np.array, x: float)-> float:
+def Interpolation(X_data: np.array, Y_data: np.array, x: float) -> float:
     N = len(X_data)
     if N == 1:
         return Y_data[0]
@@ -108,7 +105,7 @@ def curve_correction(imgData, x0, C):
     # 定义两个窗口的高度 H窗口height_Ha行 Fe窗口height_Fe行
     bad_Ha = int(height_Ha / bin_count) - int(24 / bin_count)
     bad_Fe = int(height_Fe / bin_count) - int(24 / bin_count)
-    ansData = np.zeros((bad_Fe+bad_Ha,W))
+    ansData = np.zeros((bad_Fe + bad_Ha, W))
     # 进行矫正操作
     # 分两个窗口分别操作
     for x in range(W):
@@ -126,7 +123,7 @@ def curve_correction(imgData, x0, C):
             while now < int(height_Ha / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
-            if y > stdx[now] and x > 400 / bin_count and x < W - 400 / bin_count:
+            if stdx[now] < y < x < W - 400 / bin_count:
                 ansData[y][x] = stdy[now]
             else:
                 # 计算插值
@@ -172,7 +169,7 @@ def curve_correction(imgData, x0, C):
                 #     imgData[y][x] = stdy[now - 1] + (stdy[now] - stdy[now - 1]) / (stdx[now] - stdx[now - 1]) * (
                 #             y - stdx[now - 1])
 
-    print(bad_Ha,bad_Fe)
+    print(bad_Ha, bad_Fe)
     # 删除坏行 并输出两窗口最后的行数
 
     return ansData, bad_Ha, bad_Fe
@@ -896,7 +893,6 @@ def log(*args):
 if __name__ == "__main__":
     test()
 
-
     # filepath_test = "testData/"
     # image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
     # dark_data = np.array(fits.getdata(image_file), dtype=float)
@@ -915,7 +911,6 @@ if __name__ == "__main__":
     # plt.show()
     # print(min(min(row) for row in flat_data))
     # print(max(max(row) for row in flat_data))
-
 
     # print(FlatNormalization(np.array([[0.66,3],[6,9]])))
     # height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
