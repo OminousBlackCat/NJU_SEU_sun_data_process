@@ -423,7 +423,6 @@ def target_task(filename):
             global_shared_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
         else:
             global_shared_array[:, fileRelativePosition, :] = image_data
-        suntools.log("结束")
         # 进度输出
         remaining_count.value += 1
         file_data.close()
