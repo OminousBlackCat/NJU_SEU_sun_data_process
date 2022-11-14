@@ -49,7 +49,8 @@ SUM_ROW_INDEX_FE = 0  # 合并FE日像所选的行数(与bin相关)
 SCAN_TIME_OFFSET = config.scan_time_offset  # 时间偏差
 SIT_STARE_MODE = config.sit_stare_mode  # sit stare模式
 PIXEL_RESOLUTION = config.pixel_resolution  # 像素分辨率
-PIXEL_ZERO_COUNT = config.pixel_to_zero_count  # 置零区间
+PIXEL_ZERO_RIGHT_COUNT = config.pixel_to_zero_right_count  # 置零区间
+PIXEL_ZERO_LEFT_COUNT = config.pixel_to_zero_left_count
 if GLOBAL_BINNING == 1:
     FLAT_FITS_FILE = config.flat_fits_name_bin_1
     SUN_ROW_COUNT = config.sun_row_count_bin_1
@@ -217,8 +218,6 @@ if temp_img is not None:
     flat_img = np.array(temp_img[0].data, dtype=float)
     flat_img, standard_HA_width, standard_FE_width = suntools.curve_correction(flat_img - dark_img, CURVE_X0,
                                                                                CURVE_C)
-    # 对平场进行归一化
-    flat_img = suntools.FlatNormalization(flat_img)
 temp_img.close()
 
 # 读取经过日心的图片 作为基准
@@ -257,6 +256,8 @@ try:
         # 先平移矫正 减去暗场 再谱线弯曲矫正
         flatTemp = suntools.getFlatOffset(flat_img, standard_img)
         flatTemp = suntools.getFlat(flatTemp)
+        # 对平场进行归一化
+        flatTemp = suntools.FlatNormalization(flatTemp)
         suntools.log("获得标准太阳光谱数据中...")
         # 以标准文件作为基准 计算红蓝移吸收系数
         # 需要先对标注文件进行一系列操作 去暗场 去平场 再进行红蓝移修正
@@ -364,8 +365,8 @@ def target_task(filename):
         image_data = suntools.MedSmooth(image_data, HofH, HofFe, winSize=FILTER_KERNEL_SIZE)
         # 转为整型, 并将每行的最后部分置零
         image_data = np.array(image_data, dtype=np.int16)
-        image_data[:, image_data.shape[1] - PIXEL_ZERO_COUNT:] = 0
-        image_data[:, 0: PIXEL_ZERO_COUNT] = 0
+        image_data[:, image_data.shape[1] - PIXEL_ZERO_RIGHT_COUNT:] = 0
+        image_data[:, 0: PIXEL_ZERO_LEFT_COUNT] = 0
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)

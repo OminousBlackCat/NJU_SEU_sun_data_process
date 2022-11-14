@@ -69,9 +69,11 @@ Interpolation_back = int(Interpolation_parameter / 2) + 1  # 插值终点
 
 # 修改平场
 def FlatNormalization(flatData):
-    H,W = flatData.shape
-    flatData[:,0:int(20/bin_count)] = np.ones((H,int(20/bin_count)))#np.clip(flatData[:,0:int(20/bin_count)],1,200000)
-    flatData[:, -int(68 / bin_count):] = np.ones((H,int(68/bin_count)))#np.clip(flatData[:, -int(68 / bin_count):],1,200000)
+    H, W = flatData.shape
+    flatData[:, 0:int(20 / bin_count)] = np.ones(
+        (H, int(20 / bin_count)))  # np.clip(flatData[:,0:int(20/bin_count)],1,200000)
+    flatData[:, -int(68 / bin_count):] = np.ones(
+        (H, int(68 / bin_count)))  # np.clip(flatData[:, -int(68 / bin_count):],1,200000)
     return flatData * 1.4
 
 
@@ -123,7 +125,7 @@ def curve_correction(imgData, x0, C):
             while now < int(height_Ha / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
-            if y > stdx[now] :
+            if y > stdx[now]:
                 ansData[y][x] = stdy[now]
             else:
                 # 计算插值
@@ -153,7 +155,7 @@ def curve_correction(imgData, x0, C):
             while now < int(height_Fe / bin_count) - 1 and stdx[now] < y:
                 now += 1
             # 若越界则标记为坏点
-            if y > stdx[now] :
+            if y > stdx[now]:
                 ansData[y + bad_Ha][x] = stdy[now]
             else:
                 # 计算插值
