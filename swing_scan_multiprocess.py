@@ -414,6 +414,7 @@ def target_task(filename):
         # 转为整型, 并将每行的最后部分置零
         image_data = np.array(image_data, dtype=np.int16)
         image_data[:, image_data.shape[1] - PIXEL_ZERO_COUNT:] = 0
+        image_data[:, 0: PIXEL_ZERO_COUNT] = 0
         global_shared_array = np.frombuffer(GLOBAL_SHARED_MEM.get_obj(), dtype=np.int16)
         global_shared_array = global_shared_array.reshape(GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT,
                                                           GLOBAL_ARRAY_Z_COUNT)
