@@ -30,6 +30,8 @@ import cv2
 import numba
 from numba import jit
 
+cv2.setNumThreads(1)
+
 # 定义参数
 bin_count = config.bin_count
 if bin_count == 1:

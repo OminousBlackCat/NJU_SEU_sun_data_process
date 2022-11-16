@@ -61,14 +61,13 @@ def show_SPEC(SPEC, DSPEC):
 
 
 def main():
-    filename = 'data/decompression_test/RSM20220326T124304_0016_HA.fits'
+    filename = 'data/decompression_test/RSM20221017T182100_0005_FE.fts'
     file = filename
     print('Reading fits file....')
     dat = fitsread(file)[0]
 
-    SPEC = dat[20]
+    SPEC = dat[26]
     show_SPEC(SPEC, dat)
-
 
 if __name__ == '__main__':
     main()
