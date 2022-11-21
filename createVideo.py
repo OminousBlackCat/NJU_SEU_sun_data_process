@@ -13,7 +13,8 @@ import os
 import config
 import datetime
 
-framePerSec = 10
+framePerSec = config.frame_pre_sec
+pic_count = config.write_to_video_count
 fileDir = config.save_dir_path
 saveDir = config.video_dir_path
 ha_list = []
@@ -44,7 +45,7 @@ def createVideo(fileDate: datetime.datetime):
     #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
     for ha in ha_list:
         ha_img = cv2.imread(fileDir + ha)
-        for i in range(framePerSec):
+        for i in range(pic_count):
             ha_videoOut.write(ha_img)  # 写入对应帧(1s)
     # for fe in fe_list:
     #     fe_img = cv2.imread(fileDir + fe)
