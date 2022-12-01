@@ -811,9 +811,13 @@ def test():
     print(bin_count)
     flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
     flat_data = getFlat(flat_data)
-    filename = filepath_test + 'RSM20220808T005114-0000-1837.fts'
+    filename = filepath_test + 'RSM20221002T135645-0000-1855.fts'
     image_file = get_pkg_data_filename(filename)
     imgData = np.array(fits.getdata(image_file), dtype=float)
+    print("pic0")
+    plt.figure()
+    plt.imshow(imgData, cmap="gray", aspect='auto')
+    plt.show()
     imgData = moveImg(imgData, -1)
     imgData, HofHa, HofFe = curve_correction(imgData - dark_data, x0, C)
     print("pic1")
@@ -833,12 +837,12 @@ def test():
     plt.imshow(flat_data, cmap="gray", aspect='auto')
     plt.show()
     # filelist = os.listdir(filepath_test)
-    image_file, imgData = entireWork(filepath_test + 'RSM20220808T005114-0000-1837.fts', dark_data, flat_data, abortion)
-    #
-    print("OK")
-    plt.figure()
-    plt.imshow(imgData, cmap="gray", aspect='auto')
-    plt.show()
+    # image_file, imgData = entireWork(filepath_test + 'RSM20221002T135645-0000-1855.fts', dark_data, flat_data, abortion)
+    # #
+    # print("OK")
+    # plt.figure()
+    # plt.imshow(imgData, cmap="gray", aspect='auto')
+    # plt.show()
 
     # grey = fits.PrimaryHDU(image_file)
 
