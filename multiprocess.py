@@ -28,7 +28,7 @@ GLOBAL_BINNING = config.bin_count  # binning 数值
 READ_DIR = config.data_dir_path  # 读文件的文件夹
 OUT_DIR = config.save_dir_path  # 输出文件夹
 SUM_DIR = config.sum_dir_path  # 汇总结果文件夹
-DARK_FITS_FILE = config.dark_fits_name  # 暗场文件路径
+DARK_FITS_FILE = ''  # 暗场文件路径
 HA_ABSORPTION_FILE = config.HA_absorption_path  # HA吸收系数文件路径
 FE_ABSORPTION_FILE = config.FE_absorption_path  # FE吸收系数文件路径
 COLOR_CAMP_FILE = config.color_camp_name  # 色彩盘文件路径
@@ -49,9 +49,14 @@ SUM_ROW_INDEX_FE = 0  # 合并FE日像所选的行数(与bin相关)
 SCAN_TIME_OFFSET = config.scan_time_offset  # 时间偏差
 SIT_STARE_MODE = config.sit_stare_mode  # sit stare模式
 PIXEL_RESOLUTION = config.pixel_resolution  # 像素分辨率
-PIXEL_ZERO_RIGHT_COUNT = config.pixel_to_zero_right_count  # 置零区间
-PIXEL_ZERO_LEFT_COUNT = config.pixel_to_zero_left_count
+PIXEL_ZERO_RIGHT_COUNT = config.pixel_to_zero_right_count  # 右侧置零区间
+PIXEL_ZERO_LEFT_COUNT = config.pixel_to_zero_left_count  # 左侧置零区间
+CENTER_MEAN_THRESHOLD = config.center_mean_threshold  # (摆扫)计算序列中心的阈值
+CENTER_MEAN_INDEX = config.center_mean_index  # (摆扫)使用的线心位置
+CENTER_MEAN_COUNT = config.center_mean_count  # (摆扫)使用的线心数量
+REVERSAL_MODE = config.reversal_mode  # (摆扫)翻转模式
 if GLOBAL_BINNING == 1:
+    DARK_FITS_FILE = config.dark_fits_name
     FLAT_FITS_FILE = config.flat_fits_name_bin_1
     SUN_ROW_COUNT = config.sun_row_count_bin_1
     STANDARD_FILE_INDEX = config.standard_offset_index_bin_1
@@ -61,6 +66,7 @@ if GLOBAL_BINNING == 1:
     SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_1
     SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_1
 if GLOBAL_BINNING == 2:
+    DARK_FITS_FILE = config.dark_fits_name_bin_2
     FLAT_FITS_FILE = config.flat_fits_name_bin_2
     SUN_ROW_COUNT = config.sun_row_count_bin_2
     STANDARD_FILE_INDEX = config.standard_offset_index_bin_2
@@ -69,8 +75,6 @@ if GLOBAL_BINNING == 2:
     WAVE_RESOLUTION = config.wavelength_resolution_bin_2
     SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_2
     SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_2
-if SIT_STARE_MODE is True:
-    SUN_ROW_COUNT = int(config.sit_stare_array_size / GLOBAL_BINNING)
 
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(OUT_DIR):
@@ -199,7 +203,7 @@ except OSError:
     sys.exit("程序终止")
 if temp_img is not None:
     dark_img = np.array(temp_img[0].data, dtype=float)
-    dark_img = suntools.change(dark_img)
+    # dark_img = suntools.change(dark_img)
 temp_img.close()
 
 # 平场需要以日心图片作为基准进行平移矫正 再进行谱线弯曲矫正

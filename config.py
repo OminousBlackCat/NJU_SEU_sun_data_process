@@ -43,7 +43,10 @@ reversal_mode = 'odd'
 sum_dir_path = save_dir_path
 
 # 读入的暗场fits文件路径, 相对路径与绝对路径均可
+# bin = 1的时候使用的暗场
 dark_fits_name = 'data/dark.fits'
+# bin = 2的时候使用的暗场
+dark_fits_name_bin_2 = 'data/dark_binning2.fits'
 
 # 读入的平场参数文件路径, 相对路径与绝对路径均可
 # bin = 1的时候

@@ -468,7 +468,7 @@ def get_color_map(fname):
     return clrmap
 
 
-# 将bin=2的图转换为bin=1（测试时使用）
+# 将bin=1的图转换为bin=2（测试时使用）
 def change(img):
     if bin_count == 1:
         return img
