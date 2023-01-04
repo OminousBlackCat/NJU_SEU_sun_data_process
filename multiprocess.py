@@ -15,6 +15,7 @@ import suntools
 import time
 import numpy as np
 from astropy.io import fits
+from scipy import ndimage
 import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
@@ -438,6 +439,9 @@ def main():
             suntools.log('下采样中...')
             sum_data_HA_save = suntools.down_sample(sum_data_HA)
             sum_data_FE_save = suntools.down_sample(sum_data_FE)
+            # 旋转INST_ROT度, 并加入时间信息(白色字体)
+            sum_data_HA_save = ndimage.rotate(sum_data_HA_save, -temp_dict['header']['INST_ROT'], reshape=False)
+            sum_data_FE_save = ndimage.rotate(sum_data_FE_save, -temp_dict['header']['INST_ROT'], reshape=False)
             sum_data_HA_save = suntools.add_time(sum_data_HA_save, temp_dict['start_time'].strftime('%Y-%m-%d '
                                                                                                     '%H:%M:%S UT'))
             sum_data_FE_save = suntools.add_time(sum_data_FE_save, temp_dict['start_time'].strftime('%Y-%m-%d '
