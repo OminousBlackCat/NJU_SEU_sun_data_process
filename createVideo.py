@@ -44,11 +44,11 @@ def createVideo(fileDate: datetime.datetime):
                                   cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
     # fe_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_FE.avi',
     #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
-    for ha in ha_list:
-        ha_img = cv2.imread(fileDir + ha)
-        for i in range(pic_count):
-            bias_tmp = i % (pic_bias + 1)
-            if bias_tmp == 0:
+    for cnt in range(len(ha_list)):
+        ha_img = cv2.imread(fileDir + ha_list[cnt])
+        bias_tmp = cnt % (pic_bias + 1)
+        if bias_tmp == 0:
+            for i in range(pic_count):
                 ha_videoOut.write(ha_img)  # 写入对应帧(1s)
     # for fe in fe_list:
     #     fe_img = cv2.imread(fileDir + fe)

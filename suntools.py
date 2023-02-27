@@ -855,7 +855,8 @@ def add_time(Input_array, time_txt):
     H, W = I_array.shape
     h1 = int(H * 0.55)
     w1 = int(W * 0.95)
-    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (I_array.max()), txt_thick)
+    max_val = np.iinfo(Input_array.dtype).max
+    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_val, max_val, max_val), txt_thick)
     return I_array
 
 
