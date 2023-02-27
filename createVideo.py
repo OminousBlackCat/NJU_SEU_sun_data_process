@@ -15,6 +15,7 @@ import datetime
 
 framePerSec = config.frame_pre_sec
 pic_count = config.write_to_video_count
+pic_bias = config.write_to_video_bias
 fileDir = config.save_dir_path
 saveDir = config.video_dir_path
 ha_list = []
@@ -46,7 +47,9 @@ def createVideo(fileDate: datetime.datetime):
     for ha in ha_list:
         ha_img = cv2.imread(fileDir + ha)
         for i in range(pic_count):
-            ha_videoOut.write(ha_img)  # 写入对应帧(1s)
+            bias_tmp = i % (pic_bias + 1)
+            if bias_tmp == 0:
+                ha_videoOut.write(ha_img)  # 写入对应帧(1s)
     # for fe in fe_list:
     #     fe_img = cv2.imread(fileDir + fe)
     #     for i in range(framePerSec):
