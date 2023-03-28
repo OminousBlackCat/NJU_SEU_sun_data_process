@@ -850,13 +850,12 @@ def test():
 # 灰度图添加文字
 # I_array为目标图 time_txt为目标文字
 # 字体和粗细可通过config调整
-def add_time(Input_array, time_txt):
+def add_time(Input_array, time_txt, max_value):
     I_array = np.array(Input_array)
     H, W = I_array.shape
     h1 = int(H * 0.55)
     w1 = int(W * 0.95)
-    max_val = np.iinfo(Input_array.dtype).max
-    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_val, max_val, max_val), txt_thick)
+    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_value, max_value, max_value), txt_thick)
     return I_array
 
 

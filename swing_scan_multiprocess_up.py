@@ -465,15 +465,15 @@ def multiprocess_task(parameter_dic: dict):
         # 旋转INST_ROT度, 并加入时间信息(白色字体)
         sum_data_HA_save = ndimage.rotate(sum_data_HA_save, -parameter_dic['header']['INST_ROT'], reshape=False)
         sum_data_FE_save = ndimage.rotate(sum_data_FE_save, -parameter_dic['header']['INST_ROT'], reshape=False)
-        sum_data_HA_save = suntools.add_time(sum_data_HA_save, parameter_dic['start_time'].strftime('%Y-%m-%d '
-                                                                                                    '%H:%M:%S UT'))
-        sum_data_FE_save = suntools.add_time(sum_data_FE_save, parameter_dic['start_time'].strftime('%Y-%m-%d '
-                                                                                                    '%H:%M:%S UT'))
+        sum_mean_ha = np.mean(sum_data_HA)
+        sum_mean_fe = np.mean(sum_data_FE)
+        sum_data_HA_save = suntools.add_time(sum_data_HA_save, parameter_dic['start_time'].
+                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
+        sum_data_FE_save = suntools.add_time(sum_data_FE_save, parameter_dic['start_time'].
+                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             suntools.log('输出序号为' + parameter_dic['scan_index'] + '的png...')
-            sum_mean_ha = np.mean(sum_data_HA)
-            sum_mean_fe = np.mean(sum_data_FE)
             plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
                        + '_' + parameter_dic['scan_index'] + '_HA' + ".png",
                        sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha)
