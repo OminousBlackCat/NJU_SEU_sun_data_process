@@ -21,6 +21,7 @@ import config
 import matplotlib.pyplot as plt
 import createVideo
 import sys
+import traceback
 
 time_start = time.time()
 
@@ -103,6 +104,7 @@ def read_fits_directory():
 try:
     data_file_lst = read_fits_directory()
 except OSError:
+    suntools.log(traceback.print_exc())
     suntools.log('没有获得原始数据文件，请检查config中的读入数据目录')
     sys.exit("程序终止")
 suntools.log("程序目标文件夹为：" + READ_DIR)
@@ -239,9 +241,11 @@ try:
     suntools.log("正在读取原始暗场文件")
     temp_img = fits.open(DARK_FITS_FILE)
 except uEr.URLError:
+    suntools.log(traceback.print_exc())
     suntools.log("Error: 暗场文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
 except OSError:
+    suntools.log(traceback.print_exc())
     suntools.log("Error: 暗场文件读取发生错误, 请检查文件读取权限")
     sys.exit("程序终止")
 if temp_img is not None:
@@ -256,9 +260,11 @@ try:
     suntools.log("正在读取原始平场文件")
     temp_img = fits.open(FLAT_FITS_FILE)
 except uEr.URLError:
+    suntools.log(traceback.print_exc())
     suntools.log("Error: 原始平场文件未找到, 请检查config文件或存放目录")
     sys.exit("程序终止")
 except OSError:
+    suntools.log(traceback.print_exc())
     suntools.log("Error: 原始平场文件读取发生错误, 请检查文件读取权限")
     sys.exit("程序终止")
 if temp_img is not None:
@@ -343,12 +349,12 @@ try:
         temp_dict['header'].set('FRM_NUM', '1~' + str(temp_dict['file_count']))
 
 except uEr.URLError as error:
+    suntools.log(traceback.print_exc())
     suntools.log("Error: 标准日心校准文件未找到, 请检查config文件或存放目录")
-    suntools.log(error)
     sys.exit("程序终止")
 except OSError as error:
+    suntools.log(traceback.print_exc())
     suntools.log("Error: 标准日心校准文件读取发生错误, 请检查文件读取权限")
-    suntools.log(error)
     sys.exit("程序终止")
 
 # 读取输出色谱
@@ -376,6 +382,7 @@ def multiprocess_task(parameter_dic: dict):
         sequence_data_array = np.zeros((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT),
                                        dtype=np.int16)
     except BaseException as uniformException:
+        suntools.log(traceback.print_exc())
         suntools.log("内存不足, 无法创建内存空间")
         print(str(uniformException))
     for sequence_filename in parameter_dic['file_list']:
@@ -429,7 +436,7 @@ def multiprocess_task(parameter_dic: dict):
             #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
             #     sys.stdout.flush()
         except BaseException as e:
-            suntools.log(e)
+            suntools.log(traceback.print_exc())
             suntools.log('文件:' + filename + '处理失败, 请检查此文件')
     suntools.log('第' + str(parameter_dic['track_index']) + '轨, 扫描序列' + parameter_dic['scan_index'] + '预处理完成...')
     suntools.log('生成完整日像中...')
@@ -528,7 +535,7 @@ def multiprocess_task(parameter_dic: dict):
         primaryHDU.writeto(OUT_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                            parameter_dic['scan_index'] + '_FE.fits', overwrite=True)
     except BaseException as uniformException:
-        suntools.log(uniformException)
+        suntools.log(traceback.print_exc())
         suntools.log("当前序列输出错误, 已跳过")
 
 
