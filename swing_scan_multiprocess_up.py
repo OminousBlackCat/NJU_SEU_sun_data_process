@@ -130,9 +130,9 @@ for filename in data_file_lst:
             raise ValueError
         sort_test = filename.split('-')[0] + filename.split('-')[1] + str(
             int(filename.split('-')[2].split('.')[0])).zfill(8)
+        real_data_file_lst.append(filename)
     except BaseException as e:
         suntools.log('<文件:' + filename + '>非法, 已剔除(并未删除硬盘上的文件)')
-    real_data_file_lst.append(filename)
 
 data_file_lst = real_data_file_lst  # 将剔除后的列表赋过去
 # 对list内的文件名排序
