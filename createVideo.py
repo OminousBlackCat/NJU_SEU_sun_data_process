@@ -11,7 +11,8 @@
 import cv2
 import os
 import config
-import datetime
+import suntools
+import traceback
 
 framePerSec = config.frame_pre_sec
 pic_count = config.write_to_video_count
@@ -34,32 +35,32 @@ def getPNGList():
     fe_list.sort()
 
 
-def createVideo(fileDate: datetime.datetime):
+def createVideo():
     # 检查输出文件夹是否存在 不存在则创建
     if not os.path.exists(saveDir):
         os.makedirs(saveDir)
     getPNGList()
     frameShape = cv2.imread(fileDir + ha_list[0]).shape
-    ha_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_HA.avi',
-                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
-    # fe_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_FE.avi',
-    #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
-    for cnt in range(len(ha_list)):
-        ha_img = cv2.imread(fileDir + ha_list[cnt])
-        bias_tmp = cnt % (pic_bias + 1)
-        if bias_tmp == 0:
-            for i in range(pic_count):
-                ha_videoOut.write(ha_img)  # 写入对应帧(1s)
-    # for fe in fe_list:
-    #     fe_img = cv2.imread(fileDir + fe)
-    #     for i in range(framePerSec):
-    #         fe_videoOut.write(fe_img)
-    ha_videoOut.release()
-    # fe_videoOut.release()
+    suntools.log("当前生成视频目标文件夹为: " + fileDir)
+    try:
+        ha_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDir.split("/")[-4] + "-" + fileDir.split("/")[-3].zfill(2)
+                                      + "-" + fileDir.split("/")[-2].zfill(2) + '_HA.avi',
+                                      cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
+        for cnt in range(len(ha_list)):
+            ha_img = cv2.imread(fileDir + ha_list[cnt])
+            bias_tmp = cnt % (pic_bias + 1)
+            if bias_tmp == 0:
+                for i in range(pic_count):
+                    ha_videoOut.write(ha_img)  # 写入对应帧(1s)
+        ha_videoOut.release()
+        suntools.log("生成完成!")
+    except BaseException:
+        suntools.log(traceback.print_exc())
+        suntools.log("生成视频错误, 请检查目标文件夹URL正确")
 
 
 def main():
-    createVideo(datetime.datetime.now())
+    createVideo()
 
 
 if __name__ == '__main__':

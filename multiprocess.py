@@ -517,7 +517,7 @@ def main():
     time_end = time.time()
     suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
     suntools.log('生成视频中...')
-    createVideo.createVideo(global_multiprocess_list[0]['start_time'])
+    createVideo.createVideo()
     suntools.log('程序结束！')
 
 
