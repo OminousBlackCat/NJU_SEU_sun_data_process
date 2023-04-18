@@ -457,8 +457,8 @@ def multiprocess_task(parameter_dic: dict):
         wavelength_calibrate_input = sequence_data_array[:, int(R_y) - 50: int(R_y) + 49,
                                      int(R_x) - 50: int(R_x) + 49]
         cdel_t3, crval_l3_ha, crval_l3_fe = suntools.cal_center_mean(wavelength_calibrate_input)
-        parameter_dic['header'].set('CRPIX1', R_x)
-        parameter_dic['header'].set('CRPIX2', R_y)
+        parameter_dic['header'].set('CRPIX1', R_y)
+        parameter_dic['header'].set('CRPIX2', R_x)
         parameter_dic['header'].set('R_SUN', radius)
         parameter_dic['header'].set('RSUN_OBS', OBS_Radius)
         parameter_dic['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
