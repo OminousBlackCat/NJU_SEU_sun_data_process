@@ -5,7 +5,7 @@
 @author: seu_lcl
 @editor: seu_wxy
 """
-
+import traceback
 import numpy as np
 import re
 import os
@@ -792,6 +792,76 @@ def down_sample(data: np.array):
     return return_array
 
 
+# 检查输出文件的文件合法性
+# 主要检查相邻序列号是否一致
+def check_outputs(outputs_dir: str):
+    arr = os.listdir(outputs_dir)
+    fits_HA_list = []
+    fits_FE_list = []
+    for filename in arr:
+        if filename.split('.')[-1] == 'fits':
+            if filename.split('_')[-1].split('.')[0] == 'HA':
+                fits_HA_list.append(filename)
+            if filename.split('_')[-1].split('.')[0] == 'FE':
+                fits_FE_list.append(filename)
+    fits_HA_list.sort()
+    fits_FE_list.sort()
+    # 这一轨道是否是需要修改的轨道
+    if_in_change_track = False
+    # 遍历fits序列 检查时间差
+    log("正在检查输出文件命名有效性...")
+    for i in range(len(fits_HA_list)):
+        try:
+            if i > 0:
+                # 开启了一个新的扫描轨道
+                if int(fits_HA_list[i].split('_')[-2]) == 0:
+                    # 示例文件名:
+                    # 012 3456 7890 123 45 67 8 9012 3 4567890
+                    # RSM 2023 0411 T04 51 06 _ 0001 _ FE.fits
+                    current_datetime = datetime.datetime(year=0, month=1, day=1,
+                                                         hour=int(fits_HA_list[i].split('_')[0][12: 14]),
+                                                         minute=int(fits_HA_list[i].split('_')[0][14: 16]),
+                                                         second=int(fits_HA_list[i].split('_')[0][16: 18]))
+                    upper_datetime = datetime.datetime(year=0, month=1, day=1,
+                                                       hour=int(fits_HA_list[i - 1].split('_')[0][12: 14]),
+                                                       minute=int(fits_HA_list[i - 1].split('_')[0][14: 16]),
+                                                       second=int(fits_HA_list[i - 1].split('_')[0][16: 18]))
+                    # 如果当前时间差小于规定时间 则应该和上一序列处于同一轨道
+                    if (upper_datetime - current_datetime).seconds < config.validate_time_period:
+                        old_HA_name = fits_HA_list[i]
+                        old_FE_name = fits_FE_list[i]
+                        old_HA_png = old_HA_name.split('.')[0] + '.png'
+                        old_FE_png = old_FE_name.split('.')[0] + '.png'
+                        log("文件:" + old_HA_name + "应处于上个扫描轨道, 进行重命名……")
+                        log("文件:" + old_FE_name + "应处于上个扫描轨道, 进行重命名……")
+                        fits_HA_list[i][19: 23] = str(int(fits_HA_list[i - 1][19: 23]) + 1).zfill(4)
+                        fits_FE_list[i][19: 23] = str(int(fits_FE_list[i - 1][19: 23]) + 1).zfill(4)
+                        new_HA_png = fits_HA_list[i].split('.')[0] + '.png'
+                        new_FE_png = fits_FE_list[i].split('.')[0] + '.png'
+                        # os.rename(os.path.join(outputs_dir, old_HA_name), os.path.join(outputs_dir, fits_HA_list[i]))
+                        # os.rename(os.path.join(outputs_dir, old_FE_name), os.path.join(outputs_dir, fits_FE_list[i]))
+                        # os.rename(os.path.join(outputs_dir, old_HA_png), os.path.join(outputs_dir, new_HA_png))
+                        # os.rename(os.path.join(outputs_dir, old_FE_png), os.path.join(outputs_dir, new_FE_png))
+                        if_in_change_track = True
+                    # 如果不小于 则应该是新的扫描轨道
+                    else:
+                        if_in_change_track = False
+            if if_in_change_track:
+                old_HA_name = fits_HA_list[i]
+                old_FE_name = fits_FE_list[i]
+                log("文件:" + old_HA_name + "应处于上个扫描轨道, 进行重命名……")
+                log("文件:" + old_FE_name + "应处于上个扫描轨道, 进行重命名……")
+                fits_HA_list[i][19: 23] = str(int(fits_HA_list[i - 1][19: 23]) + 1).zfill(4)
+                fits_FE_list[i][19: 23] = str(int(fits_FE_list[i - 1][19: 23]) + 1).zfill(4)
+                # os.rename(os.path.join(outputs_dir, old_HA_name), os.path.join(outputs_dir, fits_HA_list[i]))
+                # os.rename(os.path.join(outputs_dir, old_FE_name), os.path.join(outputs_dir, fits_FE_list[i]))
+                # os.rename(os.path.join(outputs_dir, old_HA_png), os.path.join(outputs_dir, new_HA_png))
+                # os.rename(os.path.join(outputs_dir, old_FE_png), os.path.join(outputs_dir, new_FE_png))
+        except:
+            log(traceback.print_exc())
+            log("修改文件名失败, 已跳过")
+
+
 def test():
     matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
     filepath_result = "testResult/"
@@ -855,7 +925,8 @@ def add_time(Input_array, time_txt, max_value):
     H, W = I_array.shape
     h1 = int(H * 0.55)
     w1 = int(W * 0.95)
-    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_value, max_value, max_value), txt_thick)
+    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_value, max_value, max_value),
+                txt_thick)
     return I_array
 
 
