@@ -5,6 +5,7 @@
 @author: seu_lcl
 @editor: seu_wxy
 """
+import copy
 
 import numpy as np
 import re
@@ -29,6 +30,8 @@ import multiprocessing as mp
 import cv2
 import numba
 from numba import jit
+
+import sim
 
 cv2.setNumThreads(1)
 
@@ -855,7 +858,8 @@ def add_time(Input_array, time_txt, max_value):
     H, W = I_array.shape
     h1 = int(H * 0.55)
     w1 = int(W * 0.95)
-    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_value, max_value, max_value), txt_thick)
+    cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_value, max_value, max_value),
+                txt_thick)
     return I_array
 
 
@@ -1022,3 +1026,58 @@ if __name__ == "__main__":
     #         # print(rx, ry, r * 0.52)=
     #         id += 1
     # test()
+
+
+# 整合南大2023年6月份提出的需求，新增太阳图像的去抖动和旋转矫正
+# 原始代码提供者:绕世豪（南大天文系）
+# 整合人：褚有骋
+
+# 四元数旋转函数
+def quaternion_rot(q, p):
+    s_q = q[0]
+    lambda_q = sqrt(1 - s_q ** 2)
+    if lambda_q != 0:
+        v_q = [q[i] / lambda_q for i in range(1, 4)]
+    else:
+        v_q = [0, 0, 0]
+    return (2 * lambda_q ** 2 * np.dot(np.dot(v_q, p), v_q) + (s_q ** 2 - lambda_q ** 2) * p + \
+            2 * lambda_q * s_q * np.cross(v_q, p))
+
+
+# 旋转矫正函数
+def rotate_fits(width,x,y,centerx,centery,rsun,data,angle,isHa) :
+    cubeout2 = np.zeros([width, x, y])
+    se00xx_rotate1 = np.zeros([x, y])
+    se00xx_rotate2 = np.zeros([x, y])
+
+    for j in range(x):
+        for k in range(y):
+            original_coor = [k - centerx, 0, j - centery]
+            local_rot = np.dot(sim.rotation_matrix3('y', angle / 180 * pi), \
+                               original_coor)
+            se00xx_rotate1[j, k] = local_rot[0] + centerx
+            se00xx_rotate2[j, k] = local_rot[2] + centery
+
+    se00xx_rotate1 = se00xx_rotate1.astype('float32')
+    se00xx_rotate2 = se00xx_rotate2.astype('float32')
+
+    for j in range(width):
+        cubeout2[j, :, :] = cv2.remap(data[j, :, :], se00xx_rotate1, se00xx_rotate2, \
+                                                borderMode=cv2.BORDER_CONSTANT, \
+                                                interpolation=cv2.INTER_LINEAR)
+
+
+    se00xx_mask = np.ones([x, y])
+    for j in range(x):
+        for k in range(y):
+            if (j - centery) ** 2 + (k - centerx) ** 2 >= (1.1 * rsun) ** 2:
+                se00xx_mask[j, k] = 0
+
+    if(isHa) :
+        rotated_data = copy.deepcopy(np.multiply(cubeout2[110, :, :], se00xx_mask))
+    else:
+        rotated_data = copy.deepcopy(np.multiply(cubeout2[10, :, :], se00xx_mask))
+
+    se00xx_center = sim.circle_center(rotated_data)
+    se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
+    return cubeout2,se00xx_centerx,se00xx_centery

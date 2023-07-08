@@ -9,7 +9,7 @@
 # 文件夹最后的结尾需要带'/'
 # TODO: 在运行程序前一定要修改此目录, 此目录应精确到当日的扫描序列文件夹
 # 例: /data/chase/Chase/2021/12/16-428/
-data_dir_path = "/data/chase/Chase/2021/12/16-962/"
+data_dir_path = "/data/chase/cyctest/Chase/2022/10/14/"
 
 # 数据输出的存放文件夹, 相对路径与绝对路径均可, 需精确到天数
 # 请确保此文件夹存在并拥有写入权限
@@ -17,14 +17,14 @@ data_dir_path = "/data/chase/Chase/2021/12/16-962/"
 # 文件夹最后的结尾需要带'/'
 # 例: /data/chase/Chase/Lev1/2021/12/16/
 # TODO: 在程序运行前需要修改此目录
-save_dir_path = "/data/chase/Chase/Lev1/2021/12/16/"
+save_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/10/3/"
 
 # 存储视频的文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
 # 可以不需要手动创建文件夹  会自动创建文件夹
 # 文件夹最后的结尾需要带'/'
 # TODO: 每个月需要修改此目录
-video_dir_path = "/data/chase/Chase/Lev1/2021/12/video/"
+video_dir_path = "/data/chase/cyctest//Chase/Lev1/2022/10/video/"
 
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index

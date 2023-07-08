@@ -8,7 +8,7 @@ CRPIX1  =        1170.30139160 / X coordinate of solar center in pixel
 
 CUNIT1  =           ' arcsec ' / unit of x-axis                                 
 
-CDELT1  =                 1.04 / Pixel spatial resolution along x-axis          
+CDELT1  =                 1.0436 / Pixel spatial resolution along x-axis
 
 CRVAL1  =           0.00000000 / E-W arcsec of solar center                     
 
@@ -16,7 +16,7 @@ CRPIX2  =        1237.35974121 / Y coordinate of solar center in pixel
 
 CUNIT2  =           ' arcsec ' / unit of y-axis                                 
 
-CDELT2  =                 1.04 / Pixel spatial resolution along y-axis          
+CDELT2  =                 1.0436 / Pixel spatial resolution along y-axis
 
 CRVAL2  =           0.00000000 / N-S arcsec of solar center                     
 
@@ -64,7 +64,9 @@ INST_ROT=             342.6234/ Angle of Solar North wrt CMOS y-axis.
 
 R_SUN   =       933.8009643555 / Radius of the Sun in pixels on the CCD         
 
-RSUN_OBS=        971.1529541016 / Apparent solar radius seen by CHASE           
+RSUN_OBS=        971.1529541016 / Apparent solar radius seen by CHASE
+
+RSUN_REF=        964.19059 / Reference solar radius in arcsecs
 
 B0      =               0.0000/ latitude of point at disk center. 
 

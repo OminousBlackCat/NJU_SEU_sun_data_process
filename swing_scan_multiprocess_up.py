@@ -10,7 +10,10 @@
 import multiprocessing as mp
 import datetime
 import os
+from math import pi
+
 import header
+import sim
 import suntools
 import time
 import numpy as np
@@ -443,24 +446,47 @@ def multiprocess_task(parameter_dic: dict):
     try:
         sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
-        # 将小于0的值全部赋为0
-        sequence_data_array[sequence_data_array < 0] = 0
-        suntools.log("SHAPE为：" + str(sequence_data_array.shape))
+        p0 = parameter_dic['header']['INST_ROT']
+        se0000_strtime = parameter_dic['header']['STR_TIME']
+        se0000_rx = parameter_dic['header']['SAT_POS1']
+        se0000_ry = parameter_dic['header']['SAT_POS2']
+        se0000_rz = parameter_dic['header']['SAT_POS3']
+        se0000_satpos = [se0000_rx, se0000_ry, se0000_rz]
+        radius_ref = sim.theory_rsun(se0000_strtime, se0000_satpos, config.bin_count)
+        parameter_dic['header'].set('RSUN_REF', radius_ref)
+        se00xx_center = sim.circle_center(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
+        se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
+
+        suntools.log('计算获得太阳日心坐标与理论半径为:',se00xx_centerx, se00xx_centery, radius_ref)
+        suntools.log('开始旋转图像...')
+        x_width, = sequence_data_array.shape[1],
+        y_width = sequence_data_array.shape[2]
+
+
+        # 对Ha图像进行旋转
+        sequence_data_array[0:standard_HA_width, :, :],centerx_ha,centery_ha = suntools.rotate_fits(standard_HA_width,x_width,y_width,se00xx_centerx,se00xx_centery,radius_ref,sequence_data_array[0:standard_HA_width, :, :],p0,True)
+        # 对Fe图像进行旋转
+        sequence_data_array[standard_HA_width:, :, :],centerx_fe,centery_fe = suntools.rotate_fits(sequence_data_array.shape[0] - standard_HA_width,x_width,y_width,se00xx_centerx,se00xx_centery,radius_ref,sequence_data_array[standard_HA_width:, :, :],p0,False)
+        parameter_dic['header'].set('CRPIX1', (centerx_ha+centerx_fe)/2)
+        parameter_dic['header'].set('CRPIX2', (centery_ha+centery_fe)/2)
+        parameter_dic['header'].set('INST_ROT', 0)
+
+        suntools.log('旋转完成！')
+
+
         # 输出太阳像
         for seq_index in range(SUN_ROW_COUNT):
             sum_data_HA = sequence_data_array[SUM_ROW_INDEX_HA, :, :]
             sum_data_FE = sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :]
-        suntools.log('计算CCD太阳像半径中...')
+        # suntools.log('计算CCD太阳像半径中...')
         R_y, R_x, radius = suntools.getCircle(sum_data_FE)
-        OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
+        # OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
         suntools.log('波长定标中...')
         wavelength_calibrate_input = sequence_data_array[:, int(R_y) - 50: int(R_y) + 49,
                                      int(R_x) - 50: int(R_x) + 49]
         cdel_t3, crval_l3_ha, crval_l3_fe = suntools.cal_center_mean(wavelength_calibrate_input)
-        parameter_dic['header'].set('CRPIX1', R_x)
-        parameter_dic['header'].set('CRPIX2', R_y)
         parameter_dic['header'].set('R_SUN', radius)
-        parameter_dic['header'].set('RSUN_OBS', OBS_Radius)
+        parameter_dic['header'].set('RSUN_OBS', radius * 0.5218 * GLOBAL_BINNING)
         parameter_dic['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
         parameter_dic['header'].set('CDELT2', PIXEL_RESOLUTION * GLOBAL_BINNING)
         parameter_dic['header'].set('CDELT3', cdel_t3)
@@ -469,15 +495,19 @@ def multiprocess_task(parameter_dic: dict):
         suntools.log('下采样中...')
         sum_data_HA_save = suntools.down_sample(sum_data_HA)
         sum_data_FE_save = suntools.down_sample(sum_data_FE)
-        # 旋转INST_ROT度, 并加入时间信息(白色字体)
-        sum_data_HA_save = ndimage.rotate(sum_data_HA_save, -parameter_dic['header']['INST_ROT'], reshape=False)
-        sum_data_FE_save = ndimage.rotate(sum_data_FE_save, -parameter_dic['header']['INST_ROT'], reshape=False)
+        # 旋转INST_ROT度（已改用南大提供的方法，这里目前弃用）
+        # sum_data_HA_save = ndimage.rotate(sum_data_HA_save, -parameter_dic['header']['INST_ROT'], reshape=False)
+        # sum_data_FE_save = ndimage.rotate(sum_data_FE_save, -parameter_dic['header']['INST_ROT'], reshape=False)
         sum_mean_ha = np.mean(sum_data_HA)
         sum_mean_fe = np.mean(sum_data_FE)
         sum_data_HA_save = suntools.add_time(sum_data_HA_save, parameter_dic['start_time'].
-                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
+                                        strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
         sum_data_FE_save = suntools.add_time(sum_data_FE_save, parameter_dic['start_time'].
-                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
+                                        strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
+
+        # 将小于0的值全部赋为0
+        sequence_data_array[sequence_data_array < 0] = 0
+        suntools.log("SHAPE为：" + str(sequence_data_array.shape))
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             suntools.log('输出序号为' + parameter_dic['scan_index'] + '的png...')
