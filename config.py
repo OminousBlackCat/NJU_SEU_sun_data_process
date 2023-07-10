@@ -17,6 +17,11 @@ data_dir_path = "/data/chase/cyctest/Chase/2022/10/14/"
 # 文件夹最后的结尾需要带'/'
 # 例: /data/chase/Chase/Lev1/2021/12/16/
 # TODO: 在程序运行前需要修改此目录
+bias_dir_path = "/data/chase/cyctest/Chase/Lev1/pointing_bias/2022/10/3/"
+
+
+
+# TODO: 在程序运行前需要修改此目录
 save_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/10/3/"
 
 # 存储视频的文件夹, 相对路径与绝对路径均可
@@ -172,3 +177,5 @@ Ha_lower = 94
 Ha_Upper = 172
 Fe_lower = 38
 Fe_Upper = 84
+
+winsize = 32 # 畸变窗口大小,值越大，对畸变的改正效果越差，但太阳本身的运动的影响越小

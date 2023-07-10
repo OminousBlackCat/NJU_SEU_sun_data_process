@@ -6,11 +6,12 @@
 
 @author: seu_wxy
 """
-
+import copy
 import multiprocessing as mp
 import datetime
 import os
-from math import pi
+from math import pi, sqrt, acos, atan
+from sympy.external.tests.test_scipy import scipy
 
 import header
 import sim
@@ -191,6 +192,13 @@ suntools.log('此文件夹共找到' + str(len(symmetry_axis_list)) + '个序列
 last_symmetry_axis_frame_index = 0
 current_scan_index = 0
 current_track_index = 0
+l_bias = []
+l_sunpos = []
+l_slitpos = []
+count_miss = []
+l_badqua = []
+count = 0
+time0 = time.time()
 for axis in symmetry_axis_list:
     suntools.log('*************************************************************************************')
     suntools.log('文件名:' + data_file_lst[axis] + '/ 平均强度为:' + str(global_wave_line_strength_list[axis]))
@@ -206,6 +214,147 @@ for axis in symmetry_axis_list:
         temp_start_file_index = 0
     if temp_last_file_index > len(data_file_lst) - 1:
         temp_last_file_index = len(data_file_lst) - 1
+    step_start = int(data_file_lst[temp_start_file_index].split('-')[-1].split('.')[0])
+    step_mid = int(step_start) + 2312 / config.bin_count  # 对非binning模式的数据，需要修改
+    step_end = int(step_start) + 4624 / config.bin_count  # 对非binning模式的数据，需要修改
+    for i in range(temp_start_file_index, temp_last_file_index):
+        step = int(data_file_lst[i].split('-')[-1].split('.')[0])  # 读取帧序号，以便判断有无缺帧
+        if step >= step_start and step <= step_end and '-0000-' in data_file_lst[
+            i]:  # 第一个条件判断数据是否为这一个序列的，第二个条件判断是否为0级数据的fits文件（第二个条件根据文件名格式可能需要改动，或者可以删除，整合进pipeline时可以检查一下）
+            if count == 0:
+                dif_step = step - count  # 后续用于判断是否缺帧（如果有更好的方法可以修改）
+                csvfname = data_file_lst[i].split('T')[0][-8:] + 'T' + data_file_lst[i].split('T')[1][
+                                                                       :6]  # 存储图像畸变数据的csv文件的文件名
+            # read fits
+            hdu = fits.open(READ_DIR + data_file_lst[i])  # 开始读取0级数据
+            q0 = hdu[0].header['Q0']  # 读取四元数（下同）
+            q1 = hdu[0].header['Q1']
+            q2 = hdu[0].header['Q2']
+            q3 = hdu[0].header['Q3']
+            strtime = hdu[0].header['STR_TIME']  # 读取该帧的时间
+            satx_J2000 = hdu[0].header['SAT_POS1']  # 读取卫星相对地球位置（下同）
+            saty_J2000 = hdu[0].header['SAT_POS2']
+            satz_J2000 = hdu[0].header['SAT_POS3']
+
+            if abs(q0 ** 2 + q1 ** 2 + q2 ** 2 + q3 ** 2 - 1) >= 0.000001:  # 判断四元数是否错误，若有误，执行以下步骤
+                l_q = [q0, q1, q2, q3]  # 记录错误的四元数
+                l_badqua.append(count)  # 记录错误的四元数所在的位置
+                l_qd = [abs(q0 - old_q0), abs(q1 - old_q1), abs(q2 - old_q2),
+                        abs(q3 - old_q3)]  # 计算这组四元数与上一组（没有错误的四元数）的相差（理论上相差不大，相差最大的那个数即为出问题的数）
+                qbad_i = l_qd.index(max(l_qd))  # 找出出现问题的四元数
+                q_squaresum = 0
+                for qi in range(4):
+                    if qi != qbad_i:
+                        q_squaresum += l_q[qi] ** 2
+                l_q[qbad_i] = sqrt(1 - q_squaresum)  # 把出问题的四元数暂时替换，使得四元数的平方和为1
+                q0, q1, q2, q3 = l_q[0], l_q[1], l_q[2], l_q[3]
+            else:  # 四元数没问题时，记录下该组四元数（默认第一帧的四元数不存在问题，后续若出问题，再调整）
+                old_q0 = q0
+                old_q1 = q1
+                old_q2 = q2
+                old_q3 = q3
+
+            Chase_arr_Ea = suntools.quaternion_rot(np.array([q0, q1, q2, q3]),
+                                                   np.array(
+                                                       [0, 1,
+                                                        0]))  # 用四元数实现旋转，原始的方向是[0, 1, 0]，旋转后即为卫星在坐标系（J2000坐标系）中的真实指向
+            Chase_arr_E = np.array([[Chase_arr_Ea[0]], [Chase_arr_Ea[1]], [Chase_arr_Ea[2]]])
+
+            # calculate real Sun position
+            sun_pos, earth_pos = suntools.getEphemerisPos(strtime)
+
+            R_sat_eq = np.array([[satx_J2000], [saty_J2000], [satz_J2000]])  # 卫星相对于地球的位置（J2000坐标系）
+            satx_eq = float(R_sat_eq[0])
+            saty_eq = float(R_sat_eq[1])
+            satz_eq = float(R_sat_eq[2])
+
+            # position is in ICRF (aberration not corrected)
+            sat2sun_rx = sun_pos.x.value - earth_pos.x.value - satx_eq
+            sat2sun_ry = sun_pos.y.value - earth_pos.y.value - saty_eq
+            sat2sun_rz = sun_pos.z.value - earth_pos.z.value - satz_eq
+            sat2sun_pos = np.array([[sat2sun_rx], [sat2sun_ry], [sat2sun_rz]])  # 太阳相对于卫星的位置（J2000坐标系）
+
+            normalize_factor = sqrt(sat2sun_pos[0] ** 2 + sat2sun_pos[1] ** 2 + sat2sun_pos[2] ** 2)  # 归一化因子，也是太阳与卫星的距离
+            sat2sun_pos_normalize = sat2sun_pos / normalize_factor  # 由卫星指向太阳的单位向量
+
+            arr_mul = np.multiply(sat2sun_pos_normalize, Chase_arr_E)  # 对应位置相乘
+
+            try:
+                bias = acos(arr_mul[0] + arr_mul[1] + arr_mul[2]) * 180 / pi * 60 * 60  # 换算为角秒的，太阳实际位置与卫星指向的偏差角
+            except:
+                pass
+
+            l_bias.append(bias)
+            l_sunpos.append(sat2sun_pos)  # 记录太阳相对卫星的位置
+            l_slitpos.append(Chase_arr_E)  # 记录卫星指向（J2000坐标系）
+            count += 1
+
+            if step - count + 1 != dif_step:  # 判断是否缺帧
+                count_miss.append(count)  # 若缺帧，则记录缺帧的位置
+                count += 1
+
+            if step == step_mid:  # 由于后续都是以中间帧位置作为零点，此处记录中间帧的一些参数
+                # cf: center frame
+                cf_q0, cf_q1, cf_q2, cf_q3 = q0, q1, q2, q3
+
+    slitposa_first = l_slitpos[0]
+    slitpos_first = np.array([slitposa_first[0][0], slitposa_first[1][0], slitposa_first[2][0]])
+    R3_first = suntools.quaternion_rot(np.array([cf_q0, -cf_q1, -cf_q2, -cf_q3]), slitpos_first)
+    slitposa_last = l_slitpos[-1]
+    slitpos_last = np.array([slitposa_last[0][0], slitposa_last[1][0], slitposa_last[2][0]])
+    R3_last = suntools.quaternion_rot(np.array([cf_q0, -cf_q1, -cf_q2, -cf_q3]), slitpos_last)
+    if R3_first[2] > R3_last[2]:
+        reverse_scan = 1
+    else:
+        reverse_scan = 0
+
+    l_biasx = []  # x轴方向上（slit方向），卫星实际指向与理想指向的偏差
+    l_biasz = []  # z轴方向上（scan方向），卫星实际指向与理想指向的偏差
+
+    for step in range(len(l_slitpos)):
+
+        ave_res_ang = 0.5218 * 2 * (1156 - step)  # 卫星理想指向（中心帧坐标系）
+        slitposa = l_slitpos[step]  # 卫星实际指向（J2000坐标系）
+        slitpos = np.array([slitposa[0][0], slitposa[1][0], slitposa[2][0]])
+
+        R3 = suntools.quaternion_rot(np.array([cf_q0, -cf_q1, -cf_q2, -cf_q3]), slitpos)  # 将卫星指向在中心帧坐标系上表示
+        slitpos_b = R3
+
+        biasx = atan(slitpos_b[0] / slitpos_b[1]) * 180 / pi * 60 * 60  # x轴方向上（slit方向），卫星实际指向与理想指向的偏差
+
+        if reverse_scan == 1:  # 实际z指向与理想z指向相减，即为实际与理想的偏差，扫描获取的图像，绘图时，采用了理想指向，因此表现为畸变
+            biasz = atan(slitpos_b[2] / sqrt(slitpos_b[0] ** 2 + slitpos_b[1] ** 2)) * 180 / pi * 60 * 60 \
+                    - ave_res_ang  # in arcsec
+        else:
+            biasz = atan(slitpos_b[2] / sqrt(slitpos_b[0] ** 2 + slitpos_b[1] ** 2)) * 180 / pi * 60 * 60 \
+                    + ave_res_ang  # in arcsec
+
+        l_biasx.append(biasx)  # 记录下指向的偏差（下同）
+        l_biasz.append(biasz)
+
+    count = 0
+    for cm in count_miss:  # 指向偏差列表的长度不一定是2312，有缺帧时，前一帧和后一帧的平均值填充进去
+        l_biasx.insert(cm + count, (l_biasx[cm + count - 1] + l_biasx[cm + count]) / 2)
+        l_biasz.insert(cm + count, (l_biasz[cm + count - 1] + l_biasz[cm + count]) / 2)
+        count += 1
+    for bq in l_badqua:  # 处理四元数中存在错误的点
+        countless = 0
+        countmore = 0
+        while bq - countless in l_badqua:
+            countless += 1
+        while bq + countmore in l_badqua:
+            countmore += 1
+        l_biasx[bq] = (l_biasx[bq - countless] + l_biasx[bq + countmore]) / 2  # 用前后四元数正确的时刻算出的指向的平均值填充
+        l_biasz[bq] = (l_biasz[bq - countless] + l_biasz[bq + countmore]) / 2
+    l_biasx_smooth = scipy.signal.savgol_filter(l_biasx, 299, 3)  # 因为四元数的时间分辨率为11帧或14帧，需要将指向平滑一下（下同）
+    l_biasz_smooth = scipy.signal.savgol_filter(l_biasz, 299, 3)
+    if reverse_scan == 1:
+        for i in range(len(l_biasx)):
+            temp = l_biasx_smooth[-i - 1]
+            l_biasx_smooth[-i - 1] = l_biasx_smooth[i]
+            temp = l_biasz_smooth[-i - 1]
+            l_biasz_smooth[-i - 1] = l_biasz_smooth[i]
+
     global_multiprocess_list.append({
         'key_index': symmetry_axis_list.index(axis),  # 唯一序号
         'track_index': current_track_index,  # 轨道序号
@@ -218,7 +367,9 @@ for axis in symmetry_axis_list:
         'flat_data': None,  # 此序列的校正后平场数据
         'abortion_data': None,  # 此序列的校正后红蓝移数据
         'header': fits.header.Header(),  # 此序列的头部, 构造了一个新的header
-        'start_time': datetime.datetime.now()
+        'start_time': datetime.datetime.now(),
+        'bias_x': l_biasx_smooth,
+        'bias_z': l_biasz_smooth
     })
     suntools.log('此序列处于第:' + str(current_track_index) + '轨')
     suntools.log('对应序列序号为:' + str(current_scan_index).zfill(4))
@@ -228,7 +379,6 @@ for axis in symmetry_axis_list:
     suntools.log('*************************************************************************************')
     current_scan_index += 1
     last_symmetry_axis_frame_index = current_axis_frame_index
-
 # 读取头部参数文件
 # 为每个序列都创建头
 global_header_list = header.read_header_from_txt(HEADER_FILE)
@@ -286,7 +436,8 @@ try:
     for temp_dict in global_multiprocess_list:
         # 对每个序列进行校正
         suntools.log(
-            '校正扫描第' + str(temp_dict['track_index']) + '轨, 序列' + temp_dict['scan_index'] + '中...使用标准校正文件为:' + temp_dict[
+            '校正扫描第' + str(temp_dict['track_index']) + '轨, 序列' + temp_dict[
+                'scan_index'] + '中...使用标准校正文件为:' + temp_dict[
                 'standard_filename'])
         suntools.log('此序列首文件为:' + temp_dict['first_filename'])
         suntools.log('此序列末文件为:' + temp_dict['last_filename'])
@@ -371,16 +522,20 @@ GLOBAL_ARRAY_X_COUNT = sample_from_standard.shape[0]
 GLOBAL_ARRAY_Y_COUNT = SUN_ROW_COUNT
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
 suntools.log('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
+global_track_se0000_center = []  # 记录每一轨0000序列相关中心信息
+global_track_se0000_hacore = []  # 记录每一轨0000序列相关中心信hacore
 
 
-def multiprocess_task(parameter_dic: dict):
+# 多进程并行，对于每一序列的0000和0001要分开来处理
+def multiprocess_task(parameter_dic: dict, is_head_of_track: bool):
     """
     按照序列并行, 每次都传进一个dict作为参数列表, 保存了处理此序列所需的全部信息
     每个进程都会开辟一块内存空间用来存储数据
     处理结束之后便会输出文件
     """
     sequence_data_array = None
-    suntools.log('正在处理第' + str(parameter_dic['track_index']) + '轨,  扫描序列:' + parameter_dic['scan_index'] + '...')
+    suntools.log(
+        '正在处理第' + str(parameter_dic['track_index']) + '轨,  扫描序列:' + parameter_dic['scan_index'] + '...')
     try:
         sequence_data_array = np.zeros((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT),
                                        dtype=np.int16)
@@ -422,12 +577,15 @@ def multiprocess_task(parameter_dic: dict):
             image_data = np.array(image_data, dtype=np.int16)
             image_data[:, image_data.shape[1] - PIXEL_ZERO_RIGHT_COUNT:] = 0
             image_data[:, 0: PIXEL_ZERO_LEFT_COUNT] = 0
-            if REVERSAL_MODE == 'odd' and currentScanIndex % 2 == 1:
-                sequence_data_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
-            elif REVERSAL_MODE == 'even' and currentScanIndex % 2 == 0:
-                sequence_data_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
-            else:
-                sequence_data_array[:, fileRelativePosition, :] = image_data
+
+            # 原来的上下偏转，用南大提供的新方法替换
+            # if REVERSAL_MODE == 'odd' and currentScanIndex % 2 == 1:
+            #     sequence_data_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
+            # elif REVERSAL_MODE == 'even' and currentScanIndex % 2 == 0:
+            #     sequence_data_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
+            # else:
+            #     sequence_data_array[:, fileRelativePosition, :] = image_data
+
             # 进度输出
             file_data.close()
             # if if_first_print.value:
@@ -441,38 +599,75 @@ def multiprocess_task(parameter_dic: dict):
         except BaseException as e:
             suntools.log(traceback.print_exc())
             suntools.log('文件:' + filename + '处理失败, 请检查此文件')
-    suntools.log('第' + str(parameter_dic['track_index']) + '轨, 扫描序列' + parameter_dic['scan_index'] + '预处理完成...')
+    suntools.log(
+        '第' + str(parameter_dic['track_index']) + '轨, 扫描序列' + parameter_dic['scan_index'] + '预处理完成...')
     suntools.log('生成完整日像中...')
     try:
         sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         p0 = parameter_dic['header']['INST_ROT']
-        se0000_strtime = parameter_dic['header']['STR_TIME']
+        strtime = parameter_dic['header']['STR_TIME']
+        se0000_hacore = sequence_data_array[68:, :]
+        h, w = se0000_hacore.shape  # 读取图片高度和宽度
+        se0000_hawing = sequence_data_array[110:, :]
         se0000_rx = parameter_dic['header']['SAT_POS1']
         se0000_ry = parameter_dic['header']['SAT_POS2']
         se0000_rz = parameter_dic['header']['SAT_POS3']
-        se0000_satpos = [se0000_rx, se0000_ry, se0000_rz]
-        radius_ref = sim.theory_rsun(se0000_strtime, se0000_satpos, config.bin_count)
+        satpos = [se0000_rx, se0000_ry, se0000_rz]
+        radius_ref = sim.theory_rsun(strtime, satpos, GLOBAL_BINNING)
         parameter_dic['header'].set('RSUN_REF', radius_ref)
-        se00xx_center = sim.circle_center(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
-        se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
+        suntools.log('计算获得太阳日心坐标理论半径为:', radius_ref)
+        biasx = parameter_dic['bias_x'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
+        biasz = parameter_dic['bias_z'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
+        x_width = sequence_data_array.shape[1],
+        z_width = sequence_data_array.shape[2]
+        axis_width_ha = [standard_HA_width, x_width, z_width]
+        axis_width_fe = [standard_FE_width, x_width, z_width]
+        if is_head_of_track:
+            se00xx_imwing_ha = suntools.head_distortion_correction('HA', axis_width_ha, biasx, biasz,
+                                                sequence_data_array[0:standard_HA_width, :, :])
+            se00xx_imwing_fe = suntools.head_distortion_correction('FE', axis_width_fe, biasx, biasz,
+                                                sequence_data_array[standard_HA_width:, :, :])
+            se0000_hacore0 = sequence_data_array[68, :, :]
+            se0000_hawing0 = sequence_data_array[110, :, :]
+            se0000_center = sim.circle_center(se0000_hawing0)
+            if parameter_dic['scan_index'] == 0000:
+                global_track_se0000_center[parameter_dic['track_index']] = se0000_center
+                global_track_se0000_hacore[parameter_dic['track_index']] = se0000_hacore0
 
-        suntools.log('计算获得太阳日心坐标与理论半径为:',se00xx_centerx, se00xx_centery, radius_ref)
+        else:
+            hacore0 = global_track_se0000_hacore[parameter_dic['track_index']]
+            se00xx_hacore = sequence_data_array[68, :, :]
+            se00xx_RSUN = sim.theory_rsun(strtime, satpos, GLOBAL_BINNING)
+            se0000_center = global_track_se0000_center[parameter_dic['track_index']]
+
+            se00xx_imwing_ha = suntools.non_head_distortion_correction('HA',
+                                                                       sequence_data_array[0:standard_HA_width, :, :],
+                                                                       se0000_center, se00xx_RSUN, axis_width_ha,
+                                                                       se00xx_hacore, hacore0, w, h)
+            se00xx_imwing_fe = suntools.non_head_distortion_correction('HA',
+                                                                       sequence_data_array[standard_HA_width:, :, :],
+                                                                       se0000_center, se00xx_RSUN, axis_width_fe,
+                                                                       se00xx_hacore, hacore0, w, h)
+
         suntools.log('开始旋转图像...')
-        x_width, = sequence_data_array.shape[1],
-        y_width = sequence_data_array.shape[2]
-
-
         # 对Ha图像进行旋转
-        sequence_data_array[0:standard_HA_width, :, :],centerx_ha,centery_ha = suntools.rotate_fits(standard_HA_width,x_width,y_width,se00xx_centerx,se00xx_centery,radius_ref,sequence_data_array[0:standard_HA_width, :, :],p0,True)
+        sequence_data_array[0:standard_HA_width, :, :], centerx_ha, centery_ha = suntools.rotate_fits(standard_HA_width,
+                                                                                                      x_width, z_width,
+                                                                                                      se00xx_imwing_ha,
+                                                                                                      radius_ref,
+                                                                                                      sequence_data_array[
+                                                                                                      0:standard_HA_width,
+                                                                                                      :, :], p0, True)
         # 对Fe图像进行旋转
-        sequence_data_array[standard_HA_width:, :, :],centerx_fe,centery_fe = suntools.rotate_fits(sequence_data_array.shape[0] - standard_HA_width,x_width,y_width,se00xx_centerx,se00xx_centery,radius_ref,sequence_data_array[standard_HA_width:, :, :],p0,False)
-        parameter_dic['header'].set('CRPIX1', (centerx_ha+centerx_fe)/2)
-        parameter_dic['header'].set('CRPIX2', (centery_ha+centery_fe)/2)
+        sequence_data_array[standard_HA_width:, :, :], centerx_fe, centery_fe = suntools.rotate_fits(
+            sequence_data_array.shape[0] - standard_HA_width, x_width, z_width, se00xx_imwing_fe,
+            radius_ref, sequence_data_array[standard_HA_width:, :, :], p0, False)
+        parameter_dic['header'].set('CRPIX1', (centerx_ha + centerx_fe) / 2)
+        parameter_dic['header'].set('CRPIX2', (centery_ha + centery_fe) / 2)
         parameter_dic['header'].set('INST_ROT', 0)
 
         suntools.log('旋转完成！')
-
 
         # 输出太阳像
         for seq_index in range(SUN_ROW_COUNT):
@@ -501,9 +696,9 @@ def multiprocess_task(parameter_dic: dict):
         sum_mean_ha = np.mean(sum_data_HA)
         sum_mean_fe = np.mean(sum_data_FE)
         sum_data_HA_save = suntools.add_time(sum_data_HA_save, parameter_dic['start_time'].
-                                        strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
+                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
         sum_data_FE_save = suntools.add_time(sum_data_FE_save, parameter_dic['start_time'].
-                                        strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
+                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
 
         # 将小于0的值全部赋为0
         sequence_data_array[sequence_data_array < 0] = 0
@@ -576,7 +771,17 @@ def main():
     """
     suntools.log('开启多核并行处理...')
     pool = mp.Pool(processes=multiprocess_count)
-    pool.map(multiprocess_task, global_multiprocess_list)
+    headseries_of_track = []
+    non_headseries_of_track = []
+    for i in range(len(global_multiprocess_list)):
+        if global_multiprocess_list[i]['scan_index'] == 0000 or global_multiprocess_list[i]['scan_index']:
+            headseries_of_track.append(global_multiprocess_list)
+        else:
+            non_headseries_of_track.append(global_multiprocess_list)
+    pool.map(multiprocess_task, headseries_of_track, True)
+    pool.close()
+    pool.join()
+    pool.map(multiprocess_task, non_headseries_of_track, False)
     pool.close()
     pool.join()
     time_end = time.time()
