@@ -6,33 +6,27 @@
 @editor: seu_wxy
 """
 import copy
-
-import numpy as np
-import re
-import os
-import time
-import matplotlib
-import matplotlib.pyplot as plt
-from astropy.utils.data import get_pkg_data_filename
-from PIL import Image
-import math
-import scipy.signal as signal
-from scipy.interpolate import interpolate
-
-import config
-import astropy
 # import jplephem
 import datetime
-import random
+import re
+import time
 from math import *
+
+import astropy
+import cv2
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.signal as signal
+from PIL import Image
+from astropy import coordinates
 from astropy.io import fits
 from astropy.time import Time
-from astropy import coordinates
-import multiprocessing as mp
-import cv2
-import numba
+from astropy.utils.data import get_pkg_data_filename
 from numba import jit
+from scipy import interpolate
 
+import config
 import sim
 
 cv2.setNumThreads(1)
@@ -1095,8 +1089,9 @@ def getEphemerisPos(strtime):
 
 
 def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data_array):
+    log('开始进行0000序列的图像畸变矫正')
     a1, a2, a3 = axis_width
-    se0000_x, se0000_z = np.zeros([a2, a3]), np.zeros([a2, a3])
+    se0000_x, se0000_z = np.zeros((a2, a3)), np.zeros((a2, a3))
     lse0000_za, lse0000_zb, lse0000_zc = [], [], []
     for j in range(a2):
         for k in range(a3):
@@ -1131,9 +1126,10 @@ def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data
         sequence_data_array[wl, :, :] = se0000_imout
 
     if spec_win == 'HA':
-        se0000_imwing = se0000_imout[110, :, :]
+        se0000_imwing = sequence_data_array[110, :, :]
     if spec_win == 'FE':
-        se0000_imwing = se0000_imout[10, :, :]
+        se0000_imwing = sequence_data_array[10, :, :]
+    print('0000序列的图像畸变矫正完成')
 
     return se0000_imwing
 
@@ -1143,15 +1139,17 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
     a1, a2, a3 = axis_width
     se0000_centerX0, se0000_centerY0 = se0000_center
 
-    se00xx_wing = se00xx_data[110, :, :]
+    if spec_win == 'HA':  # 读取光球图像用于定日心坐标
+        se00xx_wing = se00xx_data[110, :, :]
+    if spec_win == 'FE':
+        se00xx_wing = se00xx_data[10, :, :]
     se00xx_center = sim.circle_center(se00xx_wing)
     se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
     dx, dy = -(se00xx_centerx - se0000_centerX0), -(se00xx_centery - se0000_centerY0)
     se00xx_hacore2 = sim.imshift(se00xx_hacore, [int(dy), int(dx)])  # 刚性对齐
 
-    print(dx, dy, se00xx_RSUN)
 
-    print('Processing distortion correction...')
+    log('开始进行非0000序列的图像畸变矫正')
 
     se00xx_flow = cv2.calcOpticalFlowFarneback(hacore0, se00xx_hacore2, flow=None, pyr_scale=0.5, \
                                                levels=3, winsize=config.winsize, iterations=5, poly_n=5, \
@@ -1191,5 +1189,5 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
                                  interpolation=cv2.INTER_LINEAR)  # 非刚性位移改正畸变
         se00xx_data[j, :, :] = se00xx_imout
 
-    print('Distortion correction successful')
+    print('非0000序列的图像畸变矫正完成')
     return se00xx_imwing

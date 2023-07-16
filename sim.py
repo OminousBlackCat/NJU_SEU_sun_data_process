@@ -227,7 +227,6 @@ def circle_center(image, shrink_num = 4, scale_num = 100):
     filter_num = 100 / shrink_num
     
     height, width = image.shape
-    print(image.shape)
     s_height, s_width = floor(height / shrink_num) * shrink_num, floor(width / shrink_num) * shrink_num
     
     im1 = rebina(image[:s_height, :s_width], [int(height / shrink_num), int(width / shrink_num)])

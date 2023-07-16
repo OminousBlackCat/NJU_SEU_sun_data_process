@@ -10,7 +10,7 @@ import copy
 import multiprocessing as mp
 import datetime
 import os
-from math import pi, sqrt, acos, atan
+from math import pi, sqrt, acos, atan, ceil, floor
 from sympy.external.tests.test_scipy import scipy
 
 import header
@@ -19,13 +19,43 @@ import suntools
 import time
 import numpy as np
 from astropy.io import fits
-from scipy import ndimage
 import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
 import createVideo
 import sys
 import traceback
+import sys
+import os
+import time
+
+
+# （调试用）控制台输出记录到文件
+# class Logger(object):
+#     def __init__(self, file_name="Default.log", stream=sys.stdout):
+#         self.terminal = stream
+#         self.log = open(file_name, "a")
+#
+#     def write(self, message):
+#         self.terminal.write(message)
+#         self.log.write(message)
+#
+#     def flush(self):
+#         pass
+#
+#
+#
+#     # 自定义目录存放日志文件
+# log_path = './Logs/'
+# if not os.path.exists(log_path):
+#     os.makedirs(log_path)
+#     # 日志文件名按照程序运行时间设置
+# log_file_name = log_path + 'log-pipeline' + time.strftime("%Y%m%d-%H%M%S", time.localtime()) + '.log'
+# # 记录正常的 print 信息
+# sys.stdout = Logger(log_file_name)
+# # 记录 traceback 异常信息
+# sys.stderr = Logger(log_file_name)
+
 
 time_start = time.time()
 
@@ -192,14 +222,15 @@ suntools.log('此文件夹共找到' + str(len(symmetry_axis_list)) + '个序列
 last_symmetry_axis_frame_index = 0
 current_scan_index = 0
 current_track_index = 0
-l_bias = []
-l_sunpos = []
-l_slitpos = []
-count_miss = []
-l_badqua = []
-count = 0
-time0 = time.time()
+head_series_of_track = dict()
 for axis in symmetry_axis_list:
+    l_bias = []
+    l_sunpos = []
+    l_slitpos = []
+    count_miss = []
+    l_badqua = []
+    count = 0
+    time0 = time.time()
     suntools.log('*************************************************************************************')
     suntools.log('文件名:' + data_file_lst[axis] + '/ 平均强度为:' + str(global_wave_line_strength_list[axis]))
     # 当前对称轴的帧数
@@ -210,21 +241,24 @@ for axis in symmetry_axis_list:
         current_scan_index = 0  # 将扫描序列序号置0
     temp_start_file_index = axis - int(SUN_ROW_COUNT / 2)
     temp_last_file_index = axis + int(SUN_ROW_COUNT / 2)
+    # 判断当前序列是否被文件夹截断，如果截断了，则继续处理下一个，不管其他的
     if temp_start_file_index < 0:
         temp_start_file_index = 0
+        continue
     if temp_last_file_index > len(data_file_lst) - 1:
         temp_last_file_index = len(data_file_lst) - 1
+        continue
     step_start = int(data_file_lst[temp_start_file_index].split('-')[-1].split('.')[0])
     step_mid = int(step_start) + 2312 / config.bin_count  # 对非binning模式的数据，需要修改
-    step_end = int(step_start) + 4624 / config.bin_count  # 对非binning模式的数据，需要修改
-    for i in range(temp_start_file_index, temp_last_file_index):
+    step_end = int(step_start) + floor(4625 / config.bin_count)  # 对非binning模式的数据，需要修改
+    if current_scan_index == 0:
+        head_series_of_track[current_track_index] = data_file_lst[temp_start_file_index]
+    for i in range(temp_start_file_index,temp_last_file_index+1):
         step = int(data_file_lst[i].split('-')[-1].split('.')[0])  # 读取帧序号，以便判断有无缺帧
         if step >= step_start and step <= step_end and '-0000-' in data_file_lst[
-            i]:  # 第一个条件判断数据是否为这一个序列的，第二个条件判断是否为0级数据的fits文件（第二个条件根据文件名格式可能需要改动，或者可以删除，整合进pipeline时可以检查一下）
+            i]:  # 第一个条件判断数据是否为这一个序列的，第二个条件判断是否为0级数据的fits文件,第二个条件根据文件名格式可能需要改动，或者可以删除，整合进pipeline时可以检查一下）
             if count == 0:
                 dif_step = step - count  # 后续用于判断是否缺帧（如果有更好的方法可以修改）
-                csvfname = data_file_lst[i].split('T')[0][-8:] + 'T' + data_file_lst[i].split('T')[1][
-                                                                       :6]  # 存储图像畸变数据的csv文件的文件名
             # read fits
             hdu = fits.open(READ_DIR + data_file_lst[i])  # 开始读取0级数据
             q0 = hdu[0].header['Q0']  # 读取四元数（下同）
@@ -296,7 +330,6 @@ for axis in symmetry_axis_list:
             if step == step_mid:  # 由于后续都是以中间帧位置作为零点，此处记录中间帧的一些参数
                 # cf: center frame
                 cf_q0, cf_q1, cf_q2, cf_q3 = q0, q1, q2, q3
-
     slitposa_first = l_slitpos[0]
     slitpos_first = np.array([slitposa_first[0][0], slitposa_first[1][0], slitposa_first[2][0]])
     R3_first = suntools.quaternion_rot(np.array([cf_q0, -cf_q1, -cf_q2, -cf_q3]), slitpos_first)
@@ -333,9 +366,9 @@ for axis in symmetry_axis_list:
         l_biasz.append(biasz)
 
     count = 0
-    for cm in count_miss:  # 指向偏差列表的长度不一定是2312，有缺帧时，前一帧和后一帧的平均值填充进去
-        l_biasx.insert(cm + count, (l_biasx[cm + count - 1] + l_biasx[cm + count]) / 2)
-        l_biasz.insert(cm + count, (l_biasz[cm + count - 1] + l_biasz[cm + count]) / 2)
+    for cm in count_miss:  # 指向偏差列表的长度不一定是2313，有缺帧时，前一帧和后一帧的平均值填充进去
+        l_biasx.insert(cm + count, (l_biasx[cm + count - 1] + l_biasx[cm + count+1]) / 2)
+        l_biasz.insert(cm + count, (l_biasz[cm + count - 1] + l_biasz[cm + count+1]) / 2)
         count += 1
     for bq in l_badqua:  # 处理四元数中存在错误的点
         countless = 0
@@ -348,12 +381,59 @@ for axis in symmetry_axis_list:
         l_biasz[bq] = (l_biasz[bq - countless] + l_biasz[bq + countmore]) / 2
     l_biasx_smooth = scipy.signal.savgol_filter(l_biasx, 299, 3)  # 因为四元数的时间分辨率为11帧或14帧，需要将指向平滑一下（下同）
     l_biasz_smooth = scipy.signal.savgol_filter(l_biasz, 299, 3)
+    plt.figure(figsize=(20, 20))
+    label = "Bias of Track " + str(current_track_index) + " Series " + str(
+        current_scan_index).zfill(4) + " \n Time of series 0000 of this track: " + \
+            head_series_of_track[current_track_index].split('T')[0][-8:] + 'T' + \
+            head_series_of_track[current_track_index].split('T')[1][
+            :6]
+    plt.suptitle(label)
+    plt.subplot(321)
+    plt.plot(l_bias)  # 太阳实际位置和卫星指向的角度差
+    plt.xlabel('Step')
+    plt.ylabel('Slit Pointing (arcsec)')
+    plt.grid()
+
+    plt.subplot(323)
+    plt.plot(l_biasx, color='red')  # 卫星的实时指向和卫星中间帧指向的差别
+    plt.plot(l_biasx_smooth, color='blue')
+    plt.xlabel('Step')
+    plt.ylabel('Slit-x Pointing (arcsec)')
+    plt.grid()
+
+    plt.subplot(325)
+    plt.plot(l_biasz, color='red')  # 卫星的实时指向和卫星中间帧指向的差别
+    plt.plot(l_biasz_smooth, color='blue')
+    plt.xlabel('Step')
+    plt.ylabel('Slit-z Pointing (arcsec)')
+    plt.grid()
+
+    plt.subplot(324)
+    plt.plot(l_biasx_smooth, color='blue')  # 卫星的实时指向和卫星中间帧指向的差别
+    plt.xlabel('Step')
+    plt.ylabel('Slit-x Pointing (arcsec)')
+    plt.grid()
+
+    plt.subplot(326)
+    plt.plot(l_biasz_smooth, color='blue')  # 卫星的实时指向和卫星中间帧指向的差别
+    plt.xlabel('Step')
+    plt.ylabel('Slit-z Pointing (arcsec)')
+    plt.grid()
+
+
+    if not os.path.exists(config.bias_dir_path):  # 检查目录是否存在
+        os.makedirs(config.bias_dir_path)  # 如果不存在则创建目录
+    plt.savefig(config.bias_dir_path + 'T' + str(current_track_index).zfill(4) + 'S' +
+                str(current_scan_index).zfill(4) + data_file_lst[temp_start_file_index].split('T')[0][-8:] + 'T' + data_file_lst[temp_start_file_index].split('T')[1][
+                                                                                   :6] + '.png')  # 需要将四元数指向示意图暂存在某一路径，可供后续检查数据质量
     if reverse_scan == 1:
-        for i in range(len(l_biasx)):
+        for i in range(floor(len(l_biasx)/2)):
             temp = l_biasx_smooth[-i - 1]
             l_biasx_smooth[-i - 1] = l_biasx_smooth[i]
+            l_biasx_smooth[i] =temp
             temp = l_biasz_smooth[-i - 1]
             l_biasz_smooth[-i - 1] = l_biasz_smooth[i]
+            l_biasz_smooth[i] =temp
 
     global_multiprocess_list.append({
         'key_index': symmetry_axis_list.index(axis),  # 唯一序号
@@ -369,7 +449,8 @@ for axis in symmetry_axis_list:
         'header': fits.header.Header(),  # 此序列的头部, 构造了一个新的header
         'start_time': datetime.datetime.now(),
         'bias_x': l_biasx_smooth,
-        'bias_z': l_biasz_smooth
+        'bias_z': l_biasz_smooth,
+        'reverse_scan': reverse_scan
     })
     suntools.log('此序列处于第:' + str(current_track_index) + '轨')
     suntools.log('对应序列序号为:' + str(current_scan_index).zfill(4))
@@ -522,12 +603,10 @@ GLOBAL_ARRAY_X_COUNT = sample_from_standard.shape[0]
 GLOBAL_ARRAY_Y_COUNT = SUN_ROW_COUNT
 GLOBAL_ARRAY_Z_COUNT = sample_from_standard.shape[1]
 suntools.log('SHAPE:' + str(GLOBAL_ARRAY_X_COUNT) + ',' + str(GLOBAL_ARRAY_Y_COUNT) + ',' + str(GLOBAL_ARRAY_Z_COUNT))
-global_track_se0000_center = []  # 记录每一轨0000序列相关中心信息
-global_track_se0000_hacore = []  # 记录每一轨0000序列相关中心信hacore
 
 
 # 多进程并行，对于每一序列的0000和0001要分开来处理
-def multiprocess_task(parameter_dic: dict, is_head_of_track: bool):
+def multiprocess_task(parameter_dic: dict):
     """
     按照序列并行, 每次都传进一个dict作为参数列表, 保存了处理此序列所需的全部信息
     每个进程都会开辟一块内存空间用来存储数据
@@ -577,14 +656,13 @@ def multiprocess_task(parameter_dic: dict, is_head_of_track: bool):
             image_data = np.array(image_data, dtype=np.int16)
             image_data[:, image_data.shape[1] - PIXEL_ZERO_RIGHT_COUNT:] = 0
             image_data[:, 0: PIXEL_ZERO_LEFT_COUNT] = 0
-
             # 原来的上下偏转，用南大提供的新方法替换
-            # if REVERSAL_MODE == 'odd' and currentScanIndex % 2 == 1:
-            #     sequence_data_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
+            if parameter_dic['reverse_scan'] == 1:
+                sequence_data_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
             # elif REVERSAL_MODE == 'even' and currentScanIndex % 2 == 0:
             #     sequence_data_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
-            # else:
-            #     sequence_data_array[:, fileRelativePosition, :] = image_data
+            else:
+                sequence_data_array[:, fileRelativePosition, :] = image_data
 
             # 进度输出
             file_data.close()
@@ -607,9 +685,8 @@ def multiprocess_task(parameter_dic: dict, is_head_of_track: bool):
         sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         p0 = parameter_dic['header']['INST_ROT']
         strtime = parameter_dic['header']['STR_TIME']
-        se0000_hacore = sequence_data_array[68:, :]
+        se0000_hacore = sequence_data_array[68, :, :]
         h, w = se0000_hacore.shape  # 读取图片高度和宽度
-        se0000_hawing = sequence_data_array[110:, :]
         se0000_rx = parameter_dic['header']['SAT_POS1']
         se0000_ry = parameter_dic['header']['SAT_POS2']
         se0000_rz = parameter_dic['header']['SAT_POS3']
@@ -619,33 +696,33 @@ def multiprocess_task(parameter_dic: dict, is_head_of_track: bool):
         suntools.log('计算获得太阳日心坐标理论半径为:', radius_ref)
         biasx = parameter_dic['bias_x'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
         biasz = parameter_dic['bias_z'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
-        x_width = sequence_data_array.shape[1],
+        x_width = sequence_data_array.shape[1]
         z_width = sequence_data_array.shape[2]
         axis_width_ha = [standard_HA_width, x_width, z_width]
         axis_width_fe = [standard_FE_width, x_width, z_width]
-        if is_head_of_track:
+        if parameter_dic['is_head_of_track']:
             se00xx_imwing_ha = suntools.head_distortion_correction('HA', axis_width_ha, biasx, biasz,
-                                                sequence_data_array[0:standard_HA_width, :, :])
+                                                                   sequence_data_array[0:standard_HA_width, :, :])
             se00xx_imwing_fe = suntools.head_distortion_correction('FE', axis_width_fe, biasx, biasz,
-                                                sequence_data_array[standard_HA_width:, :, :])
-            se0000_hacore0 = sequence_data_array[68, :, :]
-            se0000_hawing0 = sequence_data_array[110, :, :]
+                                                                   sequence_data_array[standard_HA_width:, :, :])
+            se0000_hacore0 = sequence_data_array[68,:,:]
+            se0000_hawing0 = sequence_data_array[110,:,:]
             se0000_center = sim.circle_center(se0000_hawing0)
-            if parameter_dic['scan_index'] == 0000:
-                global_track_se0000_center[parameter_dic['track_index']] = se0000_center
-                global_track_se0000_hacore[parameter_dic['track_index']] = se0000_hacore0
+            if parameter_dic['scan_index'] == '0000':
+                parameter_dic['global_track_se0000_center'][parameter_dic['track_index']] = se0000_center
+                parameter_dic['global_track_se0000_hacore'][parameter_dic['track_index']] = se0000_hacore0
 
         else:
-            hacore0 = global_track_se0000_hacore[parameter_dic['track_index']]
+            hacore0 = parameter_dic['global_track_se0000_hacore'][parameter_dic['track_index']]
             se00xx_hacore = sequence_data_array[68, :, :]
             se00xx_RSUN = sim.theory_rsun(strtime, satpos, GLOBAL_BINNING)
-            se0000_center = global_track_se0000_center[parameter_dic['track_index']]
+            se0000_center = parameter_dic['global_track_se0000_center'][parameter_dic['track_index']]
 
             se00xx_imwing_ha = suntools.non_head_distortion_correction('HA',
                                                                        sequence_data_array[0:standard_HA_width, :, :],
                                                                        se0000_center, se00xx_RSUN, axis_width_ha,
                                                                        se00xx_hacore, hacore0, w, h)
-            se00xx_imwing_fe = suntools.non_head_distortion_correction('HA',
+            se00xx_imwing_fe = suntools.non_head_distortion_correction('FE',
                                                                        sequence_data_array[standard_HA_width:, :, :],
                                                                        se0000_center, se00xx_RSUN, axis_width_fe,
                                                                        se00xx_hacore, hacore0, w, h)
@@ -770,18 +847,30 @@ def main():
     并在pool.join()之后生成视频
     """
     suntools.log('开启多核并行处理...')
-    pool = mp.Pool(processes=multiprocess_count)
     headseries_of_track = []
     non_headseries_of_track = []
+    global_track_se0000_center = mp.Manager().dict()
+    global_track_se0000_hacore = mp.Manager().dict()
+
+
     for i in range(len(global_multiprocess_list)):
-        if global_multiprocess_list[i]['scan_index'] == 0000 or global_multiprocess_list[i]['scan_index']:
-            headseries_of_track.append(global_multiprocess_list)
+        if global_multiprocess_list[i]['scan_index'] == '0000':
+            global_multiprocess_list[i]['is_head_of_track'] = True
+            global_multiprocess_list[i]['global_track_se0000_center'] = global_track_se0000_center
+            global_multiprocess_list[i]['global_track_se0000_hacore'] = global_track_se0000_hacore
+            headseries_of_track.append((global_multiprocess_list[i]))
         else:
-            non_headseries_of_track.append(global_multiprocess_list)
-    pool.map(multiprocess_task, headseries_of_track, True)
+            global_multiprocess_list[i]['is_head_of_track'] = False
+            global_multiprocess_list[i]['global_track_se0000_center'] = global_track_se0000_center
+            global_multiprocess_list[i]['global_track_se0000_hacore'] = global_track_se0000_hacore
+            non_headseries_of_track.append((global_multiprocess_list[i]))
+
+    pool = mp.Pool(processes=multiprocess_count)
+    pool.map(multiprocess_task, headseries_of_track)
     pool.close()
     pool.join()
-    pool.map(multiprocess_task, non_headseries_of_track, False)
+    pool = mp.Pool(processes=multiprocess_count)
+    pool.map(multiprocess_task, non_headseries_of_track)
     pool.close()
     pool.join()
     time_end = time.time()
