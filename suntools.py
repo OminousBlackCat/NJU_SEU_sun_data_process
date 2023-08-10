@@ -1044,7 +1044,6 @@ def quaternion_rot(q, p):
 def rotate_fits(width, x, y, se00xx_imwing, rsun, data, angle, isHa):
     se00xx_center = sim.circle_center(se00xx_imwing)
     centerx, centery = se00xx_center[0], se00xx_center[1]
-    cubeout2 = np.zeros([width, x, y])
     se00xx_rotate1 = np.zeros([x, y])
     se00xx_rotate2 = np.zeros([x, y])
 
@@ -1060,7 +1059,7 @@ def rotate_fits(width, x, y, se00xx_imwing, rsun, data, angle, isHa):
     se00xx_rotate2 = se00xx_rotate2.astype('float32')
 
     for j in range(width):
-        cubeout2[j, :, :] = cv2.remap(data[j, :, :], se00xx_rotate1, se00xx_rotate2, \
+        data[j, :, :] = cv2.remap(data[j, :, :], se00xx_rotate1, se00xx_rotate2, \
                                       borderMode=cv2.BORDER_CONSTANT, \
                                       interpolation=cv2.INTER_LINEAR)
 
@@ -1071,13 +1070,13 @@ def rotate_fits(width, x, y, se00xx_imwing, rsun, data, angle, isHa):
                 se00xx_mask[j, k] = 0
 
     if (isHa):
-        rotated_data = copy.deepcopy(np.multiply(cubeout2[110, :, :], se00xx_mask))
+        rotated_data = copy.deepcopy(np.multiply(data[110, :, :], se00xx_mask))
     else:
-        rotated_data = copy.deepcopy(np.multiply(cubeout2[10, :, :], se00xx_mask))
+        rotated_data = copy.deepcopy(np.multiply(data[10, :, :], se00xx_mask))
 
     se00xx_center = sim.circle_center(rotated_data)
     se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
-    return cubeout2, se00xx_centerx, se00xx_centery
+    return  se00xx_centerx, se00xx_centery
 
 
 def getEphemerisPos(strtime):
@@ -1129,7 +1128,7 @@ def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data
         se0000_imwing = sequence_data_array[110, :, :]
     if spec_win == 'FE':
         se0000_imwing = sequence_data_array[10, :, :]
-    print('0000序列的图像畸变矫正完成')
+    log('0000序列的图像畸变矫正完成')
 
     return se0000_imwing
 
@@ -1189,5 +1188,5 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
                                  interpolation=cv2.INTER_LINEAR)  # 非刚性位移改正畸变
         se00xx_data[j, :, :] = se00xx_imout
 
-    print('非0000序列的图像畸变矫正完成')
+    log('非0000序列的图像畸变矫正完成')
     return se00xx_imwing

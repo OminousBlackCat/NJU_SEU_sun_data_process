@@ -45,10 +45,10 @@ copy_header_items = [
         'key': 'SAT_VEL3',
         'typeOfValue': 'number'
     },
-    {
-        'key': 'ORID',
-        'typeOfValue': 'string'
-    }
+    # {
+    #     'key': 'ORID',
+    #     'typeOfValue': 'string'
+    # }
 ]
 
 

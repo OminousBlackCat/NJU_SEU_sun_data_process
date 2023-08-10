@@ -39,13 +39,15 @@ def createVideo(fileDate: datetime.datetime):
     if not os.path.exists(saveDir):
         os.makedirs(saveDir)
     getPNGList()
-    frameShape = cv2.imread(fileDir + ha_list[0]).shape
     ha_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_HA.avi',
-                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
+                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (1100, 1100), True)
     # fe_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_FE.avi',
     #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
     for cnt in range(len(ha_list)):
         ha_img = cv2.imread(fileDir + ha_list[cnt])
+        centerx = 550
+        centery = 550
+        ha_img = ha_img[int(centerx)-550:int(centerx)+550,int(centery)-550:int(centery[cnt])+550]
         bias_tmp = cnt % (pic_bias + 1)
         if bias_tmp == 0:
             for i in range(pic_count):
