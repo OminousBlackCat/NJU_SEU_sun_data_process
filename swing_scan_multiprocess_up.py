@@ -6,6 +6,8 @@
 
 @author: seu_wxy
 """
+
+
 import copy
 import multiprocessing as mp
 from concurrent.futures.process import ProcessPoolExecutor
@@ -893,12 +895,13 @@ def multiprocess_task(parameter_dic: dict):
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             suntools.log('输出序号为' + parameter_dic['scan_index'] + '的png...')
+            METADATA =  {'CenterX': str(int((centerx_ha + centerx_fe) / 4)),'CenterY':str(int((centery_ha + centery_fe) / 4))}
             plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
                        + '_' + parameter_dic['scan_index'] + '_HA' + ".png",
-                       sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha)
+                       sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha,metadata = METADATA)
             plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
                        + '_' + parameter_dic['scan_index'] + '_FE' + ".png",
-                       sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe)
+                       sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe,metadata = METADATA)
         if config.save_img_form == 'fts':
             # 不对data进行任何操作 直接输出为fts文件
             suntools.log('输出序号为' + parameter_dic['scan_index'] + '的fits...')

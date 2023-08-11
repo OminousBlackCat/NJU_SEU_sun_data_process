@@ -10,6 +10,9 @@
 
 import cv2
 import os
+
+from PIL import Image
+
 import config
 import datetime
 
@@ -32,7 +35,17 @@ def getPNGList():
                 fe_list.append(filename)
     ha_list.sort()
     fe_list.sort()
+# 数组补全函数，将裁剪后的数组不足1040长度的元素用0填充
+def completeArray(list_args):
+    my_len = 1040
+    result = []
 
+    for my_list in list_args:
+        if len(my_list) < my_len:
+            for i in range(my_len - len(my_list)):
+                my_list.append(0)
+        result.append(my_list)
+    return result
 
 def createVideo(fileDate: datetime.datetime):
     # 检查输出文件夹是否存在 不存在则创建
@@ -40,14 +53,20 @@ def createVideo(fileDate: datetime.datetime):
         os.makedirs(saveDir)
     getPNGList()
     ha_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_HA.avi',
-                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (1100, 1100), True)
+                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (1040, 1040), True)
     # fe_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_FE.avi',
     #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
+    print(len(ha_list))
     for cnt in range(len(ha_list)):
+        print(fileDir + ha_list[cnt])
         ha_img = cv2.imread(fileDir + ha_list[cnt])
-        centerx = 550
-        centery = 550
-        ha_img = ha_img[int(centerx)-550:int(centerx)+550,int(centery)-550:int(centery[cnt])+550]
+        im = Image.open(fileDir + ha_list[cnt])
+        metadata = im.info
+        centerx = metadata['CenterX']
+        centery = metadata['CenterY']
+        print(int(centerx)-520,int(centerx)+520,int(centery)-520,int(centery)+520,ha_img.shape)
+        ha_img = ha_img[int(centerx)-520:int(centerx)+520,int(centery)-520:int(centery)+520]
+        completeArray(ha_img)
         bias_tmp = cnt % (pic_bias + 1)
         if bias_tmp == 0:
             for i in range(pic_count):
