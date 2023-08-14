@@ -37,7 +37,7 @@ def getPNGList():
     fe_list.sort()
 # 数组补全函数，将裁剪后的数组不足1040长度的元素用0填充
 def completeArray(list_args):
-    my_len = 1040
+    my_len = 2080
     result = []
 
     for my_list in list_args:
@@ -53,20 +53,17 @@ def createVideo(fileDate: datetime.datetime):
         os.makedirs(saveDir)
     getPNGList()
     ha_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_HA.avi',
-                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (1040, 1040), True)
+                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (2080, 2080), True)
     # fe_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_FE.avi',
     #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
-    print(len(ha_list))
     for cnt in range(len(ha_list)):
-        print(fileDir + ha_list[cnt])
         ha_img = cv2.imread(fileDir + ha_list[cnt])
         im = Image.open(fileDir + ha_list[cnt])
         metadata = im.info
         centerx = metadata['CenterX']
         centery = metadata['CenterY']
-        print(int(centerx)-520,int(centerx)+520,int(centery)-520,int(centery)+520,ha_img.shape)
-        ha_img = ha_img[int(centerx)-520:int(centerx)+520,int(centery)-520:int(centery)+520]
-        completeArray(ha_img)
+        ha_img = ha_img[int(centery)-1040:int(centery)+1040,int(centerx)-1040:int(centerx)+1040]
+        # completeArray(ha_img)
         bias_tmp = cnt % (pic_bias + 1)
         if bias_tmp == 0:
             for i in range(pic_count):

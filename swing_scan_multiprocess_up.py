@@ -130,7 +130,12 @@ suntools.log('多核并行数:' + str(multiprocess_count))
 def read_fits_directory():
     arr = []
     arr = os.listdir(READ_DIR)
-    if len(arr) == 0:
+    has_fts = False
+    for filename in arr:
+        if filename.split('.')[-1] == 'fts' or filename.split('.')[-1] == 'fits':
+            has_fts = True
+            # break;
+    if has_fts == False:
         raise OSError
     return arr
 
@@ -258,82 +263,81 @@ for axis in symmetry_axis_list:
     if str(current_scan_index).zfill(4) == '0000':
         for i in range(temp_start_file_index, temp_last_file_index + 1):
             step = int(data_file_lst[i].split('-')[-1].split('.')[0])  # 读取帧序号，以便判断有无缺帧
-            if step >= step_start and step <= step_end and '-0000-' in data_file_lst[
-                i]:  # 第一个条件判断数据是否为这一个序列的，第二个条件判断是否为0级数据的fits文件,第二个条件根据文件名格式可能需要改动，或者可以删除，整合进pipeline时可以检查一下）
-                if count == 0:
-                    dif_step = step - count  # 后续用于判断是否缺帧（如果有更好的方法可以修改）
-                # read fits
-                hdu = fits.open(READ_DIR + data_file_lst[i])  # 开始读取0级数据
-                q0 = hdu[0].header['Q0']  # 读取四元数（下同）
-                q1 = hdu[0].header['Q1']
-                q2 = hdu[0].header['Q2']
-                q3 = hdu[0].header['Q3']
-                strtime = hdu[0].header['STR_TIME']  # 读取该帧的时间
-                satx_J2000 = hdu[0].header['SAT_POS1']  # 读取卫星相对地球位置（下同）
-                saty_J2000 = hdu[0].header['SAT_POS2']
-                satz_J2000 = hdu[0].header['SAT_POS3']
+            # if step >= step_start and step <= step_end and '-0000-' in data_file_lst[i]:  # 第一个条件判断数据是否为这一个序列的，第二个条件判断是否为0级数据的fits文件,第二个条件根据文件名格式可能需要改动，或者可以删除，整合进pipeline时可以检查一下）
+            if count == 0:
+                dif_step = step - count  # 后续用于判断是否缺帧（如果有更好的方法可以修改）
+            # read fits
+            hdu = fits.open(READ_DIR + data_file_lst[i])  # 开始读取0级数据
+            q0 = hdu[0].header['Q0']  # 读取四元数（下同）
+            q1 = hdu[0].header['Q1']
+            q2 = hdu[0].header['Q2']
+            q3 = hdu[0].header['Q3']
+            strtime = hdu[0].header['STR_TIME']  # 读取该帧的时间
+            satx_J2000 = hdu[0].header['SAT_POS1']  # 读取卫星相对地球位置（下同）
+            saty_J2000 = hdu[0].header['SAT_POS2']
+            satz_J2000 = hdu[0].header['SAT_POS3']
 
-                if abs(q0 ** 2 + q1 ** 2 + q2 ** 2 + q3 ** 2 - 1) >= 0.000001:  # 判断四元数是否错误，若有误，执行以下步骤
-                    l_q = [q0, q1, q2, q3]  # 记录错误的四元数
-                    l_badqua.append(count)  # 记录错误的四元数所在的位置
-                    l_qd = [abs(q0 - old_q0), abs(q1 - old_q1), abs(q2 - old_q2),
-                            abs(q3 - old_q3)]  # 计算这组四元数与上一组（没有错误的四元数）的相差（理论上相差不大，相差最大的那个数即为出问题的数）
-                    qbad_i = l_qd.index(max(l_qd))  # 找出出现问题的四元数
-                    q_squaresum = 0
-                    for qi in range(4):
-                        if qi != qbad_i:
-                            q_squaresum += l_q[qi] ** 2
-                    l_q[qbad_i] = sqrt(1 - q_squaresum)  # 把出问题的四元数暂时替换，使得四元数的平方和为1
-                    q0, q1, q2, q3 = l_q[0], l_q[1], l_q[2], l_q[3]
-                else:  # 四元数没问题时，记录下该组四元数（默认第一帧的四元数不存在问题，后续若出问题，再调整）
-                    old_q0 = q0
-                    old_q1 = q1
-                    old_q2 = q2
-                    old_q3 = q3
+            if abs(q0 ** 2 + q1 ** 2 + q2 ** 2 + q3 ** 2 - 1) >= 0.000001:  # 判断四元数是否错误，若有误，执行以下步骤
+                l_q = [q0, q1, q2, q3]  # 记录错误的四元数
+                l_badqua.append(count)  # 记录错误的四元数所在的位置
+                l_qd = [abs(q0 - old_q0), abs(q1 - old_q1), abs(q2 - old_q2),
+                        abs(q3 - old_q3)]  # 计算这组四元数与上一组（没有错误的四元数）的相差（理论上相差不大，相差最大的那个数即为出问题的数）
+                qbad_i = l_qd.index(max(l_qd))  # 找出出现问题的四元数
+                q_squaresum = 0
+                for qi in range(4):
+                    if qi != qbad_i:
+                        q_squaresum += l_q[qi] ** 2
+                l_q[qbad_i] = sqrt(1 - q_squaresum)  # 把出问题的四元数暂时替换，使得四元数的平方和为1
+                q0, q1, q2, q3 = l_q[0], l_q[1], l_q[2], l_q[3]
+            else:  # 四元数没问题时，记录下该组四元数（默认第一帧的四元数不存在问题，后续若出问题，再调整）
+                old_q0 = q0
+                old_q1 = q1
+                old_q2 = q2
+                old_q3 = q3
 
-                Chase_arr_Ea = suntools.quaternion_rot(np.array([q0, q1, q2, q3]),
-                                                       np.array(
-                                                           [0, 1,
-                                                            0]))  # 用四元数实现旋转，原始的方向是[0, 1, 0]，旋转后即为卫星在坐标系（J2000坐标系）中的真实指向
-                Chase_arr_E = np.array([[Chase_arr_Ea[0]], [Chase_arr_Ea[1]], [Chase_arr_Ea[2]]])
+            Chase_arr_Ea = suntools.quaternion_rot(np.array([q0, q1, q2, q3]),
+                                                   np.array(
+                                                       [0, 1,
+                                                        0]))  # 用四元数实现旋转，原始的方向是[0, 1, 0]，旋转后即为卫星在坐标系（J2000坐标系）中的真实指向
+            Chase_arr_E = np.array([[Chase_arr_Ea[0]], [Chase_arr_Ea[1]], [Chase_arr_Ea[2]]])
 
-                # calculate real Sun position
-                sun_pos, earth_pos = suntools.getEphemerisPos(strtime)
+            # calculate real Sun position
+            sun_pos, earth_pos = suntools.getEphemerisPos(strtime)
 
-                R_sat_eq = np.array([[satx_J2000], [saty_J2000], [satz_J2000]])  # 卫星相对于地球的位置（J2000坐标系）
-                satx_eq = float(R_sat_eq[0])
-                saty_eq = float(R_sat_eq[1])
-                satz_eq = float(R_sat_eq[2])
+            R_sat_eq = np.array([[satx_J2000], [saty_J2000], [satz_J2000]])  # 卫星相对于地球的位置（J2000坐标系）
+            satx_eq = float(R_sat_eq[0])
+            saty_eq = float(R_sat_eq[1])
+            satz_eq = float(R_sat_eq[2])
 
-                # position is in ICRF (aberration not corrected)
-                sat2sun_rx = sun_pos.x.value - earth_pos.x.value - satx_eq
-                sat2sun_ry = sun_pos.y.value - earth_pos.y.value - saty_eq
-                sat2sun_rz = sun_pos.z.value - earth_pos.z.value - satz_eq
-                sat2sun_pos = np.array([[sat2sun_rx], [sat2sun_ry], [sat2sun_rz]])  # 太阳相对于卫星的位置（J2000坐标系）
+            # position is in ICRF (aberration not corrected)
+            sat2sun_rx = sun_pos.x.value - earth_pos.x.value - satx_eq
+            sat2sun_ry = sun_pos.y.value - earth_pos.y.value - saty_eq
+            sat2sun_rz = sun_pos.z.value - earth_pos.z.value - satz_eq
+            sat2sun_pos = np.array([[sat2sun_rx], [sat2sun_ry], [sat2sun_rz]])  # 太阳相对于卫星的位置（J2000坐标系）
 
-                normalize_factor = sqrt(
-                    sat2sun_pos[0] ** 2 + sat2sun_pos[1] ** 2 + sat2sun_pos[2] ** 2)  # 归一化因子，也是太阳与卫星的距离
-                sat2sun_pos_normalize = sat2sun_pos / normalize_factor  # 由卫星指向太阳的单位向量
+            normalize_factor = sqrt(
+                sat2sun_pos[0] ** 2 + sat2sun_pos[1] ** 2 + sat2sun_pos[2] ** 2)  # 归一化因子，也是太阳与卫星的距离
+            sat2sun_pos_normalize = sat2sun_pos / normalize_factor  # 由卫星指向太阳的单位向量
 
-                arr_mul = np.multiply(sat2sun_pos_normalize, Chase_arr_E)  # 对应位置相乘
+            arr_mul = np.multiply(sat2sun_pos_normalize, Chase_arr_E)  # 对应位置相乘
 
-                try:
-                    bias = acos(arr_mul[0] + arr_mul[1] + arr_mul[2]) * 180 / pi * 60 * 60  # 换算为角秒的，太阳实际位置与卫星指向的偏差角
-                except:
-                    pass
+            try:
+                bias = acos(arr_mul[0] + arr_mul[1] + arr_mul[2]) * 180 / pi * 60 * 60  # 换算为角秒的，太阳实际位置与卫星指向的偏差角
+            except:
+                pass
 
-                l_bias.append(bias)
-                l_sunpos.append(sat2sun_pos)  # 记录太阳相对卫星的位置
-                l_slitpos.append(Chase_arr_E)  # 记录卫星指向（J2000坐标系）
+            l_bias.append(bias)
+            l_sunpos.append(sat2sun_pos)  # 记录太阳相对卫星的位置
+            l_slitpos.append(Chase_arr_E)  # 记录卫星指向（J2000坐标系）
+            count += 1
+
+            if step - count + 1 != dif_step:  # 判断是否缺帧
+                count_miss.append(count)  # 若缺帧，则记录缺帧的位置
                 count += 1
 
-                if step - count + 1 != dif_step:  # 判断是否缺帧
-                    count_miss.append(count)  # 若缺帧，则记录缺帧的位置
-                    count += 1
-
-                if step == step_mid:  # 由于后续都是以中间帧位置作为零点，此处记录中间帧的一些参数
-                    # cf: center frame
-                    cf_q0, cf_q1, cf_q2, cf_q3 = q0, q1, q2, q3
+            if step == step_mid:  # 由于后续都是以中间帧位置作为零点，此处记录中间帧的一些参数
+                # cf: center frame
+                cf_q0, cf_q1, cf_q2, cf_q3 = q0, q1, q2, q3
         slitposa_first = l_slitpos[0]
         slitpos_first = np.array([slitposa_first[0][0], slitposa_first[1][0], slitposa_first[2][0]])
         R3_first = suntools.quaternion_rot(np.array([cf_q0, -cf_q1, -cf_q2, -cf_q3]), slitpos_first)
@@ -347,7 +351,6 @@ for axis in symmetry_axis_list:
 
         l_biasx = []  # x轴方向上（slit方向），卫星实际指向与理想指向的偏差
         l_biasz = []  # z轴方向上（scan方向），卫星实际指向与理想指向的偏差
-
         for step in range(len(l_slitpos)):
 
             ave_res_ang = 0.5218 * 2 * (1156 - step)  # 卫星理想指向（中心帧坐标系）
@@ -370,10 +373,10 @@ for axis in symmetry_axis_list:
             l_biasz.append(biasz)
 
         count = 0
-        for cm in count_miss:  # 指向偏差列表的长度不一定是2313，有缺帧时，前一帧和后一帧的平均值填充进去
-            l_biasx.insert(cm + count, (l_biasx[cm + count - 1] + l_biasx[cm + count + 1]) / 2)
-            l_biasz.insert(cm + count, (l_biasz[cm + count - 1] + l_biasz[cm + count + 1]) / 2)
-            count += 1
+        # for cm in count_miss:  # 指向偏差列表的长度不一定是2313，有缺帧时，前一帧和后一帧的平均值填充进去
+        #     l_biasx.insert(cm + count, (l_biasx[cm + count - 1] + l_biasx[cm + count + 1]) / 2)
+        #     l_biasz.insert(cm + count, (l_biasz[cm + count - 1] + l_biasz[cm + count + 1]) / 2)
+        #     count += 1
         for bq in l_badqua:  # 处理四元数中存在错误的点
             countless = 0
             countmore = 0
@@ -876,17 +879,17 @@ def multiprocess_task(parameter_dic: dict):
         parameter_dic['header'].set('CDELT3', cdel_t3)
         parameter_dic['header'].set('CRVAL3', crval_l3_ha)
         # 下采样 1/4
-        suntools.log('下采样中...')
-        sum_data_HA_save = suntools.down_sample(sum_data_HA)
-        sum_data_FE_save = suntools.down_sample(sum_data_FE)
+        # suntools.log('下采样中...')
+        # sum_data_HA_save = suntools.down_sample(sum_data_HA)
+        # sum_data_FE_save = suntools.down_sample(sum_data_FE)
         # 旋转INST_ROT度（已改用南大提供的方法，这里目前弃用）
         # sum_data_HA_save = ndimage.rotate(sum_data_HA_save, -parameter_dic['header']['INST_ROT'], reshape=False)
         # sum_data_FE_save = ndimage.rotate(sum_data_FE_save, -parameter_dic['header']['INST_ROT'], reshape=False)
         sum_mean_ha = np.mean(sum_data_HA)
         sum_mean_fe = np.mean(sum_data_FE)
-        sum_data_HA_save = suntools.add_time(sum_data_HA_save, parameter_dic['start_time'].
+        sum_data_HA_save = suntools.add_time(sum_data_HA, parameter_dic['start_time'].
                                              strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
-        sum_data_FE_save = suntools.add_time(sum_data_FE_save, parameter_dic['start_time'].
+        sum_data_FE_save = suntools.add_time(sum_data_FE, parameter_dic['start_time'].
                                              strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
 
         # 将小于0的值全部赋为0
@@ -895,7 +898,7 @@ def multiprocess_task(parameter_dic: dict):
         if config.save_img_form == 'default':
             # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
             suntools.log('输出序号为' + parameter_dic['scan_index'] + '的png...')
-            METADATA =  {'CenterX': str(int((centerx_ha + centerx_fe) / 4)),'CenterY':str(int((centery_ha + centery_fe) / 4))}
+            METADATA =  {'CenterX': str(round(centerx_ha)),'CenterY':str(round(centery_ha))}
             plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
                        + '_' + parameter_dic['scan_index'] + '_HA' + ".png",
                        sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha,metadata = METADATA)

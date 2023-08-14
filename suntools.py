@@ -853,7 +853,7 @@ def add_time(Input_array, time_txt, max_value):
     I_array = np.array(Input_array)
     H, W = I_array.shape
     h1 = int(H * 0.55)
-    w1 = int(W * 0.95)
+    w1 = int(W * 0.97)
     cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_value, max_value, max_value),
                 txt_thick)
     return I_array
@@ -1090,6 +1090,8 @@ def getEphemerisPos(strtime):
 def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data_array):
     log('开始进行0000序列的图像畸变矫正')
     a1, a2, a3 = axis_width
+    if(len(biasx) < 2313) :
+        a2 = len(biasx)
     se0000_x, se0000_z = np.zeros((a2, a3)), np.zeros((a2, a3))
     lse0000_za, lse0000_zb, lse0000_zc = [], [], []
     for j in range(a2):

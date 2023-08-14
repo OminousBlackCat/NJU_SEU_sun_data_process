@@ -9,8 +9,9 @@
 # 文件夹最后的结尾需要带'/'
 # TODO: 在运行程序前一定要修改此目录, 此目录应精确到当日的扫描序列文件夹
 # 例: /data/chase/Chase/2021/12/16-428/
-# data_dir_path = "/data/chase/cyctest/Chase/2022/8/4445/"
-data_dir_path = "/data/chase/Chase/2023/5/11-8709-2/"
+data_dir_path = "/data/chase/Chase/2023/8/25-010310-3/"
+# data_dir_path = "/data/chase/Chase/2023/5/11-8709-2/"
+# data_dir_path = "/data/chase/Chase/2023/8/8-010051-2/"
 
 
 # 数据输出的存放文件夹, 相对路径与绝对路径均可, 需精确到天数
@@ -19,19 +20,24 @@ data_dir_path = "/data/chase/Chase/2023/5/11-8709-2/"
 # 文件夹最后的结尾需要带'/'
 # 例: /data/chase/Chase/Lev1/2021/12/16/
 # TODO: 在程序运行前需要修改此目录
-bias_dir_path = "/data/chase/cyctest/Chase/Lev1/pointing_bias/8/4445/"
+bias_dir_path = "/data/chase/cyctest/Chase/Lev1/pointing_bias/8/8-010051-2/"
 
 
 
 # TODO: 在程序运行前需要修改此目录
-save_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/5/11-8709-2/"
+# save_dir_path = "/data/chase/cyctest/Chase/Lev1/2023/8/8-010051-2/"
+save_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/8/4445/"
 
 # 存储视频的文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
 # 可以不需要手动创建文件夹  会自动创建文件夹
 # 文件夹最后的结尾需要带'/'
 # TODO: 每个月需要修改此目录
-video_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/5/11-8709-2/"
+# video_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/8/7-010046-1/video"
+# video_dir_path = "/data/chase/cyctest/Chase/Lev1/2023/8/8-010051-2/"
+video_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/8/4445/video/"
+
+
 
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
@@ -140,7 +146,7 @@ pixel_to_zero_left_count = 100
 sit_stare_array_size = 2400
 # 输出图像日期标记的字体大小与字体厚度
 # 使用数字输入
-date_font_size = 2
+date_font_size = 4
 date_font_thick = 2
 # 插值参数，使用几次插值
 interpolation_parameter = 3
