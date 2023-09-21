@@ -5,30 +5,29 @@
 @author: seu_lcl
 @editor: seu_wxy
 """
-import traceback
-import numpy as np
-import re
-import os
-import time
-import matplotlib
-import matplotlib.pyplot as plt
-from astropy.utils.data import get_pkg_data_filename
-from PIL import Image
-import math
-import scipy.signal as signal
-import config
-import astropy
+import copy
 # import jplephem
 import datetime
-import random
+import re
+import time
 from math import *
+
+import astropy
+import cv2
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.signal as signal
+from PIL import Image
+from astropy import coordinates
 from astropy.io import fits
 from astropy.time import Time
-from astropy import coordinates
-import multiprocessing as mp
-import cv2
-import numba
+from astropy.utils.data import get_pkg_data_filename
 from numba import jit
+from scipy import interpolate
+
+import config
+import sim
 
 cv2.setNumThreads(1)
 
@@ -954,7 +953,7 @@ def add_time(Input_array, time_txt, max_value):
     I_array = np.array(Input_array)
     H, W = I_array.shape
     h1 = int(H * 0.55)
-    w1 = int(W * 0.95)
+    w1 = int(W * 0.97)
     cv2.putText(I_array, time_txt, (h1, w1), cv2.FONT_HERSHEY_PLAIN, txt_size, (max_value, max_value, max_value),
                 txt_thick)
     return I_array
@@ -1123,3 +1122,173 @@ if __name__ == "__main__":
     #         # print(rx, ry, r * 0.52)=
     #         id += 1
     # test()
+
+
+# 整合南大2023年6月份提出的需求，新增太阳图像的去抖动和旋转矫正
+# 原始代码提供者:绕世豪（南大天文系）
+# 整合人：褚有骋
+
+# 四元数旋转函数
+def quaternion_rot(q, p):
+    s_q = q[0]
+    lambda_q = sqrt(1 - s_q ** 2)
+    if lambda_q != 0:
+        v_q = [q[i] / lambda_q for i in range(1, 4)]
+    else:
+        v_q = [0, 0, 0]
+    return (2 * lambda_q ** 2 * np.dot(np.dot(v_q, p), v_q) + (s_q ** 2 - lambda_q ** 2) * p + \
+            2 * lambda_q * s_q * np.cross(v_q, p))
+
+
+# 旋转矫正函数
+def rotate_fits(width, x, y, se00xx_imwing, rsun, data, angle, isHa):
+    se00xx_center = sim.circle_center(se00xx_imwing)
+    centerx, centery = se00xx_center[0], se00xx_center[1]
+    se00xx_rotate1 = np.zeros([x, y])
+    se00xx_rotate2 = np.zeros([x, y])
+
+    for j in range(x):
+        for k in range(y):
+            original_coor = [k - centerx, 0, j - centery]
+            local_rot = np.dot(sim.rotation_matrix3('y', angle / 180 * pi), \
+                               original_coor)
+            se00xx_rotate1[j, k] = local_rot[0] + centerx
+            se00xx_rotate2[j, k] = local_rot[2] + centery
+
+    se00xx_rotate1 = se00xx_rotate1.astype('float32')
+    se00xx_rotate2 = se00xx_rotate2.astype('float32')
+
+    for j in range(width):
+        data[j, :, :] = cv2.remap(data[j, :, :], se00xx_rotate1, se00xx_rotate2, \
+                                      borderMode=cv2.BORDER_CONSTANT, \
+                                      interpolation=cv2.INTER_LINEAR)
+
+    se00xx_mask = np.ones([x, y])
+    for j in range(x):
+        for k in range(y):
+            if (j - centery) ** 2 + (k - centerx) ** 2 >= (1.1 * rsun) ** 2:
+                se00xx_mask[j, k] = 0
+
+    if (isHa):
+        rotated_data = copy.deepcopy(np.multiply(data[110, :, :], se00xx_mask))
+    else:
+        rotated_data = copy.deepcopy(np.multiply(data[10, :, :], se00xx_mask))
+
+    se00xx_center = sim.circle_center(rotated_data)
+    se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
+    return  se00xx_centerx, se00xx_centery
+
+
+def getEphemerisPos(strtime):
+    t = Time(strtime)  # 修改时间格式，以便输入星表（ephemeris）查询太阳和球的位置（J2000坐标系）
+    astropy.coordinates.solar_system_ephemeris.set(config.de_file_url)
+    sun_6 = astropy.coordinates.get_body_barycentric_posvel('sun', t)
+    earth_6 = astropy.coordinates.get_body_barycentric_posvel('earth', t)
+    return sun_6[0], earth_6[0]
+
+
+def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data_array):
+    log('开始进行0000序列的图像畸变矫正')
+    a1, a2, a3 = axis_width
+    if(len(biasx) < 2313) :
+        a2 = len(biasx)
+    se0000_x, se0000_z = np.zeros((a2, a3)), np.zeros((a2, a3))
+    lse0000_za, lse0000_zb, lse0000_zc = [], [], []
+    for j in range(a2):
+        for k in range(a3):
+            se0000_x[j, k] = k - biasx[j]  # 拍摄时，若镜头向右偏移，重映射时，采用相应图像向左平移
+            if k == 0:
+                lse0000_za.append(j)  # 完整的z方向2312帧坐标
+                if j + biasz[j] not in lse0000_zb:  # 新图像j + l_se0000_biasz[j]位置由j位置替换
+                    lse0000_zb.append(j + biasz[j])  # 因为不均匀，故不涵盖所有2312个z方向坐标，该位置作为插值的自变量
+                    lse0000_zc.append(j)  # 该位置作为插值的因变量
+
+    se0000_maxtestz = max(lse0000_zb)
+    se0000_mintestz = min(lse0000_zb)
+    se0000_tck = interpolate.splrep(lse0000_zb, lse0000_zc)
+    lse0000_z = interpolate.splev(lse0000_za, se0000_tck, der=0)  # 插值
+    lse0000_z = list(lse0000_z)
+
+    se0000_shiftmask = np.ones([a2, a3])
+    for j in range(a2):
+        for k in range(a3):
+            se0000_z[j, k] = lse0000_z[j]  # 插值之后，每个点都对应了
+            if j > se0000_maxtestz or j < se0000_mintestz:
+                se0000_shiftmask[j, k] = 0  # 外插的点不可信，需要擦除
+
+    se0000_x = se0000_x.astype('float32')  # 改变数据类型，否则remap时候会报错（下同）
+    se0000_z = se0000_z.astype('float32')
+
+    for wl in range(a1):
+        se0000_im_wl = sequence_data_array[wl, :, :]
+        se0000_imout = cv2.remap(se0000_im_wl, se0000_x, se0000_z, borderMode=cv2.BORDER_CONSTANT, \
+                                 interpolation=cv2.INTER_LINEAR)  # 非刚性位移改正畸变，边界值默认为常数0以免假信号造成误解
+        se0000_imout = np.multiply(se0000_imout, se0000_shiftmask)
+        sequence_data_array[wl, :, :] = se0000_imout
+
+    if spec_win == 'HA':
+        se0000_imwing = sequence_data_array[110, :, :]
+    if spec_win == 'FE':
+        se0000_imwing = sequence_data_array[10, :, :]
+    log('0000序列的图像畸变矫正完成')
+
+    return se0000_imwing
+
+
+def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_RSUN, axis_width, se00xx_hacore,
+                                   hacore0, w, h):
+    a1, a2, a3 = axis_width
+    se0000_centerX0, se0000_centerY0 = se0000_center
+
+    if spec_win == 'HA':  # 读取光球图像用于定日心坐标
+        se00xx_wing = se00xx_data[110, :, :]
+    if spec_win == 'FE':
+        se00xx_wing = se00xx_data[10, :, :]
+    se00xx_center = sim.circle_center(se00xx_wing)
+    se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
+    dx, dy = -(se00xx_centerx - se0000_centerX0), -(se00xx_centery - se0000_centerY0)
+    se00xx_hacore2 = sim.imshift(se00xx_hacore, [int(dy), int(dx)])  # 刚性对齐
+
+
+    log('开始进行非0000序列的图像畸变矫正')
+
+    se00xx_flow = cv2.calcOpticalFlowFarneback(hacore0, se00xx_hacore2, flow=None, pyr_scale=0.5, \
+                                               levels=3, winsize=config.winsize, iterations=5, poly_n=5, \
+                                               poly_sigma=1.2, flags=0)  # 计算畸变
+
+    se00xx_x1, se00xx_y1 = np.meshgrid(np.arange(w), np.arange(h))
+
+    se00xx_x2 = copy.deepcopy(se00xx_x1)
+    se00xx_y2 = copy.deepcopy(se00xx_y1)
+    se00xx_flow2 = copy.deepcopy(se00xx_flow)
+
+    for j in range(a2):  # 只选取日面范围的区域（2.1日面半径的正方形）计算每步扫描的指向偏差，或许可以自适应调节区域大小
+        if abs(j - se00xx_centery) <= 1.05 * se00xx_RSUN:
+            xrange = [se00xx_centerx - sqrt((1.05 * se00xx_RSUN) ** 2 - (se00xx_centery - j) ** 2), \
+                      se00xx_centerx + sqrt((1.05 * se00xx_RSUN) ** 2 - (se00xx_centery - j) ** 2)]
+            flowx_mean = se00xx_flow[j, int(xrange[0]):int(xrange[1]), 0].mean()
+            flowy_mean = se00xx_flow[j, int(xrange[0]):int(xrange[1]), 1].mean()
+            for k in range(a3):
+                se00xx_flow2[j, k, 0] = flowx_mean  # 同一步的图像需要刚性平移改正畸变
+                se00xx_flow2[j, k, 1] = flowy_mean
+
+    se00xx_x2 = se00xx_x2 + se00xx_flow2[:, :, 0]
+    se00xx_y2 = se00xx_y2 + se00xx_flow2[:, :, 1]
+    se00xx_x2 = se00xx_x2.astype('float32')
+    se00xx_y2 = se00xx_y2.astype('float32')
+
+    for j in range(a1):
+        if spec_win == 'HA':
+            se00xx_im3 = se00xx_data[j, :, :]
+            if j == 110:
+                se00xx_imwing = se00xx_data[j, :, :]
+        if spec_win == 'FE':
+            se00xx_im3 = se00xx_data[j, :, :]
+            if j == 10:
+                se00xx_imwing = se00xx_data[j, :, :]
+        se00xx_imout = cv2.remap(se00xx_im3, se00xx_x2, se00xx_y2, borderMode=cv2.BORDER_CONSTANT, \
+                                 interpolation=cv2.INTER_LINEAR)  # 非刚性位移改正畸变
+        se00xx_data[j, :, :] = se00xx_imout
+
+    log('非0000序列的图像畸变矫正完成')
+    return se00xx_imwing
