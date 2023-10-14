@@ -10,8 +10,12 @@
 
 import cv2
 import os
+
+from PIL import Image
+
 import config
-import datetime
+import suntools
+import traceback
 
 framePerSec = config.frame_pre_sec
 pic_count = config.write_to_video_count
@@ -32,20 +36,35 @@ def getPNGList():
                 fe_list.append(filename)
     ha_list.sort()
     fe_list.sort()
+# 数组补全函数，将裁剪后的数组不足1040长度的元素用0填充
+def completeArray(list_args):
+    my_len = 2080
+    result = []
 
+    for my_list in list_args:
+        if len(my_list) < my_len:
+            for i in range(my_len - len(my_list)):
+                my_list.append(0)
+        result.append(my_list)
+    return result
 
-def createVideo(fileDate: datetime.datetime):
+def createVideo():
     # 检查输出文件夹是否存在 不存在则创建
     if not os.path.exists(saveDir):
         os.makedirs(saveDir)
     getPNGList()
-    frameShape = cv2.imread(fileDir + ha_list[0]).shape
     ha_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_HA.avi',
-                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
+                                  cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (2080, 2080), True)
     # fe_videoOut = cv2.VideoWriter(saveDir + 'RSM' + fileDate.strftime('%Y-%m-%d') + '_FE.avi',
     #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
     for cnt in range(len(ha_list)):
         ha_img = cv2.imread(fileDir + ha_list[cnt])
+        im = Image.open(fileDir + ha_list[cnt])
+        metadata = im.info
+        centerx = metadata['CenterX']
+        centery = metadata['CenterY']
+        ha_img = ha_img[int(centery)-1040:int(centery)+1040,int(centerx)-1040:int(centerx)+1040]
+        # completeArray(ha_img)
         bias_tmp = cnt % (pic_bias + 1)
         if bias_tmp == 0:
             for i in range(pic_count):
@@ -59,7 +78,7 @@ def createVideo(fileDate: datetime.datetime):
 
 
 def main():
-    createVideo(datetime.datetime.now())
+    createVideo()
 
 
 if __name__ == '__main__':

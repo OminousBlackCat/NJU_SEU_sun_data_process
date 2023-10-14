@@ -474,7 +474,7 @@ def main():
                     sample_from_standard.shape[1])
             suntools.log('计算CCD太阳像半径中...')
             R_y, R_x, radius = suntools.getCircle(sum_data_FE)
-            OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
+            OBS_Radius = radius * 0.5218 * GLOBAL_BINNING
             suntools.log('波长定标中...')
             wavelength_calibrate_input = global_shared_array[:, int(R_y) - 50: int(R_y) + 49, int(R_x) - 50: int(R_x) + 49]
             cdel_t3, crval_l3_ha, crval_l3_fe = suntools.cal_center_mean(wavelength_calibrate_input)
