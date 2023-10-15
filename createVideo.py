@@ -7,15 +7,11 @@
 
 @author: seu_wxy
 """
-
+from datetime import datetime
 import cv2
 import os
-
-from PIL import Image
-
 import config
-import suntools
-import traceback
+
 
 framePerSec = config.frame_pre_sec
 pic_count = config.write_to_video_count
@@ -36,19 +32,9 @@ def getPNGList():
                 fe_list.append(filename)
     ha_list.sort()
     fe_list.sort()
-# 数组补全函数，将裁剪后的数组不足1040长度的元素用0填充
-def completeArray(list_args):
-    my_len = 2080
-    result = []
 
-    for my_list in list_args:
-        if len(my_list) < my_len:
-            for i in range(my_len - len(my_list)):
-                my_list.append(0)
-        result.append(my_list)
-    return result
 
-def createVideo():
+def createVideo(fileDate: datetime):
     # 检查输出文件夹是否存在 不存在则创建
     if not os.path.exists(saveDir):
         os.makedirs(saveDir)
@@ -59,11 +45,11 @@ def createVideo():
     #                               cv2.VideoWriter_fourcc(*'XVID'), framePerSec, (frameShape[1], frameShape[0]), True)
     for cnt in range(len(ha_list)):
         ha_img = cv2.imread(fileDir + ha_list[cnt])
-        im = Image.open(fileDir + ha_list[cnt])
-        metadata = im.info
-        centerx = metadata['CenterX']
-        centery = metadata['CenterY']
-        ha_img = ha_img[int(centery)-1040:int(centery)+1040,int(centerx)-1040:int(centerx)+1040]
+        # im = Image.open(fileDir + ha_list[cnt])
+        # metadata = im.info
+        # centerx = metadata['CenterX']
+        # centery = metadata['CenterY']
+        # ha_img = ha_img[int(centery) - 1040:int(centery) + 1040, int(centerx) - 1040:int(centerx) + 1040]
         # completeArray(ha_img)
         bias_tmp = cnt % (pic_bias + 1)
         if bias_tmp == 0:

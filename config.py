@@ -10,8 +10,10 @@
 # TODO: 在运行程序前一定要修改此目录, 此目录应精确到当日的扫描序列文件夹
 # 例: /data/chase/Chase/2021/12/16-428/
 data_dir_path = "/data/chase/Chase/2023/8/25-010310-3/"
-# data_dir_path = "/data/chase/Chase/2023/5/11-8709-2/"
-# data_dir_path = "/data/chase/Chase/2023/8/8-010051-2/"
+
+
+# # TODO: 暂时弃用
+# bias_dir_path = "/data/chase/cyctest/Chase/Lev1/pointing_bias/8/8-010051-2/"
 
 
 # 数据输出的存放文件夹, 相对路径与绝对路径均可, 需精确到天数
@@ -20,12 +22,6 @@ data_dir_path = "/data/chase/Chase/2023/8/25-010310-3/"
 # 文件夹最后的结尾需要带'/'
 # 例: /data/chase/Chase/Lev1/2021/12/16/
 # TODO: 在程序运行前需要修改此目录
-bias_dir_path = "/data/chase/cyctest/Chase/Lev1/pointing_bias/8/8-010051-2/"
-
-
-
-# TODO: 在程序运行前需要修改此目录
-# save_dir_path = "/data/chase/cyctest/Chase/Lev1/2023/8/8-010051-2/"
 save_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/8/4445/"
 
 # 存储视频的文件夹, 相对路径与绝对路径均可
@@ -33,10 +29,7 @@ save_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/8/4445/"
 # 可以不需要手动创建文件夹  会自动创建文件夹
 # 文件夹最后的结尾需要带'/'
 # TODO: 每个月需要修改此目录
-# video_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/8/7-010046-1/video"
-# video_dir_path = "/data/chase/cyctest/Chase/Lev1/2023/8/8-010051-2/"
 video_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/8/4445/video/"
-
 
 
 # 是否bin

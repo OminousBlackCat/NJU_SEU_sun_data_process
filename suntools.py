@@ -12,6 +12,7 @@ import re
 import time
 from math import *
 
+import sys
 import astropy
 import cv2
 import matplotlib
@@ -28,6 +29,9 @@ from scipy import interpolate
 
 import config
 import sim
+
+# 调试用
+np.set_printoptions(threshold=sys.maxsize)
 
 cv2.setNumThreads(1)
 
@@ -790,162 +794,6 @@ def down_sample(data: np.array):
                 return_array[return_array.shape[0] - i - 1][j] = 0
     return return_array
 
-
-# 检查输出文件的文件合法性
-# 主要检查相邻序列号是否一致
-def check_outputs(outputs_dir: str):
-    arr = os.listdir(outputs_dir)
-    fits_HA_list = []
-    fits_FE_list = []
-    delete_HA_list = []
-    delete_FE_list = []
-    for filename in arr:
-        if filename.split('.')[-1] == 'fits':
-            if filename.split('_')[-1].split('.')[0] == 'HA':
-                fits_HA_list.append(filename)
-            if filename.split('_')[-1].split('.')[0] == 'FE':
-                fits_FE_list.append(filename)
-    fits_HA_list.sort()
-    fits_FE_list.sort()
-    # 遍历fits序列 检查时间差
-    log("正在检查输出文件命名有效性...")
-    # 首先排除相同时间的文件
-    for i in range(len(fits_HA_list)):
-        if i > 0:
-            # 示例文件名:
-            # 012 3456 7890 123 45 67 8 9012 3 4567890
-            # RSM 2023 0411 T04 51 06 _ 0001 _ FE.fits
-            current_datetime = datetime.datetime(year=1, month=1, day=1,
-                                                 hour=int(fits_HA_list[i].split('_')[0][12: 14]),
-                                                 minute=int(fits_HA_list[i].split('_')[0][14: 16]),
-                                                 second=int(fits_HA_list[i].split('_')[0][16: 18]))
-            upper_datetime = datetime.datetime(year=1, month=1, day=1,
-                                               hour=int(fits_HA_list[i - 1].split('_')[0][12: 14]),
-                                               minute=int(fits_HA_list[i - 1].split('_')[0][14: 16]),
-                                               second=int(fits_HA_list[i - 1].split('_')[0][16: 18]))
-            # 如果时间差距为0, 则说明两个扫描序列重复出现, 则此时删除较小的文件, 保留较大的文件
-            if (current_datetime - upper_datetime).seconds == 0:
-                log("文件:" + fits_HA_list[i - 1] + "与文件" + fits_HA_list[i] + "时间一致, 将剔除大小较小的...")
-                current_HA_file_size = os.path.getsize(os.path.join(outputs_dir, fits_HA_list[i]))
-                upper_HA_file_size = os.path.getsize(os.path.join(outputs_dir, fits_HA_list[i - 1]))
-                # 当前 新轨道的 文件较大, 则让新轨道的文件直接和上一个序列文件名一样
-                if current_HA_file_size > upper_HA_file_size:
-                    log("删除文件:" + fits_HA_list[i - 1] + "!")
-                    delete_HA_list.append(fits_HA_list[i - 1])
-                    delete_FE_list.append(fits_FE_list[i - 1])
-                    # os.remove(os.path.join(outputs_dir, fits_HA_list[i - 1]))
-                    # os.remove(os.path.join(outputs_dir, fits_FE_list[i - 1]))
-                    # os.rename(os.path.join(outputs_dir, fits_HA_list[i]),
-                    #           os.path.join(outputs_dir, fits_HA_list[i - 1]))
-                    # os.rename(os.path.join(outputs_dir, fits_FE_list[i]),
-                    #           os.path.join(outputs_dir, fits_FE_list[i - 1]))
-                # 上轨道的文件较大或相等, 则直接删除新轨道文件即可
-                else:
-                    log("删除文件:" + fits_HA_list[i] + "!")
-                    delete_HA_list.append(fits_HA_list[i])
-                    delete_FE_list.append(fits_FE_list[i])
-                    # os.remove(os.path.join(outputs_dir, fits_HA_list[i]))
-                    # os.remove(os.path.join(outputs_dir, fits_FE_list[i]))
-    # 删除delete list 内的文件
-    for f in delete_HA_list:
-        fits_HA_list.remove(f)
-    for f in delete_FE_list:
-        fits_FE_list.remove(f)
-    # 再开始判断是否有轨道错误
-    for i in range(len(fits_HA_list)):
-        try:
-            if i > 0:
-                # 开启了一个新的扫描轨道
-                if int(fits_HA_list[i].split('_')[-2]) - int(fits_HA_list[i - 1].split('_')[-2]) != 1:
-                    # 示例文件名:
-                    # 012 3456 7890 123 45 67 8 9012 3 4567890
-                    # RSM 2023 0411 T04 51 06 _ 0001 _ FE.fits
-                    current_datetime = datetime.datetime(year=1, month=1, day=1,
-                                                         hour=int(fits_HA_list[i].split('_')[0][12: 14]),
-                                                         minute=int(fits_HA_list[i].split('_')[0][14: 16]),
-                                                         second=int(fits_HA_list[i].split('_')[0][16: 18]))
-                    upper_datetime = datetime.datetime(year=1, month=1, day=1,
-                                                       hour=int(fits_HA_list[i - 1].split('_')[0][12: 14]),
-                                                       minute=int(fits_HA_list[i - 1].split('_')[0][14: 16]),
-                                                       second=int(fits_HA_list[i - 1].split('_')[0][16: 18]))
-                    # 如果当前时间差小于规定时间 则应该和上一序列处于同一轨道
-                    if (current_datetime - upper_datetime).seconds < config.validate_time_period:
-                        old_HA_name = fits_HA_list[i]
-                        old_FE_name = fits_FE_list[i]
-                        old_HA_png = old_HA_name.split('.')[0] + '.png'
-                        old_FE_png = old_FE_name.split('.')[0] + '.png'
-                        fits_HA_list[i] = fits_HA_list[i].split('_')[0] + "_" + str(int(fits_HA_list[i - 1][19: 23]) + 1).zfill(4) + "_" + fits_HA_list[i].split('_')[-1]
-                        fits_FE_list[i] = fits_FE_list[i].split('_')[0] + "_" + str(int(fits_FE_list[i - 1][19: 23]) + 1).zfill(4) + "_" + fits_FE_list[i].split('_')[-1]
-                        new_HA_png = fits_HA_list[i].split('.')[0] + '.png'
-                        new_FE_png = fits_FE_list[i].split('.')[0] + '.png'
-                        log("文件:" + old_HA_name + "应处于上个扫描轨道, 重命名为:" + fits_HA_list[i])
-                        log("文件:" + old_FE_name + "应处于上个扫描轨道, 重命名为:" + fits_FE_list[i])
-                        # os.rename(os.path.join(outputs_dir, old_HA_name),
-                        #                         #           os.path.join(outputs_dir, fits_HA_list[i]))
-                        #                         # os.rename(os.path.join(outputs_dir, old_FE_name),
-                        #                         #           os.path.join(outputs_dir, fits_FE_list[i]))
-                        #                         # os.rename(os.path.join(outputs_dir, old_HA_png), os.path.join(outputs_dir, new_HA_png))
-                        #                         # os.rename(os.path.join(outputs_dir, old_FE_png), os.path.join(outputs_dir, new_FE_png))
-        except:
-            log(traceback.print_exc())
-            log("修改文件名失败, 已跳过")
-
-
-def test():
-    matplotlib.rcParams['font.sans-serif'] = ['KaiTi']
-    filepath_result = "testResult/"
-    filepath_test = "testData/"
-    filepath_bash = "bass2000.txt"
-
-    # print(base)
-    image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
-    dark_data = np.array(fits.getdata(image_file), dtype=float)
-    dark_data = change(dark_data)
-    image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
-    flat_data = np.array(fits.getdata(image_file), dtype=float)
-    # RSM20211222T215254-0010-2313-基准.fts    RSM20211222T215555-0013-2367-测试.fts
-    # RSM20220120T062536-0017-1081.fts
-    H, W = flat_data.shape
-    print(H, W)
-    print(bin_count)
-    flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
-    flat_data = getFlat(flat_data)
-    filename = filepath_test + 'RSM20221002T135645-0000-1855.fts'
-    image_file = get_pkg_data_filename(filename)
-    imgData = np.array(fits.getdata(image_file), dtype=float)
-    print("pic0")
-    plt.figure()
-    plt.imshow(imgData, cmap="gray", aspect='auto')
-    plt.show()
-    imgData = moveImg(imgData, -1)
-    imgData, HofHa, HofFe = curve_correction(imgData - dark_data, x0, C)
-    print("pic1")
-    plt.figure()
-    plt.imshow(imgData, cmap="gray", aspect='auto')
-    plt.show()
-    # print(HofHa, HofFe)
-    imgData = DivFlat(imgData, flat_data)
-    base = get_Sunstd(filepath_bash)
-    filepathHA = "HA_absorption.txt"
-    filepathFE = "FE_absorption.txt"
-    abortion = get_Absorstd(filepathHA, filepathFE, HofHa, HofFe)
-    plt.figure()
-    plt.plot(base)
-    plt.show()
-    plt.figure()
-    plt.imshow(flat_data, cmap="gray", aspect='auto')
-    plt.show()
-    # filelist = os.listdir(filepath_test)
-    # image_file, imgData = entireWork(filepath_test + 'RSM20221002T135645-0000-1855.fts', dark_data, flat_data, abortion)
-    # #
-    # print("OK")
-    # plt.figure()
-    # plt.imshow(imgData, cmap="gray", aspect='auto')
-    # plt.show()
-
-    # grey = fits.PrimaryHDU(image_file)
-
-
 # 灰度图添加文字
 # I_array为目标图 time_txt为目标文字
 # 字体和粗细可通过config调整
@@ -998,132 +846,6 @@ def log(*args):
     print(*args)
 
 
-if __name__ == "__main__":
-    test()
-
-    # filepath_test = "testData/"
-    # image_file = get_pkg_data_filename(filepath_test + 'dark.fits')
-    # dark_data = np.array(fits.getdata(image_file), dtype=float)
-    # dark_data = change(dark_data)
-    # image_file = get_pkg_data_filename(filepath_test + 'for_flat_binning2.fits')
-    # flat_data = np.array(fits.getdata(image_file), dtype=float)
-    # print(flat_data.shape)
-    # flat_data, b, d = curve_correction(flat_data - dark_data, x0, C)
-    # flat_data = getFlat(flat_data)
-    # flat_data = FlatNormalization(flat_data)
-    # primaryHDU = fits.PrimaryHDU(data=flat_data)
-    # greyHDU = fits.HDUList([primaryHDU])
-    # greyHDU.writeto('FLAT.fts', overwrite=True)
-    # plt.figure()
-    # plt.imshow(flat_data, cmap="gray", aspect='auto')
-    # plt.show()
-    # print(min(min(row) for row in flat_data))
-    # print(max(max(row) for row in flat_data))
-
-    # print(FlatNormalization(np.array([[0.66,3],[6,9]])))
-    # height_ha = int(height_Ha / bin_count) - int(24 / bin_count)
-    # height_fe = int(height_Fe / bin_count) - int(24 / bin_count)
-    # print(height_ha)
-    # A = config.FE_start - config.HA_start
-    # B = A / K
-    # C = (5430 - 5096) / bin_count
-    # print(A, B, C)
-    # A = height_Ha
-    # B = 5430 - 5096
-    # print(A, B)
-    # Q = np.array([1, 2, 3, 4, 5, 6, 7])
-    # D = 3
-    # print(Q[3:int(D) + 3])
-    # print(cal_center_mean(np.zeros((164, 3, 3))))
-    # cal_center_mean(np.array([[[1,2],[3,4]],[[5,6],[7,8]]]))
-    # test()
-    # I = Image.open("123.png")
-
-    # I_array = np.array(I.convert('L'))
-    # H, W = I_array.shape
-    # text1 = str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
-    # I_array = add_time(I_array, text1)
-    # plt.figure()
-    # plt.imshow(I_array, cmap="gray")
-    # plt.show()
-    # testPath = "circle/circle/"
-    # type = "check"
-    # if type == "test":
-    #     Filelist = os.listdir(testPath)
-    #     if True:
-    #         id = 105
-    #         Filelist = os.listdir(testPath)
-    #         I = Image.open(testPath + Filelist[1 + id])
-    #         I_array = np.array(I.convert('L'))
-    #
-    #         # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
-    #         # I_array = np.array(fits.getdata(image_file), dtype=float)
-    #         # # print(np.shape(I_array))
-    #         rx, ry, r = getCircle(I_array)
-    #         print(id, rx, ry, r)
-    #         H, W = I_array.shape
-    #         for i in range(H):
-    #             for j in range(W):
-    #                 if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000:
-    #                     I_array[i][j] = 240
-    #         # for point in points:
-    #         #     for i in range(20):
-    #         #         for j in range(20):
-    #         #             I_array[point[0]+i-8][point[1]+j-8] = 240
-    #         # print(rx, ry, r * 0.52)
-    #         plt.figure()
-    #         plt.imshow(I_array)
-    #         plt.show()
-    # H,W = I_array.shape
-    # print(rx,ry,r)
-    # for i in range(H):
-    #     for j in range(W):
-    #         if abs((i-rx)*(i-rx) + (j-ry)*(j-ry) -r*r) <10000:
-    #             I_array[i][j]=240
-    # plt.figure()
-    # plt.imshow(I_array)
-    # plt.show()
-    # if_first_print = True
-    # for i in range(100):
-    #     remaining_count = mp.Value('i', int(i))
-    #     if if_first_print:
-    #         print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
-    #         if_first_print = False
-    #     else:
-    #         print('\b' * (5 + len(str(remaining_count)) + 1 + len(str(file_count.value))) + '当前进度:' + str(
-    #             remaining_count.value) + '/' + str(file_count.value), end='')
-    #     time.sleep(0.5)
-    # test()
-    # if type == "check":
-    #     Filelist = os.listdir(testPath)
-    #     print(Filelist)
-    #     L = len(Filelist) - 1
-    #     err = []
-    #     id = 0
-    #     while id < L:
-    #         I = Image.open(testPath + Filelist[id + 1])
-    #         I_array = np.array(I.convert('L'))
-    #
-    #         # image_file = get_pkg_data_filename(testPath + 'sum8.fts')
-    #         # I_array = np.array(fits.getdata(image_file), dtype=float)
-    #         # # print(np.shape(I_array))
-    #         ry, rx, r = getCircle(I_array, id)
-    #         print(id, rx, ry, r)
-    #         H, W = I_array.shape
-    #         for i in range(H):
-    #             for j in range(W):
-    #                 if abs((i - rx) * (i - rx) + (j - ry) * (j - ry) - r * r) < 10000 / bin_count:
-    #                     I_array[i][j] = 240
-    #         plt.imsave("Result/result/" + str(id) + ".jpg", I_array)
-    #         # for point in points:
-    #         #     for i in range(20):
-    #         #         for j in range(20):
-    #         #             I_array[point[0]+i-8][point[1]+j-8] = 240
-    #         # print(rx, ry, r * 0.52)=
-    #         id += 1
-    # test()
-
-
 # 整合南大2023年6月份提出的需求，新增太阳图像的去抖动和旋转矫正
 # 原始代码提供者:绕世豪（南大天文系）
 # 整合人：褚有骋
@@ -1141,14 +863,27 @@ def quaternion_rot(q, p):
 
 
 # 旋转矫正函数
-def rotate_fits(width, x, y, se00xx_imwing, rsun, data, angle, isHa):
+def rotate_fits(width, center_x, center_y, se00xx_imwing, rsun, data, angle, isHa, time_series_data_array=None):
+    """
+    对三维矩阵内的每个光谱维度的全日面像以日心为中心旋转对应角度
+
+    @param width
+    @param center_x
+    @param center_y
+    @param se00xx_imwing
+    @param rsun
+    @param data
+    @param angle
+    @param isHa
+    @param time_series_data_array
+    """
     se00xx_center = sim.circle_center(se00xx_imwing)
     centerx, centery = se00xx_center[0], se00xx_center[1]
-    se00xx_rotate1 = np.zeros([x, y])
-    se00xx_rotate2 = np.zeros([x, y])
+    se00xx_rotate1 = np.zeros([center_x, center_y])
+    se00xx_rotate2 = np.zeros([center_x, center_y])
 
-    for j in range(x):
-        for k in range(y):
+    for j in range(center_x):
+        for k in range(center_y):
             original_coor = [k - centerx, 0, j - centery]
             local_rot = np.dot(sim.rotation_matrix3('y', angle / 180 * pi), \
                                original_coor)
@@ -1160,26 +895,39 @@ def rotate_fits(width, x, y, se00xx_imwing, rsun, data, angle, isHa):
 
     for j in range(width):
         data[j, :, :] = cv2.remap(data[j, :, :], se00xx_rotate1, se00xx_rotate2, \
-                                      borderMode=cv2.BORDER_CONSTANT, \
-                                      interpolation=cv2.INTER_LINEAR)
+                                  borderMode=cv2.BORDER_CONSTANT, \
+                                  interpolation=cv2.INTER_LINEAR)
 
-    se00xx_mask = np.ones([x, y])
-    for j in range(x):
-        for k in range(y):
+    # 对时间矩阵做相同的操作
+    if time_series_data_array is not None:
+        time_series_data_array[:, :] = cv2.remap(time_series_data_array, se00xx_rotate1, se00xx_rotate2, \
+                                                 borderMode=cv2.BORDER_CONSTANT, \
+                                                 borderValue=-1, \
+                                                 interpolation=cv2.INTER_LINEAR)
+
+    se00xx_mask = np.ones([center_x, center_y])
+    for j in range(center_x):
+        for k in range(center_y):
             if (j - centery) ** 2 + (k - centerx) ** 2 >= (1.1 * rsun) ** 2:
                 se00xx_mask[j, k] = 0
 
-    if (isHa):
+    if isHa:
         rotated_data = copy.deepcopy(np.multiply(data[110, :, :], se00xx_mask))
     else:
         rotated_data = copy.deepcopy(np.multiply(data[10, :, :], se00xx_mask))
 
     se00xx_center = sim.circle_center(rotated_data)
     se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
-    return  se00xx_centerx, se00xx_centery
+    return se00xx_centerx, se00xx_centery
 
 
 def getEphemerisPos(strtime):
+    """
+
+    @param strtime
+    @return
+
+    """
     t = Time(strtime)  # 修改时间格式，以便输入星表（ephemeris）查询太阳和球的位置（J2000坐标系）
     astropy.coordinates.solar_system_ephemeris.set(config.de_file_url)
     sun_6 = astropy.coordinates.get_body_barycentric_posvel('sun', t)
@@ -1187,10 +935,20 @@ def getEphemerisPos(strtime):
     return sun_6[0], earth_6[0]
 
 
-def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data_array):
-    log('开始进行0000序列的图像畸变矫正')
+def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data_array, time_series_data_array=None):
+    """
+    对头部0000序列进行畸变矫正函数, 直接修改传入的sequence_data_array np数组
+    当传入的时间矩阵不为None时, 对时间矩阵做相同的畸变矫正
+
+    @param spec_win
+    @param axis_width
+    @param biasx
+    @param biasz
+    @param sequence_data_array
+    @param time_series_data_array
+    """
     a1, a2, a3 = axis_width
-    if(len(biasx) < 2313) :
+    if len(biasx) < 2313:
         a2 = len(biasx)
     se0000_x, se0000_z = np.zeros((a2, a3)), np.zeros((a2, a3))
     lse0000_za, lse0000_zb, lse0000_zc = [], [], []
@@ -1226,17 +984,41 @@ def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data
         se0000_imout = np.multiply(se0000_imout, se0000_shiftmask)
         sequence_data_array[wl, :, :] = se0000_imout
 
+    se0000_imwing = None
     if spec_win == 'HA':
         se0000_imwing = sequence_data_array[110, :, :]
     if spec_win == 'FE':
         se0000_imwing = sequence_data_array[10, :, :]
-    log('0000序列的图像畸变矫正完成')
+
+    # 如果传进来了时间矩阵, 那就对时间矩阵做相同的变换
+    if time_series_data_array is not None:
+        time_series_data_array[:, :] = cv2.remap(time_series_data_array, se0000_x, se0000_z,
+                                                 borderMode=cv2.BORDER_CONSTANT, \
+                                                 borderValue=-1, \
+                                                 interpolation=cv2.INTER_LINEAR)
+        time_series_data_array[:, :] = np.multiply(time_series_data_array, se0000_shiftmask)
 
     return se0000_imwing
 
 
 def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_RSUN, axis_width, se00xx_hacore,
-                                   hacore0, w, h):
+                                   hacore0, width, height, time_series_data_array=None):
+    """
+    对非头部序列的序列进行畸变矫正, 需要额外输入头部序列所获日心
+    当时间矩阵不为None时, 对时间矩阵做相同的畸变矫正
+
+    @param spec_win:
+    @param se00xx_data:
+    @param se0000_center:
+    @param se00xx_RSUN:
+    @param axis_width:
+    @param se00xx_hacore:
+    @param hacore0:
+    @param width:
+    @param height:
+    @param time_series_data_array:
+    @return
+    """
     a1, a2, a3 = axis_width
     se0000_centerX0, se0000_centerY0 = se0000_center
 
@@ -1249,14 +1031,11 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
     dx, dy = -(se00xx_centerx - se0000_centerX0), -(se00xx_centery - se0000_centerY0)
     se00xx_hacore2 = sim.imshift(se00xx_hacore, [int(dy), int(dx)])  # 刚性对齐
 
-
-    log('开始进行非0000序列的图像畸变矫正')
-
     se00xx_flow = cv2.calcOpticalFlowFarneback(hacore0, se00xx_hacore2, flow=None, pyr_scale=0.5, \
                                                levels=3, winsize=config.winsize, iterations=5, poly_n=5, \
                                                poly_sigma=1.2, flags=0)  # 计算畸变
 
-    se00xx_x1, se00xx_y1 = np.meshgrid(np.arange(w), np.arange(h))
+    se00xx_x1, se00xx_y1 = np.meshgrid(np.arange(width), np.arange(height))
 
     se00xx_x2 = copy.deepcopy(se00xx_x1)
     se00xx_y2 = copy.deepcopy(se00xx_y1)
@@ -1277,6 +1056,8 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
     se00xx_x2 = se00xx_x2.astype('float32')
     se00xx_y2 = se00xx_y2.astype('float32')
 
+    se00xx_imwing = None
+
     for j in range(a1):
         if spec_win == 'HA':
             se00xx_im3 = se00xx_data[j, :, :]
@@ -1290,5 +1071,20 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
                                  interpolation=cv2.INTER_LINEAR)  # 非刚性位移改正畸变
         se00xx_data[j, :, :] = se00xx_imout
 
-    log('非0000序列的图像畸变矫正完成')
+    if time_series_data_array is not None:
+        time_series_data_array[:, :] = cv2.remap(time_series_data_array, se00xx_x2, se00xx_y2, borderMode=cv2.BORDER_CONSTANT, \
+                                           interpolation=cv2.INTER_LINEAR)  # 对时间矩阵也应用相同的非刚性位移改正畸变
+
     return se00xx_imwing
+
+
+def cropPNG(data: np.array, centerX: int, centerY: int):
+    """
+    直接修改data数组做剪裁，取日心附近1040长度的数据
+    @param data: 二维数组, Ha线心全日面矩阵
+    @param centerX: X轴日心
+    @param centerY: Y轴日心
+    @return 返回剪裁后的数组
+    """
+    return_data = data[centerY - 1040:centerY + 1040, centerX - 1040:centerX + 1040]
+    return return_data
