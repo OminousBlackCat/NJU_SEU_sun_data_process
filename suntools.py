@@ -852,6 +852,11 @@ def log(*args):
 
 # 四元数旋转函数
 def quaternion_rot(q, p):
+    """
+    @param q:
+    @param p:
+    @return
+    """
     s_q = q[0]
     lambda_q = sqrt(1 - s_q ** 2)
     if lambda_q != 0:
@@ -866,7 +871,6 @@ def quaternion_rot(q, p):
 def rotate_fits(width, center_x, center_y, se00xx_imwing, rsun, data, angle, isHa, time_series_data_array=None):
     """
     对三维矩阵内的每个光谱维度的全日面像以日心为中心旋转对应角度
-
     @param width
     @param center_x
     @param center_y
@@ -926,7 +930,6 @@ def getEphemerisPos(strtime):
 
     @param strtime
     @return
-
     """
     t = Time(strtime)  # 修改时间格式，以便输入星表（ephemeris）查询太阳和球的位置（J2000坐标系）
     astropy.coordinates.solar_system_ephemeris.set(config.de_file_url)
@@ -944,8 +947,9 @@ def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data
     @param axis_width
     @param biasx
     @param biasz
-    @param sequence_data_array
+    @param sequence_data_array 传入的完整全日面太阳光谱像(引用) 函数将直接修改nparray内部数据
     @param time_series_data_array
+    @return
     """
     a1, a2, a3 = axis_width
     if len(biasx) < 2313:

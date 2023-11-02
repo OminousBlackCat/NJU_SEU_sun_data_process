@@ -833,7 +833,7 @@ def multiprocess_task(parameter_dic: dict):
         sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         p0 = parameter_dic['header']['INST_ROT']
         strtime = parameter_dic['header']['STR_TIME']
-        se0000_hacore = sequence_data_array[68, :, :]
+        se0000_hacore = np.array(sequence_data_array[68, :, :])
         h, w = se0000_hacore.shape  # 读取图片高度和宽度
         se0000_rx = parameter_dic['header']['SAT_POS1']
         se0000_ry = parameter_dic['header']['SAT_POS2']
@@ -849,17 +849,13 @@ def multiprocess_task(parameter_dic: dict):
         if parameter_dic['is_head_of_track']:
             biasx = parameter_dic['bias_x'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
             biasz = parameter_dic['bias_z'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
-            suntools.log("畸变矫正前FE[0]的矩阵数值为:")
-            print(sequence_data_array[standard_HA_width + 1, 0, :])
             se00xx_imwing_ha = suntools.head_distortion_correction('HA', axis_width_ha, biasx, biasz,
                                                                    sequence_data_array[0:standard_HA_width, :, :],
                                                                    time_series_data_array=time_series_data_array)
             se00xx_imwing_fe = suntools.head_distortion_correction('FE', axis_width_fe, biasx, biasz,
                                                                    sequence_data_array[standard_HA_width:, :, :])
-            suntools.log("畸变矫正后FE[0]的矩阵数值为:")
-            print(sequence_data_array[standard_HA_width + 1, 0, :])
-            se0000_hacore0 = sequence_data_array[68, :, :]
-            se0000_hawing0 = sequence_data_array[110, :, :]
+            se0000_hacore0 = np.array(sequence_data_array[68, :, :])
+            se0000_hawing0 = np.array(sequence_data_array[110, :, :])
             se0000_center = sim.circle_center(se0000_hawing0)
             if parameter_dic['scan_index'] == '0000':
                 parameter_dic['global_track_se0000_center'][parameter_dic['track_index']] = se0000_center
@@ -867,11 +863,10 @@ def multiprocess_task(parameter_dic: dict):
 
         else:
             hacore0 = parameter_dic['global_track_se0000_hacore'][parameter_dic['track_index']]
-            se00xx_hacore = sequence_data_array[68, :, :]
+            # 注意使用deep copy
+            se00xx_hacore = np.array(sequence_data_array[68, :, :])
             se00xx_RSUN = sim.theory_rsun(strtime, satpos, GLOBAL_BINNING)
             se0000_center = parameter_dic['global_track_se0000_center'][parameter_dic['track_index']]
-            suntools.log("畸变矫正前FE[0]的矩阵数值为:")
-            print(sequence_data_array[standard_HA_width + 1, 0, :])
             se00xx_imwing_ha = suntools.non_head_distortion_correction('HA',
                                                                        sequence_data_array[0:standard_HA_width, :, :],
                                                                        se0000_center, se00xx_RSUN, axis_width_ha,
@@ -881,9 +876,6 @@ def multiprocess_task(parameter_dic: dict):
                                                                        sequence_data_array[standard_HA_width:, :, :],
                                                                        se0000_center, se00xx_RSUN, axis_width_fe,
                                                                        se00xx_hacore, hacore0, w, h)
-            suntools.log("畸变矫正后FE[0]的矩阵数值为:")
-            print(sequence_data_array[standard_HA_width + 1, 0, :])
-
         suntools.log('开始旋转图像...')
         # 对Ha图像进行旋转
         centerx_ha, centery_ha = suntools.rotate_fits(standard_HA_width,
@@ -905,14 +897,14 @@ def multiprocess_task(parameter_dic: dict):
 
         # 输出太阳像
         for seq_index in range(SUN_ROW_COUNT):
-            sum_data_HA = sequence_data_array[SUM_ROW_INDEX_HA, :, :]
-            sum_data_FE = sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :]
+            sum_data_HA = np.array(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
+            sum_data_FE = np.array(sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :])
         # suntools.log('计算CCD太阳像半径中...')
         R_y, R_x, radius = suntools.getCircle(sum_data_FE)
         # OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
         suntools.log('波长定标中...')
-        wavelength_calibrate_input = sequence_data_array[:, int(R_y) - 50: int(R_y) + 49,
-                                     int(R_x) - 50: int(R_x) + 49]
+        wavelength_calibrate_input = np.array(sequence_data_array[:, int(R_y) - 50: int(R_y) + 49,
+                                     int(R_x) - 50: int(R_x) + 49])
         cdel_t3, crval_l3_ha, crval_l3_fe = suntools.cal_center_mean(wavelength_calibrate_input)
         parameter_dic['header'].set('R_SUN', radius)
         parameter_dic['header'].set('RSUN_OBS', radius * 0.5218 * GLOBAL_BINNING)
