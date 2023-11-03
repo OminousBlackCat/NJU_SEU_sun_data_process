@@ -20,7 +20,7 @@ import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
 import ctypes as c
-import createVideo
+import save_png_video
 import sys
 
 time_start = time.time()
@@ -564,7 +564,8 @@ def main():
     time_end = time.time()
     suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
     suntools.log('生成视频中...')
-    createVideo.createVideo(global_multiprocess_list[0]['start_time'])
+    save_png_video.monographNJU(OUT_DIR, image_dpi=config.png_dpi_value)
+    save_png_video.createVideoNJU(SUM_DIR, config.video_dir_path, global_multiprocess_list[0]['start_time'])
     suntools.log('程序结束！')
 
 

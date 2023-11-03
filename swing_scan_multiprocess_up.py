@@ -24,7 +24,7 @@ from astropy.io import fits
 import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
-import createVideo
+import save_png_video
 import sys
 import traceback
 import sys
@@ -895,10 +895,10 @@ def multiprocess_task(parameter_dic: dict):
 
         suntools.log('旋转完成！')
 
-        # 输出太阳像
-        for seq_index in range(SUN_ROW_COUNT):
-            sum_data_HA = np.array(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
-            sum_data_FE = np.array(sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :])
+        # # 输出太阳像
+        # for seq_index in range(SUN_ROW_COUNT):
+        #     sum_data_HA = np.array(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
+        #     sum_data_FE = np.array(sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :])
         # suntools.log('计算CCD太阳像半径中...')
         R_y, R_x, radius = suntools.getCircle(sum_data_FE)
         # OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
@@ -919,41 +919,41 @@ def multiprocess_task(parameter_dic: dict):
         # 旋转INST_ROT度（已改用南大提供的方法，这里目前弃用）
         # sum_data_HA_save = ndimage.rotate(sum_data_HA_save, -parameter_dic['header']['INST_ROT'], reshape=False)
         # sum_data_FE_save = ndimage.rotate(sum_data_FE_save, -parameter_dic['header']['INST_ROT'], reshape=False)
-        sum_mean_ha = np.mean(sum_data_HA)
-        sum_mean_fe = np.mean(sum_data_FE)
-        sum_data_HA = suntools.cropPNG(sum_data_HA, int(R_x), int(R_y))
-        sum_data_FE = suntools.cropPNG(sum_data_FE, int(R_x), int(R_y))
-        sum_data_HA_save = suntools.add_time(sum_data_HA, parameter_dic['start_time'].
-                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
-        sum_data_FE_save = suntools.add_time(sum_data_FE, parameter_dic['start_time'].
-                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
+        # sum_mean_ha = np.mean(sum_data_HA)
+        # sum_mean_fe = np.mean(sum_data_FE)
+        # sum_data_HA = suntools.cropPNG(sum_data_HA, int(R_x), int(R_y))
+        # sum_data_FE = suntools.cropPNG(sum_data_FE, int(R_x), int(R_y))
+        # sum_data_HA_save = suntools.add_time(sum_data_HA, parameter_dic['start_time'].
+        #                                      strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
+        # sum_data_FE_save = suntools.add_time(sum_data_FE, parameter_dic['start_time'].
+        #                                      strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
 
         # 将小于0的值全部赋为0
         sequence_data_array[sequence_data_array < 0] = 0
         suntools.log("SHAPE为：" + str(sequence_data_array.shape))
-        if config.save_img_form == 'default':
-            # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
-            suntools.log('输出序号为' + parameter_dic['scan_index'] + '的png...')
-            METADATA = {'CenterX': str(round(centerx_ha)), 'CenterY': str(round(centery_ha))}
-            plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + parameter_dic['scan_index'] + '_HA' + ".png",
-                       sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha, metadata=METADATA)
-            plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + parameter_dic['scan_index'] + '_FE' + ".png",
-                       sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe, metadata=METADATA)
-        if config.save_img_form == 'fts':
-            # 不对data进行任何操作 直接输出为fts文件
-            suntools.log('输出序号为' + parameter_dic['scan_index'] + '的fits...')
-            primaryHDU = fits.PrimaryHDU(sum_data_HA)
-            greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'SUM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
-                            + '_' + parameter_dic['scan_index'] + '_HA' + '.fts', overwrite=True)
-            greyHDU.close()
-            primaryHDU = fits.PrimaryHDU(sum_data_FE)
-            greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'SUM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
-                            + '_' + parameter_dic['scan_index'] + '_FE' + '.fts', overwrite=True)
-            greyHDU.close()
+        # if config.save_img_form == 'default':
+        #     # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
+        #     suntools.log('输出序号为' + parameter_dic['scan_index'] + '的png...')
+        #     METADATA = {'CenterX': str(round(centerx_ha)), 'CenterY': str(round(centery_ha))}
+        #     plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
+        #                + '_' + parameter_dic['scan_index'] + '_HA' + ".png",
+        #                sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha, metadata=METADATA)
+        #     plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
+        #                + '_' + parameter_dic['scan_index'] + '_FE' + ".png",
+        #                sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe, metadata=METADATA)
+        # if config.save_img_form == 'fts':
+        #     # 不对data进行任何操作 直接输出为fts文件
+        #     suntools.log('输出序号为' + parameter_dic['scan_index'] + '的fits...')
+        #     primaryHDU = fits.PrimaryHDU(sum_data_HA)
+        #     greyHDU = fits.HDUList([primaryHDU])
+        #     greyHDU.writeto(SUM_DIR + 'SUM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
+        #                     + '_' + parameter_dic['scan_index'] + '_HA' + '.fts', overwrite=True)
+        #     greyHDU.close()
+        #     primaryHDU = fits.PrimaryHDU(sum_data_FE)
+        #     greyHDU = fits.HDUList([primaryHDU])
+        #     greyHDU.writeto(SUM_DIR + 'SUM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
+        #                     + '_' + parameter_dic['scan_index'] + '_FE' + '.fts', overwrite=True)
+        #     greyHDU.close()
         suntools.log('生成HA文件中...')
         parameter_dic['header'].set('SPECLINE', 'HA')
         parameter_dic['header'].set('WAVE_LEN', HA_LINE_CORE)
@@ -1014,7 +1014,6 @@ def join(pool):
                     break
             break
 
-
 def main():
     """
     主函数, 使用pool函数对全局dict进行并行处理
@@ -1054,10 +1053,10 @@ def main():
     # pool1.shutdown(wait=True)
     time_end = time.time()
     suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
-    suntools.log('生成视频中...')
-    createVideo.createVideo(global_multiprocess_list[0]['start_time'])
+    suntools.log('生成预览图像与视频中...')
+    save_png_video.monographNJU(OUT_DIR, image_dpi=config.png_dpi_value)
+    save_png_video.createVideoNJU(SUM_DIR, config.video_dir_path, global_multiprocess_list[0]['start_time'])
     suntools.log('程序结束！')
-
 
 if __name__ == "__main__":
     main()
