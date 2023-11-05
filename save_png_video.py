@@ -13,12 +13,13 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 
 
-def monographNJU(target_path: str, image_dpi = 100):
+def monographNJU(target_path: str, color_map, image_dpi = 100):
     """
     读取传入的目标路径, 列出目标文件夹内所有的ha fe文件
     再根据ha/fe fits文件列表在target_dir的文件夹内生成相应的png文件
     生成的png文件与fits文件的文件名相同, 仅格式不同
     @param target_path 传入的目标路径
+    @param color_map 传入的色谱类型
     @param image_dpi 图像dpi, 默认100
     """
     # 读取文件路径, 将fit分为ha和fe两组存入list
@@ -47,8 +48,8 @@ def monographNJU(target_path: str, image_dpi = 100):
         current_file_datetime = current_filename[3:7] + '-' + current_filename[7:9] + '-' + current_filename[9:11] + \
                    ' UT ' + current_filename[12:14] + ':' + current_filename[14:16] + ':' + current_filename[16:18]
         plt.figure(figsize=(20, 20))
-        # plt.imshow(hacore[cy - 1040:cy + 1040, cx - 1040:cx + 1040], origin='lower', vmin=0, vmax=4 * hacore.mean(),
-        #            cmap='afmhot')
+        plt.imshow(hacore[cy - 1040:cy + 1040, cx - 1040:cx + 1040], origin='lower', vmin=0, vmax=4 * hacore.mean(),
+                   cmap=color_map)
         plt.text(1950, 50, current_file_datetime, horizontalalignment='right', verticalalignment='bottom', color='white', size=28)
         plt.xticks(ticks=tick_pixel, labels=tick_arcsec, fontsize=22)
         plt.yticks(ticks=tick_pixel, labels=tick_arcsec, fontsize=22)
@@ -71,8 +72,8 @@ def monographNJU(target_path: str, image_dpi = 100):
         current_file_datetime = current_filename[3:7] + '-' + current_filename[7:9] + '-' + current_filename[9:11] + \
                                 ' UT ' + current_filename[12:14] + ':' + current_filename[14:16] + ':' + current_filename[16:18]
         plt.figure(figsize=(20, 20))
-        # plt.imshow(hacore[cy - 1040:cy + 1040, cx - 1040:cx + 1040], origin='lower', vmin=0, vmax=4 * hacore.mean(),
-        #            cmap='afmhot')
+        plt.imshow(hacore[cy - 1040:cy + 1040, cx - 1040:cx + 1040], origin='lower', vmin=0, vmax=4 * hacore.mean(),
+                   cmap=color_map)
         plt.text(1950, 50, current_file_datetime, horizontalalignment='right', verticalalignment='bottom', color='white', size=28)
         plt.xticks(ticks=tick_pixel, labels=tick_arcsec, fontsize=22)
         plt.yticks(ticks=tick_pixel, labels=tick_arcsec, fontsize=22)
@@ -85,22 +86,30 @@ def monographNJU(target_path: str, image_dpi = 100):
 
 def createVideoMp4(target_dir: str, img_array: list, filename: str):
     size = (0,0)
+    imgs = []
     for indexf in range(len(img_array)):  # 这个循环是为了读取所有要用的图片文件
         img1 = cv2.imread(target_dir + img_array[indexf], 1)
         if img1 is None:
             print(img_array[indexf] + " is error!")
             continue
         size = (img1.shape[1], img1.shape[0])
-        img_array.append(img1)
+        imgs.append(img1)
 
-    videowrite = cv2.VideoWriter(filename, -1, 6, size)
+    print(filename)
+    videowrite = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'mp4v'), 6, size)
 
-    for i in range(len(img_array)):  # 把读取的图片文件写进去
-        videowrite.write(img_array[i])
+    for i in range(len(imgs)):  # 把读取的图片文件写进去
+        videowrite.write(imgs[i])
 
     videowrite.release()
 
 def createVideoNJU(target_dir: str, save_dir: str, video_date: datetime):
+    """
+    读取png列表, 创建视频
+    @param target_dir 目标png所在的文件路径
+    @param save_dir 视频存储路径
+    @param video_date 视频保存的文件日期, 应为当前序列文件夹内的头序列起始日期
+    """
     arr = os.listdir(target_dir)
     ha_list = []
     fe_list = []
@@ -112,8 +121,8 @@ def createVideoNJU(target_dir: str, save_dir: str, video_date: datetime):
                 fe_list.append(filename)
     ha_list.sort()
     fe_list.sort()
-    createVideoMp4(target_dir, ha_list, save_dir + 'RSM' + video_date.strftime('%Y-%m-%d') + '_HA.mp4')
-    createVideoMp4(target_dir, fe_list, save_dir + 'RSM' + video_date.strftime('%Y-%m-%d') + '_FE.mp4')
+    createVideoMp4(target_dir, ha_list, save_dir + 'RSM_' + video_date.strftime('%Y-%m-%d') + '_HA.mp4')
+    createVideoMp4(target_dir, fe_list, save_dir + 'RSM_' + video_date.strftime('%Y-%m-%d') + '_FE.mp4')
 
 
 if __name__ == '__main__':

@@ -829,8 +829,8 @@ def multiprocess_task(parameter_dic: dict):
         '第' + str(parameter_dic['track_index']) + '轨, 扫描序列' + parameter_dic['scan_index'] + '预处理完成...')
     suntools.log('生成完整日像中...')
     try:
-        sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
-        sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
+        # sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
+        # sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         p0 = parameter_dic['header']['INST_ROT']
         strtime = parameter_dic['header']['STR_TIME']
         se0000_hacore = np.array(sequence_data_array[68, :, :])
@@ -900,7 +900,7 @@ def multiprocess_task(parameter_dic: dict):
         #     sum_data_HA = np.array(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
         #     sum_data_FE = np.array(sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :])
         # suntools.log('计算CCD太阳像半径中...')
-        R_y, R_x, radius = suntools.getCircle(sum_data_FE)
+        R_y, R_x, radius = suntools.getCircle(sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :])
         # OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
         suntools.log('波长定标中...')
         wavelength_calibrate_input = np.array(sequence_data_array[:, int(R_y) - 50: int(R_y) + 49,
@@ -1054,7 +1054,7 @@ def main():
     time_end = time.time()
     suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
     suntools.log('生成预览图像与视频中...')
-    save_png_video.monographNJU(OUT_DIR, image_dpi=config.png_dpi_value)
+    save_png_video.monographNJU(OUT_DIR, color_map, image_dpi=config.png_dpi_value)
     save_png_video.createVideoNJU(SUM_DIR, config.video_dir_path, global_multiprocess_list[0]['start_time'])
     suntools.log('程序结束！')
 
