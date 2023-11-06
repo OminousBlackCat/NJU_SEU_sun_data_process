@@ -48,7 +48,7 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
         current_file_datetime = current_filename[3:7] + '-' + current_filename[7:9] + '-' + current_filename[9:11] + \
                    ' UT ' + current_filename[12:14] + ':' + current_filename[14:16] + ':' + current_filename[16:18]
         plt.figure(figsize=(20, 20))
-        plt.imshow(hacore[cy - 1040:cy + 1040, cx - 1040:cx + 1040], origin='lower', vmin=0, vmax=4 * hacore.mean(),
+        plt.imshow(hacore[cy - 1040:cy + 1040, cx - 1040:cx + 1040], origin='lower', vmin=0, vmax=3 * hacore.mean(),
                    cmap=color_map)
         plt.text(1950, 50, current_file_datetime, horizontalalignment='right', verticalalignment='bottom', color='white', size=28)
         plt.xticks(ticks=tick_pixel, labels=tick_arcsec, fontsize=22)
@@ -72,7 +72,7 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
         current_file_datetime = current_filename[3:7] + '-' + current_filename[7:9] + '-' + current_filename[9:11] + \
                                 ' UT ' + current_filename[12:14] + ':' + current_filename[14:16] + ':' + current_filename[16:18]
         plt.figure(figsize=(20, 20))
-        plt.imshow(hacore[cy - 1040:cy + 1040, cx - 1040:cx + 1040], origin='lower', vmin=0, vmax=4 * hacore.mean(),
+        plt.imshow(hacore[cy - 1040:cy + 1040, cx - 1040:cx + 1040], origin='lower', vmin=0, vmax=3 * hacore.mean(),
                    cmap=color_map)
         plt.text(1950, 50, current_file_datetime, horizontalalignment='right', verticalalignment='bottom', color='white', size=28)
         plt.xticks(ticks=tick_pixel, labels=tick_arcsec, fontsize=22)
