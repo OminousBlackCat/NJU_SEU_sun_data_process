@@ -61,13 +61,29 @@ def show_SPEC(SPEC, DSPEC):
 
 
 def main():
-    filename = 'data/decompression_test/RSM20221017T182100_0005_FE.fts'
-    file = filename
-    print('Reading fits file....')
-    dat = fitsread(file)[0]
+    def test(array: list):
+        array[0] = 1
 
-    SPEC = dat[26]
-    show_SPEC(SPEC, dat)
+    def test_numpy(array: np.array):
+        array[0] = 1
+
+    test_arr = [0, 0, 0]
+    test_np = np.zeros((3,))
+    test(test_arr[1: 2])
+    test_numpy(test_np[2: 3])
+    print(test_arr)
+    print(test_np)
+
+    # filename = 'data/time_test/RSM20220913T112208_0000_HA.fits'
+    # hdu = fits.open(filename, do_not_scale_image_data=True)
+    # time_data = hdu[0].data
+    # sun_data = hdu[1].data
+    # print(time_data)
+    # print(sun_data)
+    # img = plt.imshow(time_data)
+    # plt.show()
+    # print('Reading fits file....')
+
 
 if __name__ == '__main__':
     main()

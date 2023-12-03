@@ -7,7 +7,6 @@
 @author: seu_wxy
 """
 
-
 import copy
 import multiprocessing as mp
 from concurrent.futures.process import ProcessPoolExecutor
@@ -25,12 +24,15 @@ from astropy.io import fits
 import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
-import createVideo
+import save_png_video
 import sys
 import traceback
 import sys
 import os
 import time
+
+# 调试用
+np.set_printoptions(threshold=sys.maxsize)
 
 # （调试用）控制台输出记录到文件
 # class Logger(object):
@@ -263,7 +265,8 @@ for axis in symmetry_axis_list:
     if str(current_scan_index).zfill(4) == '0000':
         for i in range(temp_start_file_index, temp_last_file_index + 1):
             step = int(data_file_lst[i].split('-')[-1].split('.')[0])  # 读取帧序号，以便判断有无缺帧
-            # if step >= step_start and step <= step_end and '-0000-' in data_file_lst[i]:  # 第一个条件判断数据是否为这一个序列的，第二个条件判断是否为0级数据的fits文件,第二个条件根据文件名格式可能需要改动，或者可以删除，整合进pipeline时可以检查一下）
+            # if step >= step_start and step <= step_end and '-0000-' in data_file_lst[i]:  #
+            # 第一个条件判断数据是否为这一个序列的，第二个条件判断是否为0级数据的fits文件,第二个条件根据文件名格式可能需要改动，或者可以删除，整合进pipeline时可以检查一下）
             if count == 0:
                 dif_step = step - count  # 后续用于判断是否缺帧（如果有更好的方法可以修改）
             # read fits
@@ -427,12 +430,12 @@ for axis in symmetry_axis_list:
         plt.ylabel('Slit-z Pointing (arcsec)')
         plt.grid()
 
-        if not os.path.exists(config.bias_dir_path):  # 检查目录是否存在
-            os.makedirs(config.bias_dir_path)  # 如果不存在则创建目录
-        plt.savefig(config.bias_dir_path + 'T' + str(current_track_index).zfill(4) + 'S' +
-                    str(current_scan_index).zfill(4) + data_file_lst[temp_start_file_index].split('T')[0][-8:] + 'T' +
-                    data_file_lst[temp_start_file_index].split('T')[1][
-                    :6] + '.png')  # 需要将四元数指向示意图暂存在某一路径，可供后续检查数据质量
+        # if not os.path.exists(config.bias_dir_path):  # 检查目录是否存在
+        #     os.makedirs(config.bias_dir_path)  # 如果不存在则创建目录
+        # plt.savefig(config.bias_dir_path + 'T' + str(current_track_index).zfill(4) + 'S' +
+        #             str(current_scan_index).zfill(4) + data_file_lst[temp_start_file_index].split('T')[0][-8:] + 'T' +
+        #             data_file_lst[temp_start_file_index].split('T')[1][
+        #             :6] + '.png')  # 需要将四元数指向示意图暂存在某一路径，可供后续检查数据质量
         if reverse_scan == 1:
             for i in range(floor(len(l_biasx) / 2)):
                 temp = l_biasx_smooth[-i - 1]
@@ -720,22 +723,58 @@ def multiprocess_task(parameter_dic: dict):
     每个进程都会开辟一块内存空间用来存储数据
     处理结束之后便会输出文件
     """
+    # 单个序列生成的全日面太阳像, shape = [ 波长深度 , 文件序号 , 狭缝宽度 ]
     sequence_data_array = None
+    # 单个序列生成的时间矩阵, shape = [ 文件序号, 狭缝宽度 ]
+    time_series_data_array = None
     suntools.log(
         '正在处理第' + str(parameter_dic['track_index']) + '轨,  扫描序列:' + parameter_dic['scan_index'] + '...')
     try:
         sequence_data_array = np.zeros((GLOBAL_ARRAY_X_COUNT, GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT),
                                        dtype=np.int16)
+        time_series_data_array = np.zeros((GLOBAL_ARRAY_Y_COUNT, GLOBAL_ARRAY_Z_COUNT),
+                                          dtype=np.int16)
     except BaseException as uniformException:
         suntools.log(traceback.print_exc())
         suntools.log("内存不足, 无法创建内存空间")
-        print(str(uniformException))
+        suntools.log(str(uniformException))
+        sys.exit("程序终止")
+
+    # 一个标准文件名 如下:
+    # RSM 2021   12     22T060105   -   0008-     0001       .fts
+    # 012 3456   78     901234567   8   90123     4567       8901
+    #     [year] [mon]  [day_seq]       [index]   [position]
+    try:
+        # 年无需设置, 其余均需要设置以防止序列时间跨日
+        start_datetime = datetime.datetime(
+            year=int(parameter_dic['first_filename'][3: 7]),
+            month=int(parameter_dic['first_filename'][7: 9]),
+            day=int(parameter_dic['first_filename'][9: 11]),
+            hour=int(parameter_dic['first_filename'][12: 14]),
+            minute=int(parameter_dic['first_filename'][14: 16]),
+            second=int(parameter_dic['first_filename'][16: 18]),
+            microsecond=0
+        )
+    except BaseException as uniformException:
+        suntools.log(traceback.print_exc())
+        suntools.log("格式化文件名出错")
+        sys.exit("程序终止")
+
     for sequence_filename in parameter_dic['file_list']:
+        # 对序列内每个狭缝文件进行预处理, 组织为一个全日面太阳像与时间矩阵
         try:
-            # 一个标准文件名 如下:
-            # RSM 2021   12     22T060105   -   0008-     0001       .fts
-            # 012 3456   78     901234567   8   90123     4567       8901
-            #     [year] [mon]  [day_seq]       [index]   [position]
+            # 求当前狭缝文件的日期
+            current_datetime = datetime.datetime(
+                year=int(sequence_filename[3: 7]),
+                month=int(sequence_filename[7: 9]),
+                day=int(sequence_filename[9: 11]),
+                hour=int(sequence_filename[12: 14]),
+                minute=int(sequence_filename[14: 16]),
+                second=int(sequence_filename[16: 18]),
+                microsecond=0
+            )
+            # 求时间差值, 获取相对值
+            relative_time_value = (current_datetime - start_datetime).total_seconds()
             # 计算此文件在序列中的相对位置 给后续放入全局数组做准备
             fileRelativePosition = int(sequence_filename.split('-')[2].split('.')[0]) - int(
                 parameter_dic['first_filename'].split('-')[2].split('.')[0])
@@ -772,35 +811,29 @@ def multiprocess_task(parameter_dic: dict):
             if parameter_dic['reverse_scan'] == 1:
                 reverse_index = 2312 if SUN_ROW_COUNT - 1 - fileRelativePosition >= 2313 else SUN_ROW_COUNT - 1 - fileRelativePosition
                 sequence_data_array[:, reverse_index, :] = image_data
+                time_series_data_array[reverse_index, :] = int(relative_time_value)
             # elif REVERSAL_MODE == 'even' and currentScanIndex % 2 == 0:
             #     sequence_data_array[:, SUN_ROW_COUNT - 1 - fileRelativePosition, :] = image_data
             else:
                 sequence_data_array[:, fileRelativePosition, :] = image_data
+                time_series_data_array[fileRelativePosition, :] = int(relative_time_value)
 
-            # 进度输出
             file_data.close()
-            # if if_first_print.value:
-            #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
-            #     sys.stdout.flush()
-            #     if_first_print.value = False
-            # else:
-            #     print('\b' * (9 + len(str(remaining_count.value)) + 1 + len(str(file_count.value))), end='')
-            #     print('当前进度:' + str(remaining_count.value) + '/' + str(file_count.value), end='')
-            #     sys.stdout.flush()
-        except BaseException as e:
+        except BaseException:
             suntools.log(traceback.print_exc())
             suntools.log(sequence_filename, parameter_dic['first_filename'], fileRelativePosition)
 
             suntools.log('文件:' + filename + '处理失败, 请检查此文件')
+
     suntools.log(
         '第' + str(parameter_dic['track_index']) + '轨, 扫描序列' + parameter_dic['scan_index'] + '预处理完成...')
     suntools.log('生成完整日像中...')
     try:
-        sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
-        sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
+        # sum_data_HA = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
+        # sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         p0 = parameter_dic['header']['INST_ROT']
         strtime = parameter_dic['header']['STR_TIME']
-        se0000_hacore = sequence_data_array[68, :, :]
+        se0000_hacore = np.array(sequence_data_array[68, :, :])
         h, w = se0000_hacore.shape  # 读取图片高度和宽度
         se0000_rx = parameter_dic['header']['SAT_POS1']
         se0000_ry = parameter_dic['header']['SAT_POS2']
@@ -817,11 +850,12 @@ def multiprocess_task(parameter_dic: dict):
             biasx = parameter_dic['bias_x'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
             biasz = parameter_dic['bias_z'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
             se00xx_imwing_ha = suntools.head_distortion_correction('HA', axis_width_ha, biasx, biasz,
-                                                                   sequence_data_array[0:standard_HA_width, :, :])
+                                                                   sequence_data_array[0:standard_HA_width, :, :],
+                                                                   time_series_data_array=time_series_data_array)
             se00xx_imwing_fe = suntools.head_distortion_correction('FE', axis_width_fe, biasx, biasz,
                                                                    sequence_data_array[standard_HA_width:, :, :])
-            se0000_hacore0 = sequence_data_array[68, :, :]
-            se0000_hawing0 = sequence_data_array[110, :, :]
+            se0000_hacore0 = np.array(sequence_data_array[68, :, :])
+            se0000_hawing0 = np.array(sequence_data_array[110, :, :])
             se0000_center = sim.circle_center(se0000_hawing0)
             if parameter_dic['scan_index'] == '0000':
                 parameter_dic['global_track_se0000_center'][parameter_dic['track_index']] = se0000_center
@@ -829,19 +863,19 @@ def multiprocess_task(parameter_dic: dict):
 
         else:
             hacore0 = parameter_dic['global_track_se0000_hacore'][parameter_dic['track_index']]
-            se00xx_hacore = sequence_data_array[68, :, :]
+            # 注意使用deep copy
+            se00xx_hacore = np.array(sequence_data_array[68, :, :])
             se00xx_RSUN = sim.theory_rsun(strtime, satpos, GLOBAL_BINNING)
             se0000_center = parameter_dic['global_track_se0000_center'][parameter_dic['track_index']]
-
             se00xx_imwing_ha = suntools.non_head_distortion_correction('HA',
                                                                        sequence_data_array[0:standard_HA_width, :, :],
                                                                        se0000_center, se00xx_RSUN, axis_width_ha,
-                                                                       se00xx_hacore, hacore0, w, h)
+                                                                       se00xx_hacore, hacore0, w, h,
+                                                                       time_series_data_array=time_series_data_array)
             se00xx_imwing_fe = suntools.non_head_distortion_correction('FE',
                                                                        sequence_data_array[standard_HA_width:, :, :],
                                                                        se0000_center, se00xx_RSUN, axis_width_fe,
                                                                        se00xx_hacore, hacore0, w, h)
-
         suntools.log('开始旋转图像...')
         # 对Ha图像进行旋转
         centerx_ha, centery_ha = suntools.rotate_fits(standard_HA_width,
@@ -850,7 +884,7 @@ def multiprocess_task(parameter_dic: dict):
                                                       radius_ref,
                                                       sequence_data_array[
                                                       0:standard_HA_width,
-                                                      :, :], p0, True)
+                                                      :, :], p0, True, time_series_data_array=time_series_data_array)
         # 对Fe图像进行旋转
         centerx_fe, centery_fe = suntools.rotate_fits(
             sequence_data_array.shape[0] - standard_HA_width, x_width, z_width, se00xx_imwing_fe,
@@ -861,16 +895,16 @@ def multiprocess_task(parameter_dic: dict):
 
         suntools.log('旋转完成！')
 
-        # 输出太阳像
-        for seq_index in range(SUN_ROW_COUNT):
-            sum_data_HA = sequence_data_array[SUM_ROW_INDEX_HA, :, :]
-            sum_data_FE = sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :]
+        # # 输出太阳像
+        # for seq_index in range(SUN_ROW_COUNT):
+        #     sum_data_HA = np.array(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
+        #     sum_data_FE = np.array(sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :])
         # suntools.log('计算CCD太阳像半径中...')
-        R_y, R_x, radius = suntools.getCircle(sum_data_FE)
+        R_y, R_x, radius = suntools.getCircle(sequence_data_array[standard_HA_width + SUM_ROW_INDEX_FE, :, :])
         # OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
         suntools.log('波长定标中...')
-        wavelength_calibrate_input = sequence_data_array[:, int(R_y) - 50: int(R_y) + 49,
-                                     int(R_x) - 50: int(R_x) + 49]
+        wavelength_calibrate_input = np.array(sequence_data_array[:, int(R_y) - 50: int(R_y) + 49,
+                                     int(R_x) - 50: int(R_x) + 49])
         cdel_t3, crval_l3_ha, crval_l3_fe = suntools.cal_center_mean(wavelength_calibrate_input)
         parameter_dic['header'].set('R_SUN', radius)
         parameter_dic['header'].set('RSUN_OBS', radius * 0.5218 * GLOBAL_BINNING)
@@ -885,45 +919,49 @@ def multiprocess_task(parameter_dic: dict):
         # 旋转INST_ROT度（已改用南大提供的方法，这里目前弃用）
         # sum_data_HA_save = ndimage.rotate(sum_data_HA_save, -parameter_dic['header']['INST_ROT'], reshape=False)
         # sum_data_FE_save = ndimage.rotate(sum_data_FE_save, -parameter_dic['header']['INST_ROT'], reshape=False)
-        sum_mean_ha = np.mean(sum_data_HA)
-        sum_mean_fe = np.mean(sum_data_FE)
-        sum_data_HA_save = suntools.add_time(sum_data_HA, parameter_dic['start_time'].
-                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
-        sum_data_FE_save = suntools.add_time(sum_data_FE, parameter_dic['start_time'].
-                                             strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
+        # sum_mean_ha = np.mean(sum_data_HA)
+        # sum_mean_fe = np.mean(sum_data_FE)
+        # sum_data_HA = suntools.cropPNG(sum_data_HA, int(R_x), int(R_y))
+        # sum_data_FE = suntools.cropPNG(sum_data_FE, int(R_x), int(R_y))
+        # sum_data_HA_save = suntools.add_time(sum_data_HA, parameter_dic['start_time'].
+        #                                      strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_ha)
+        # sum_data_FE_save = suntools.add_time(sum_data_FE, parameter_dic['start_time'].
+        #                                      strftime('%Y-%m-%d ''%H:%M:%S UT'), 3 * sum_mean_fe)
 
         # 将小于0的值全部赋为0
         sequence_data_array[sequence_data_array < 0] = 0
         suntools.log("SHAPE为：" + str(sequence_data_array.shape))
-        if config.save_img_form == 'default':
-            # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
-            suntools.log('输出序号为' + parameter_dic['scan_index'] + '的png...')
-            METADATA =  {'CenterX': str(round(centerx_ha)),'CenterY':str(round(centery_ha))}
-            plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + parameter_dic['scan_index'] + '_HA' + ".png",
-                       sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha,metadata = METADATA)
-            plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
-                       + '_' + parameter_dic['scan_index'] + '_FE' + ".png",
-                       sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe,metadata = METADATA)
-        if config.save_img_form == 'fts':
-            # 不对data进行任何操作 直接输出为fts文件
-            suntools.log('输出序号为' + parameter_dic['scan_index'] + '的fits...')
-            primaryHDU = fits.PrimaryHDU(sum_data_HA)
-            greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'SUM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
-                            + '_' + parameter_dic['scan_index'] + '_HA' + '.fts', overwrite=True)
-            greyHDU.close()
-            primaryHDU = fits.PrimaryHDU(sum_data_FE)
-            greyHDU = fits.HDUList([primaryHDU])
-            greyHDU.writeto(SUM_DIR + 'SUM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
-                            + '_' + parameter_dic['scan_index'] + '_FE' + '.fts', overwrite=True)
-            greyHDU.close()
+        # if config.save_img_form == 'default':
+        #     # 使用读取的色谱进行输出 imsave函数将自动对data进行归一化
+        #     suntools.log('输出序号为' + parameter_dic['scan_index'] + '的png...')
+        #     METADATA = {'CenterX': str(round(centerx_ha)), 'CenterY': str(round(centery_ha))}
+        #     plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
+        #                + '_' + parameter_dic['scan_index'] + '_HA' + ".png",
+        #                sum_data_HA_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_ha, metadata=METADATA)
+        #     plt.imsave(SUM_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
+        #                + '_' + parameter_dic['scan_index'] + '_FE' + ".png",
+        #                sum_data_FE_save, cmap=color_map, vmin=0, vmax=3 * sum_mean_fe, metadata=METADATA)
+        # if config.save_img_form == 'fts':
+        #     # 不对data进行任何操作 直接输出为fts文件
+        #     suntools.log('输出序号为' + parameter_dic['scan_index'] + '的fits...')
+        #     primaryHDU = fits.PrimaryHDU(sum_data_HA)
+        #     greyHDU = fits.HDUList([primaryHDU])
+        #     greyHDU.writeto(SUM_DIR + 'SUM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
+        #                     + '_' + parameter_dic['scan_index'] + '_HA' + '.fts', overwrite=True)
+        #     greyHDU.close()
+        #     primaryHDU = fits.PrimaryHDU(sum_data_FE)
+        #     greyHDU = fits.HDUList([primaryHDU])
+        #     greyHDU.writeto(SUM_DIR + 'SUM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S')
+        #                     + '_' + parameter_dic['scan_index'] + '_FE' + '.fts', overwrite=True)
+        #     greyHDU.close()
         suntools.log('生成HA文件中...')
         parameter_dic['header'].set('SPECLINE', 'HA')
         parameter_dic['header'].set('WAVE_LEN', HA_LINE_CORE)
         parameter_dic['header'].set('PRODATE', datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+
         primaryHDU = fits.CompImageHDU(sequence_data_array[0: standard_HA_width, :, :],
                                        header=parameter_dic['header'], compression_type='RICE_1')
+        time_data_HDU = fits.PrimaryHDU(time_series_data_array)
         primaryHDU.header.set('NAXIS', comment='Number of data axes')
         primaryHDU.header.set('NAXIS1', comment='Length of data axis 1 (slit dimension)')
         primaryHDU.header.set('NAXIS2', comment='Length of data axis 2 (scanning steps)')
@@ -932,8 +970,9 @@ def multiprocess_task(parameter_dic: dict):
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.writeto(OUT_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
-                           parameter_dic['scan_index'] + '_HA.fits', overwrite=True)
+        ha_hdu_list = fits.HDUList([time_data_HDU, primaryHDU])
+        ha_hdu_list.writeto(OUT_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
+                            parameter_dic['scan_index'] + '_HA.fits', overwrite=True)
         suntools.log('生成FE文件中...')
         # 修改header内的SPECLINE与WAVELNTH
         parameter_dic['header'].set('SPECLINE', 'FEI')
@@ -950,8 +989,9 @@ def multiprocess_task(parameter_dic: dict):
         primaryHDU.header.add_comment('Dark subtracted')
         primaryHDU.header.add_comment('Flat-field corrected')
         primaryHDU.header.add_comment('Processed by RSM_prep')
-        primaryHDU.writeto(OUT_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
-                           parameter_dic['scan_index'] + '_FE.fits', overwrite=True)
+        fe_hdu_list = fits.HDUList([time_data_HDU, primaryHDU])
+        fe_hdu_list.writeto(OUT_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
+                            parameter_dic['scan_index'] + '_FE.fits', overwrite=True)
     except BaseException as uniformException:
         suntools.log(traceback.print_exc())
         suntools.log("当前序列输出错误, 已跳过")
@@ -973,7 +1013,6 @@ def join(pool):
                     flag = True
                     break
             break
-
 
 def main():
     """
@@ -1014,10 +1053,10 @@ def main():
     # pool1.shutdown(wait=True)
     time_end = time.time()
     suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
-    suntools.log('生成视频中...')
-    createVideo.createVideo(global_multiprocess_list[-1]['start_time'])
+    suntools.log('生成预览图像与视频中...')
+    save_png_video.monographNJU(OUT_DIR, color_map, image_dpi=config.png_dpi_value)
+    save_png_video.createVideoNJU(SUM_DIR, config.video_dir_path, global_multiprocess_list[0]['start_time'])
     suntools.log('程序结束！')
-
 
 if __name__ == "__main__":
     main()
