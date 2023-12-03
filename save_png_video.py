@@ -1,14 +1,14 @@
 """
 此py文件用来封装生成png预览图与预览视频的函数
 主要用途: 读取当前文件夹内的所有fits文件, 将其分为两组(FE窗口图像与HA窗口图片)
-随后生成对应的png图像，并且生成两个MP4预览视频
+随后生成对应的png图像，并且生成两个AVI预览视频
 
-@origin: nju_
-@author: seu_wxy
+@origin: nju_rsh
+@editor: seu_wxy
 """
-from datetime import datetime
 import cv2
 import os
+import argparse
 from astropy.io import fits
 import matplotlib.pyplot as plt
 
@@ -85,30 +85,37 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
 
 
 def createVideoMp4(target_dir: str, img_array: list, filename: str):
-    size = (0,0)
+    """
+    传入png文件列表, 生成mpeg-4编码的avi格式视频
+    @param target_dir 生成视频的存放文件夹
+    @param img_array 文件列表, 内容为绝对路径
+    @param filename 生成视频的名称
+    """
+    size = (1000,1000)
     imgs = []
     for indexf in range(len(img_array)):  # 这个循环是为了读取所有要用的图片文件
         img1 = cv2.imread(target_dir + img_array[indexf], 1)
         if img1 is None:
             print(img_array[indexf] + " is error!")
             continue
-        size = (img1.shape[1], img1.shape[0])
-        imgs.append(img1)
+        # 缩放图片, 减小视频大小
+        size = (img1.shape[1] // 2, img1.shape[0] // 2)
+        resized = cv2.resize(img1, size, interpolation = cv2.INTER_AREA)
+        imgs.append(resized)
 
-    print(filename)
-    videowrite = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'mp4v'), 6, size)
+    videowrite = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'XVID'), 6, size)
 
     for i in range(len(imgs)):  # 把读取的图片文件写进去
         videowrite.write(imgs[i])
 
     videowrite.release()
 
-def createVideoNJU(target_dir: str, save_dir: str, video_date: datetime):
+
+def createVideoNJU(target_dir: str, save_dir: str):
     """
-    读取png列表, 创建视频
+    读取png列表, 创建视频, 主要调用createVideoMp4函数执行生成视频
     @param target_dir 目标png所在的文件路径
     @param save_dir 视频存储路径
-    @param video_date 视频保存的文件日期, 应为当前序列文件夹内的头序列起始日期
     """
     arr = os.listdir(target_dir)
     ha_list = []
@@ -121,9 +128,30 @@ def createVideoNJU(target_dir: str, save_dir: str, video_date: datetime):
                 fe_list.append(filename)
     ha_list.sort()
     fe_list.sort()
-    createVideoMp4(target_dir, ha_list, save_dir + 'RSM_' + video_date.strftime('%Y-%m-%d') + '_HA.mp4')
-    createVideoMp4(target_dir, fe_list, save_dir + 'RSM_' + video_date.strftime('%Y-%m-%d') + '_FE.mp4')
+    if target_dir.split('/')[-1] == "":
+        current_date_str = target_dir.split('/')[-4] + '-' + target_dir.split('/')[-3] + '-' + target_dir.split('/')[-2]
+    else:
+        current_date_str = target_dir.split('/')[-3] + '-' + target_dir.split('/')[-2] + '-' + target_dir.split('/')[-1]
+    createVideoMp4(target_dir, ha_list, save_dir + 'RSM_' + current_date_str + '_HA.avi')
+    createVideoMp4(target_dir, fe_list, save_dir + 'RSM_' + current_date_str + '_FE.avi')
 
 
 if __name__ == '__main__':
-    pass
+    # 注册参数
+    parser = argparse.ArgumentParser(description="Create preview video from PNG format image.")
+    parser.add_argument("png_target_dir", type=str, help="An str path to target dir which saved png images.")
+    parser.add_argument("video_save_dir", type=str, help="An str path to video save dir.")
+
+    args = parser.parse_args()
+
+    # TODO: 入口参数修改
+    # param png_target_dir: str 目标文件夹, 包含生成的png预览图像
+    # 例: "/data/chase/Chase/Lev1/2023/11/26/"
+    png_target_dir = args.png_target_dir
+    # param video_save_dir: str 视频存放路径
+    # 例: "/data/chase/Chase/Lev1/2023/11/video/"
+    video_save_dir = args.video_save_dir
+
+    print(f"存放PNG的目标文件夹为:{png_target_dir}")
+    createVideoNJU(png_target_dir, video_save_dir)
+    print(f"生成的视频已保存在: {video_save_dir}内")
