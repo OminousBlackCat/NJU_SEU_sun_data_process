@@ -8,6 +8,7 @@
 """
 import cv2
 import os
+import argparse
 from astropy.io import fits
 import matplotlib.pyplot as plt
 
@@ -136,13 +137,20 @@ def createVideoNJU(target_dir: str, save_dir: str):
 
 
 if __name__ == '__main__':
+    # 注册参数
+    parser = argparse.ArgumentParser(description="Create preview video from PNG format image.")
+    parser.add_argument("png_target_dir", type=str, help="An str path to target dir which saved png images.")
+    parser.add_argument("video_save_dir", type=str, help="An str path to video save dir.")
+
+    args = parser.parse_args()
+
     # TODO: 入口参数修改
     # param png_target_dir: str 目标文件夹, 包含生成的png预览图像
     # 例: "/data/chase/Chase/Lev1/2023/11/26/"
-    png_target_dir = "/data/chase/Chase/Lev1/2023/11/26/"
+    png_target_dir = args.png_target_dir
     # param video_save_dir: str 视频存放路径
     # 例: "/data/chase/Chase/Lev1/2023/11/video/"
-    video_save_dir = "/data/chase/Chase/Lev1/2023/11/movie/"
+    video_save_dir = args.video_save_dir
 
     print(f"存放PNG的目标文件夹为:{png_target_dir}")
     createVideoNJU(png_target_dir, video_save_dir)
