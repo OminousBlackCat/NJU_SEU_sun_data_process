@@ -1053,9 +1053,10 @@ def main():
     # pool1.shutdown(wait=True)
     time_end = time.time()
     suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
-    suntools.log('生成预览图像与视频中...')
+    suntools.log('生成预览图像中...')
+    suntools.log('视频请使用脚本生成...')
     save_png_video.monographNJU(SUM_DIR, color_map, image_dpi=config.png_dpi_value)
-    save_png_video.createVideoNJU(SUM_DIR, config.video_dir_path)
+    # save_png_video.createVideoNJU(SUM_DIR, config.video_dir_path)
     suntools.log('程序结束！')
 
 if __name__ == "__main__":

@@ -56,7 +56,7 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
         plt.yticks(ticks=tick_pixel, labels=tick_arcsec, fontsize=22)
         plt.xlabel('Solar X (arcsec)', fontsize=30)
         plt.ylabel('Solar Y (arcsec)', fontsize=30)
-        plt.savefig(target_path + current_filename.split('.')[0]  + ".png", dpi=image_dpi)
+        plt.savefig(target_path + current_filename.split('.')[0]  + ".png", dpi=image_dpi, pad_inches=0.0, bbox_inches='tight')
         plt.close()
         # print('/data/home/MikeRao/data/Time_array/ha' + rsm_path.split('/')[-1][3:18] + 'full_sun.png')
 
@@ -80,7 +80,7 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
         plt.yticks(ticks=tick_pixel, labels=tick_arcsec, fontsize=22)
         plt.xlabel('Solar X (arcsec)', fontsize=30)
         plt.ylabel('Solar Y (arcsec)', fontsize=30)
-        plt.savefig(target_path + current_filename.split('.')[0] + ".png", dpi=image_dpi)
+        plt.savefig(target_path + current_filename.split('.')[0] + ".png", dpi=image_dpi, pad_inches=0.0, bbox_inches='tight')
         plt.close()
         # print('/data/home/MikeRao/data/Time_array/fe' + rsm_path.split('/')[-1][3:18] + 'full_sun.png')
 
@@ -138,7 +138,6 @@ def createVideoNJU(target_dir: str, save_dir: str):
         current_date_str = target_dir.split('/')[-3] + '-' + target_dir.split('/')[-2] + '-' + target_dir.split('/')[-1]
     createVideoMp4(target_dir, ha_list, save_dir + 'RSM' + current_date_str + '_HA.avi')
     createVideoMp4(target_dir, fe_list, save_dir + 'RSM' + current_date_str + '_FE.avi')
-
 
 if __name__ == '__main__':
     png_target_dir = video_config.path_to_target_png
