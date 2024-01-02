@@ -8,6 +8,8 @@
 import copy
 # import jplephem
 import datetime
+import os.path
+import random
 import re
 import time
 from math import *
@@ -1092,3 +1094,26 @@ def cropPNG(data: np.array, centerX: int, centerY: int):
     """
     return_data = data[centerY - 1040:centerY + 1040, centerX - 1040:centerX + 1040]
     return return_data
+
+
+def judgeBinMode(fits_list: list[str], root_path: str):
+    """
+    根据传入的fits_list文件绝对路径地址列表, 判断程序运行时的bin模式
+    将随机读取10张fits文件, 若超过半数的fits文件分辨率均 < 2500,  则设置bin模式为2
+    若超过半数的分辨率 > 2500, 则设置bin模式为1
+    否则出错
+    """
+    big_than_2500_cnt = 0
+    sml_than_2500_cnt = 0
+    for i in range(10):
+        current_fit_name = random.choice(fits_list)
+        img_data = fits.open(os.path.join(root_path, current_fit_name))[0].data
+        if img_data.shape[1] > 2500:
+            big_than_2500_cnt += 1
+        else:
+            sml_than_2500_cnt += 1
+    if big_than_2500_cnt > 5:
+        return 1
+    if sml_than_2500_cnt > 5:
+        return 2
+    return -1

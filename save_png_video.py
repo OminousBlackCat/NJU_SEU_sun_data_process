@@ -103,7 +103,6 @@ def createVideoMp4(target_dir: str, img_array: list, filename: str):
             resized = cv2.resize(img1, size, interpolation = cv2.INTER_AREA)
             imgs.append(resized)
 
-    print(len(imgs))
     videowrite = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc(*'XVID'), video_config.video_frame_per_sec, size)
 
     for i in range(len(imgs)):  # 把读取的图片文件写进去
@@ -130,20 +129,24 @@ def createVideoNJU(target_dir: str, save_dir: str):
                 fe_list.append(filename)
     ha_list.sort()
     fe_list.sort()
-    print(len(ha_list))
-    print(len(fe_list))
     if target_dir.split('/')[-1] == "":
-        current_date_str = target_dir.split('/')[-4] + '-' + target_dir.split('/')[-3] + '-' + target_dir.split('/')[-2]
+        current_date_str = target_dir.split('/')[-4] + target_dir.split('/')[-3].zfill(2) + target_dir.split('/')[-2].zfill(2)
     else:
-        current_date_str = target_dir.split('/')[-3] + '-' + target_dir.split('/')[-2] + '-' + target_dir.split('/')[-1]
-    createVideoMp4(target_dir, ha_list, save_dir + 'RSM' + current_date_str + '_HA.avi')
-    createVideoMp4(target_dir, fe_list, save_dir + 'RSM' + current_date_str + '_FE.avi')
+        current_date_str = target_dir.split('/')[-3] + target_dir.split('/')[-2].zfill(2) + target_dir.split('/')[-1].zfill(2)
+    HA_filename = 'RSM' + current_date_str + '_HA.avi'
+    FE_filename = 'RSM' + current_date_str + '_FE.avi'
+    createVideoMp4(target_dir, ha_list, save_dir + HA_filename)
+    createVideoMp4(target_dir, fe_list, save_dir + FE_filename)
+    return HA_filename, FE_filename
 
 
 if __name__ == '__main__':
     png_target_dir = video_config.path_to_target_png
     video_save_dir = video_config.path_to_video_save
 
+    print(f"视频生成参数如下: \n帧大小:{video_config.video_frame_size.__str__()} \nFPS: {video_config.video_frame_per_sec.__str__()}  \n生成间隔: {video_config.target_png_interval.__str__()}")
     print(f"存放PNG的目标文件夹为:{png_target_dir}")
-    createVideoNJU(png_target_dir, video_save_dir)
+    Ha, Fe = createVideoNJU(png_target_dir, video_save_dir)
     print(f"生成的视频已保存在: {video_save_dir}内")
+    print(f"生成的HA预览视频文件名为: {Ha}")
+    print(f"生成的FE预览视频文件名为: {Fe}")

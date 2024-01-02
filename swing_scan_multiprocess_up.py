@@ -95,26 +95,7 @@ CENTER_MEAN_THRESHOLD = config.center_mean_threshold  # (摆扫)计算序列中�
 CENTER_MEAN_INDEX = config.center_mean_index  # (摆扫)使用的线心位置
 CENTER_MEAN_COUNT = config.center_mean_count  # (摆扫)使用的线心数量
 REVERSAL_MODE = config.reversal_mode  # (摆扫)翻转模式
-if GLOBAL_BINNING == 1:
-    DARK_FITS_FILE = config.dark_fits_name
-    FLAT_FITS_FILE = config.flat_fits_name_bin_1
-    SUN_ROW_COUNT = config.sun_row_count_bin_1
-    STANDARD_FILE_INDEX = config.standard_offset_index_bin_1
-    CURVE_X0 = config.curve_cor_x0_bin_1
-    CURVE_C = config.curve_cor_C_bin_1
-    WAVE_RESOLUTION = config.wavelength_resolution_bin_1
-    SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_1
-    SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_1
-if GLOBAL_BINNING == 2:
-    DARK_FITS_FILE = config.dark_fits_name_bin_2
-    FLAT_FITS_FILE = config.flat_fits_name_bin_2
-    SUN_ROW_COUNT = config.sun_row_count_bin_2
-    STANDARD_FILE_INDEX = config.standard_offset_index_bin_2
-    CURVE_X0 = config.curve_cor_x0_bin_2
-    CURVE_C = config.curve_cor_C_bin_2
-    WAVE_RESOLUTION = config.wavelength_resolution_bin_2
-    SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_2
-    SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_2
+
 
 # 检查输出文件夹是否存在 不存在则创建
 if not os.path.exists(OUT_DIR):
@@ -178,6 +159,39 @@ for filename in data_file_lst:
         real_data_file_lst.append(filename)
     except BaseException as e:
         suntools.log('<文件:' + filename + '>非法, 已剔除(并未删除硬盘上的文件)')
+
+# 对bin模式进行判断
+suntools.log("判断bin模式中...")
+tmp_bin_mode = suntools.judgeBinMode(data_file_lst, READ_DIR)
+if tmp_bin_mode != -1:
+    suntools.log(f"判断bin模式成功, 值为: {tmp_bin_mode}")
+    GLOBAL_BINNING = tmp_bin_mode
+else:
+    suntools.log("判断bin模式失败...将采用config内读取的bin模式作为默认值尝试继续运行程序")
+
+# 再对依赖bin的参数进行初始化
+suntools.log("初始化参数中...")
+if GLOBAL_BINNING == 1:
+    DARK_FITS_FILE = config.dark_fits_name
+    FLAT_FITS_FILE = config.flat_fits_name_bin_1
+    SUN_ROW_COUNT = config.sun_row_count_bin_1
+    STANDARD_FILE_INDEX = config.standard_offset_index_bin_1
+    CURVE_X0 = config.curve_cor_x0_bin_1
+    CURVE_C = config.curve_cor_C_bin_1
+    WAVE_RESOLUTION = config.wavelength_resolution_bin_1
+    SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_1
+    SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_1
+if GLOBAL_BINNING == 2:
+    DARK_FITS_FILE = config.dark_fits_name_bin_2
+    FLAT_FITS_FILE = config.flat_fits_name_bin_2
+    SUN_ROW_COUNT = config.sun_row_count_bin_2
+    STANDARD_FILE_INDEX = config.standard_offset_index_bin_2
+    CURVE_X0 = config.curve_cor_x0_bin_2
+    CURVE_C = config.curve_cor_C_bin_2
+    WAVE_RESOLUTION = config.wavelength_resolution_bin_2
+    SUM_ROW_INDEX_HA = config.sum_row_index_HA_bin_2
+    SUM_ROW_INDEX_FE = config.sum_row_index_FE_bin_2
+
 
 data_file_lst = real_data_file_lst  # 将剔除后的列表赋过去
 # 对list内的文件名排序
