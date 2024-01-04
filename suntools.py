@@ -918,9 +918,9 @@ def rotate_fits(width, center_x, center_y, se00xx_imwing, rsun, data, angle, isH
                 se00xx_mask[j, k] = 0
 
     if isHa:
-        rotated_data = copy.deepcopy(np.multiply(data[110, :, :], se00xx_mask))
+        rotated_data = copy.deepcopy(np.multiply(data[110 * 2 / bin_count, :, :], se00xx_mask))
     else:
-        rotated_data = copy.deepcopy(np.multiply(data[10, :, :], se00xx_mask))
+        rotated_data = copy.deepcopy(np.multiply(data[10 * 2 / bin_count, :, :], se00xx_mask))
 
     se00xx_center = sim.circle_center(rotated_data)
     se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
@@ -954,7 +954,7 @@ def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data
     @return
     """
     a1, a2, a3 = axis_width
-    if len(biasx) < 2313:
+    if len(biasx) < 2313 * 2 / bin_count:
         a2 = len(biasx)
     se0000_x, se0000_z = np.zeros((a2, a3)), np.zeros((a2, a3))
     lse0000_za, lse0000_zb, lse0000_zc = [], [], []
@@ -992,9 +992,9 @@ def head_distortion_correction(spec_win, axis_width, biasx, biasz, sequence_data
 
     se0000_imwing = None
     if spec_win == 'HA':
-        se0000_imwing = sequence_data_array[110, :, :]
+        se0000_imwing = sequence_data_array[110 * 2 / bin_count, :, :]
     if spec_win == 'FE':
-        se0000_imwing = sequence_data_array[10, :, :]
+        se0000_imwing = sequence_data_array[10 * 2 / bin_count, :, :]
 
     # 如果传进来了时间矩阵, 那就对时间矩阵做相同的变换
     if time_series_data_array is not None:
@@ -1029,9 +1029,9 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
     se0000_centerX0, se0000_centerY0 = se0000_center
 
     if spec_win == 'HA':  # 读取光球图像用于定日心坐标
-        se00xx_wing = se00xx_data[110, :, :]
+        se00xx_wing = se00xx_data[110 * 2 / bin_count, :, :]
     if spec_win == 'FE':
-        se00xx_wing = se00xx_data[10, :, :]
+        se00xx_wing = se00xx_data[10 * 2 / bin_count, :, :]
     se00xx_center = sim.circle_center(se00xx_wing)
     se00xx_centerx, se00xx_centery = se00xx_center[0], se00xx_center[1]
     dx, dy = -(se00xx_centerx - se0000_centerX0), -(se00xx_centery - se0000_centerY0)
@@ -1067,11 +1067,11 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
     for j in range(a1):
         if spec_win == 'HA':
             se00xx_im3 = se00xx_data[j, :, :]
-            if j == 110:
+            if j == 110 * 2 / bin_count:
                 se00xx_imwing = se00xx_data[j, :, :]
         if spec_win == 'FE':
             se00xx_im3 = se00xx_data[j, :, :]
-            if j == 10:
+            if j == 10 * 2 / bin_count:
                 se00xx_imwing = se00xx_data[j, :, :]
         se00xx_imout = cv2.remap(se00xx_im3, se00xx_x2, se00xx_y2, borderMode=cv2.BORDER_CONSTANT, \
                                  interpolation=cv2.INTER_LINEAR)  # 非刚性位移改正畸变

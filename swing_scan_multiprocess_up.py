@@ -794,8 +794,8 @@ def multiprocess_task(parameter_dic: dict):
                 parameter_dic['first_filename'].split('-')[2].split('.')[0])
             if fileRelativePosition < 0:
                 fileRelativePosition = 0
-            if fileRelativePosition >= 2313:
-                fileRelativePosition = 2312
+            if fileRelativePosition >= 2313 * 2 / GLOBAL_BINNING:
+                fileRelativePosition = 2312 * 2 / GLOBAL_BINNING
             filePath = READ_DIR + sequence_filename
             file_data = fits.open(filePath)
             image_data = np.array(file_data[0].data, dtype=float)
@@ -823,7 +823,7 @@ def multiprocess_task(parameter_dic: dict):
             image_data[:, 0: PIXEL_ZERO_LEFT_COUNT] = 0
             # 原来的上下偏转，用南大提供的新方法替换
             if parameter_dic['reverse_scan'] == 1:
-                reverse_index = 2312 if SUN_ROW_COUNT - 1 - fileRelativePosition >= 2313 else SUN_ROW_COUNT - 1 - fileRelativePosition
+                reverse_index = 2312 * 2 / GLOBAL_BINNING if SUN_ROW_COUNT - 1 - fileRelativePosition >= 2313 * 2 / GLOBAL_BINNING else SUN_ROW_COUNT - 1 - fileRelativePosition
                 sequence_data_array[:, reverse_index, :] = image_data
                 time_series_data_array[reverse_index, :] = int(relative_time_value)
             # elif REVERSAL_MODE == 'even' and currentScanIndex % 2 == 0:
@@ -847,7 +847,7 @@ def multiprocess_task(parameter_dic: dict):
         # sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         p0 = parameter_dic['header']['INST_ROT']
         strtime = parameter_dic['header']['STR_TIME']
-        se0000_hacore = np.array(sequence_data_array[68, :, :])
+        se0000_hacore = np.array(sequence_data_array[68 * 2 / GLOBAL_BINNING, :, :])
         h, w = se0000_hacore.shape  # 读取图片高度和宽度
         se0000_rx = parameter_dic['header']['SAT_POS1']
         se0000_ry = parameter_dic['header']['SAT_POS2']
@@ -868,8 +868,8 @@ def multiprocess_task(parameter_dic: dict):
                                                                    time_series_data_array=time_series_data_array)
             se00xx_imwing_fe = suntools.head_distortion_correction('FE', axis_width_fe, biasx, biasz,
                                                                    sequence_data_array[standard_HA_width:, :, :])
-            se0000_hacore0 = np.array(sequence_data_array[68, :, :])
-            se0000_hawing0 = np.array(sequence_data_array[110, :, :])
+            se0000_hacore0 = np.array(sequence_data_array[68 * 2 / GLOBAL_BINNING, :, :])
+            se0000_hawing0 = np.array(sequence_data_array[110 * 2 / GLOBAL_BINNING, :, :])
             se0000_center = sim.circle_center(se0000_hawing0)
             if parameter_dic['scan_index'] == '0000':
                 parameter_dic['global_track_se0000_center'][parameter_dic['track_index']] = se0000_center
@@ -878,7 +878,7 @@ def multiprocess_task(parameter_dic: dict):
         else:
             hacore0 = parameter_dic['global_track_se0000_hacore'][parameter_dic['track_index']]
             # 注意使用deep copy
-            se00xx_hacore = np.array(sequence_data_array[68, :, :])
+            se00xx_hacore = np.array(sequence_data_array[68 * 2 / GLOBAL_BINNING, :, :])
             se00xx_RSUN = sim.theory_rsun(strtime, satpos, GLOBAL_BINNING)
             se0000_center = parameter_dic['global_track_se0000_center'][parameter_dic['track_index']]
             se00xx_imwing_ha = suntools.non_head_distortion_correction('HA',
