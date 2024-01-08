@@ -166,6 +166,9 @@ tmp_bin_mode = suntools.judgeBinMode(data_file_lst, READ_DIR)
 if tmp_bin_mode != -1:
     suntools.log(f"判断bin模式成功, 值为: {tmp_bin_mode}")
     GLOBAL_BINNING = tmp_bin_mode
+    config.bin_count = tmp_bin_mode
+    import importlib
+    importlib.reload(suntools)
 else:
     suntools.log("判断bin模式失败...将采用config内读取的bin模式作为默认值尝试继续运行程序")
 
@@ -370,7 +373,7 @@ for axis in symmetry_axis_list:
         l_biasz = []  # z轴方向上（scan方向），卫星实际指向与理想指向的偏差
         for step in range(len(l_slitpos)):
 
-            ave_res_ang = 0.5218 * 2 * (1156 - step)  # 卫星理想指向（中心帧坐标系）
+            ave_res_ang = 0.5218 * GLOBAL_BINNING * (1156 * 2 // GLOBAL_BINNING - step)  # 卫星理想指向（中心帧坐标系）
             slitposa = l_slitpos[step]  # 卫星实际指向（J2000坐标系）
             slitpos = np.array([slitposa[0][0], slitposa[1][0], slitposa[2][0]])
 
@@ -794,8 +797,8 @@ def multiprocess_task(parameter_dic: dict):
                 parameter_dic['first_filename'].split('-')[2].split('.')[0])
             if fileRelativePosition < 0:
                 fileRelativePosition = 0
-            if fileRelativePosition >= 2313 * 2 / GLOBAL_BINNING:
-                fileRelativePosition = 2312 * 2 / GLOBAL_BINNING
+            if fileRelativePosition >= SUN_ROW_COUNT:
+                fileRelativePosition = SUN_ROW_COUNT - 1
             filePath = READ_DIR + sequence_filename
             file_data = fits.open(filePath)
             image_data = np.array(file_data[0].data, dtype=float)
@@ -823,7 +826,7 @@ def multiprocess_task(parameter_dic: dict):
             image_data[:, 0: PIXEL_ZERO_LEFT_COUNT] = 0
             # 原来的上下偏转，用南大提供的新方法替换
             if parameter_dic['reverse_scan'] == 1:
-                reverse_index = 2312 * 2 / GLOBAL_BINNING if SUN_ROW_COUNT - 1 - fileRelativePosition >= 2313 * 2 / GLOBAL_BINNING else SUN_ROW_COUNT - 1 - fileRelativePosition
+                reverse_index = SUN_ROW_COUNT - 1 if SUN_ROW_COUNT - 1 - fileRelativePosition >= SUN_ROW_COUNT else SUN_ROW_COUNT - 1 - fileRelativePosition
                 sequence_data_array[:, reverse_index, :] = image_data
                 time_series_data_array[reverse_index, :] = int(relative_time_value)
             # elif REVERSAL_MODE == 'even' and currentScanIndex % 2 == 0:
@@ -847,7 +850,7 @@ def multiprocess_task(parameter_dic: dict):
         # sum_data_FE = np.zeros((SUN_ROW_COUNT, sample_from_standard.shape[1]))
         p0 = parameter_dic['header']['INST_ROT']
         strtime = parameter_dic['header']['STR_TIME']
-        se0000_hacore = np.array(sequence_data_array[68 * 2 / GLOBAL_BINNING, :, :])
+        se0000_hacore = np.array(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
         h, w = se0000_hacore.shape  # 读取图片高度和宽度
         se0000_rx = parameter_dic['header']['SAT_POS1']
         se0000_ry = parameter_dic['header']['SAT_POS2']
@@ -861,15 +864,15 @@ def multiprocess_task(parameter_dic: dict):
         axis_width_ha = [standard_HA_width, x_width, z_width]
         axis_width_fe = [standard_FE_width, x_width, z_width]
         if parameter_dic['is_head_of_track']:
-            biasx = parameter_dic['bias_x'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
-            biasz = parameter_dic['bias_z'] / (0.5218 * 2)  # 读取卫星指向偏差（此时是角秒单位）
+            biasx = parameter_dic['bias_x'] / (0.5218 * GLOBAL_BINNING)  # 读取卫星指向偏差（此时是角秒单位）
+            biasz = parameter_dic['bias_z'] / (0.5218 * GLOBAL_BINNING)  # 读取卫星指向偏差（此时是角秒单位）
             se00xx_imwing_ha = suntools.head_distortion_correction('HA', axis_width_ha, biasx, biasz,
                                                                    sequence_data_array[0:standard_HA_width, :, :],
                                                                    time_series_data_array=time_series_data_array)
             se00xx_imwing_fe = suntools.head_distortion_correction('FE', axis_width_fe, biasx, biasz,
                                                                    sequence_data_array[standard_HA_width:, :, :])
-            se0000_hacore0 = np.array(sequence_data_array[68 * 2 / GLOBAL_BINNING, :, :])
-            se0000_hawing0 = np.array(sequence_data_array[110 * 2 / GLOBAL_BINNING, :, :])
+            se0000_hacore0 = np.array(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
+            se0000_hawing0 = np.array(sequence_data_array[SUM_ROW_INDEX_FE, :, :])
             se0000_center = sim.circle_center(se0000_hawing0)
             if parameter_dic['scan_index'] == '0000':
                 parameter_dic['global_track_se0000_center'][parameter_dic['track_index']] = se0000_center
@@ -878,7 +881,7 @@ def multiprocess_task(parameter_dic: dict):
         else:
             hacore0 = parameter_dic['global_track_se0000_hacore'][parameter_dic['track_index']]
             # 注意使用deep copy
-            se00xx_hacore = np.array(sequence_data_array[68 * 2 / GLOBAL_BINNING, :, :])
+            se00xx_hacore = np.array(sequence_data_array[SUM_ROW_INDEX_HA, :, :])
             se00xx_RSUN = sim.theory_rsun(strtime, satpos, GLOBAL_BINNING)
             se0000_center = parameter_dic['global_track_se0000_center'][parameter_dic['track_index']]
             se00xx_imwing_ha = suntools.non_head_distortion_correction('HA',
@@ -1069,7 +1072,7 @@ def main():
     suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
     suntools.log('生成预览图像中...')
     suntools.log('视频请使用脚本生成...')
-    save_png_video.monographNJU(SUM_DIR, color_map, image_dpi=config.png_dpi_value)
+    save_png_video.monographNJU(SUM_DIR, color_map, image_dpi=config.png_dpi_value, bin_count=GLOBAL_BINNING)
     # save_png_video.createVideoNJU(SUM_DIR, config.video_dir_path)
     suntools.log('程序结束！')
 
