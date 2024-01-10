@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import video_config
 
 
-def monographNJU(target_path: str, color_map, image_dpi = 100, bin_count = 2):
+def monographNJU(target_path: str, color_map, image_dpi = 100):
     """
     读取传入的目标路径, 列出目标文件夹内所有的ha fe文件
     再根据ha/fe fits文件列表在target_dir的文件夹内生成相应的png文件
@@ -22,7 +22,6 @@ def monographNJU(target_path: str, color_map, image_dpi = 100, bin_count = 2):
     @param target_path 传入的目标路径
     @param color_map 传入的色谱类型
     @param image_dpi 图像dpi, 默认100
-    @param bin_count bin模式, 默认为2(bin 模式)
     """
     # 读取文件路径, 将fit分为ha和fe两组存入list
     # list内 存的是完整路径
@@ -36,17 +35,25 @@ def monographNJU(target_path: str, color_map, image_dpi = 100, bin_count = 2):
                 ha_fits_list.append(os.path.join(target_path, filename))
             if filename.split('_')[-1].split('.')[0] == 'FE' or filename.split('_')[-1].split('.')[0] == 'fe':
                 fe_fits_list.append(os.path.join(target_path, filename))
-    # 一些参数
-    ang_res = 0.5218 * bin_count
-    tick_pixel_window_size = 1040 * 2 // bin_count
-    tick_pixel = [tick_pixel_window_size - 1000 / ang_res, tick_pixel_window_size - 500 / ang_res, tick_pixel_window_size, tick_pixel_window_size + 500 / ang_res, tick_pixel_window_size + 1000 / ang_res]
-    tick_arcsec = [-1000, -500, 0, 500, 1000]
-    # 从中间剪裁的窗口大小
-    window_scale = 1040 * 2 // bin_count
 
     for rsm_path in ha_fits_list:
         hdu = fits.open(rsm_path)
-        hacore = hdu[1].data[68 * 2 // bin_count, :, :]
+        # 读取bin mode
+        bin_mode = int(hdu[1].header['BIN'])
+
+        hacore = hdu[1].data[68 * 2 // bin_mode, :, :]
+
+        # 一些参数 (与bin相关)
+        ang_res = 0.5218 * bin_mode
+        tick_pixel_window_size = 1040 * 2 // bin_mode
+        tick_pixel = [tick_pixel_window_size - 1000 / ang_res, tick_pixel_window_size - 500 / ang_res,
+                      tick_pixel_window_size, tick_pixel_window_size + 500 / ang_res,
+                      tick_pixel_window_size + 1000 / ang_res]
+        tick_arcsec = [-1000, -500, 0, 500, 1000]
+        # 从中间剪裁的窗口大小
+        window_scale = 1040 * 2 // bin_mode
+
+
         cx = int(hdu[1].header['CRPIX1'])
         cy = int(hdu[1].header['CRPIX2'])
         current_filename = rsm_path.split('/')[-1]
@@ -64,14 +71,21 @@ def monographNJU(target_path: str, color_map, image_dpi = 100, bin_count = 2):
         plt.close()
         # print('/data/home/MikeRao/data/Time_array/ha' + rsm_path.split('/')[-1][3:18] + 'full_sun.png')
 
-    ang_res = 0.5218 * bin_count
-    tick_pixel_window_size = 1040 * 2 // bin_count
-    tick_pixel = [tick_pixel_window_size - 1000 / ang_res, tick_pixel_window_size - 500 / ang_res, tick_pixel_window_size, tick_pixel_window_size + 500 / ang_res, tick_pixel_window_size + 1000 / ang_res]
-    tick_arcsec = [-1000, -500, 0, 500, 1000]
+
 
     for rsm_path in fe_fits_list:
         hdu = fits.open(rsm_path)
-        hacore = hdu[1].data[10 * 2 // bin_count, :, :]
+        # 读取bin mode
+        bin_mode = int(hdu[1].header['BIN'])
+        hacore = hdu[1].data[10 * 2 // bin_mode, :, :]
+
+        ang_res = 0.5218 * bin_mode
+        tick_pixel_window_size = 1040 * 2 // bin_mode
+        tick_pixel = [tick_pixel_window_size - 1000 / ang_res, tick_pixel_window_size - 500 / ang_res,
+                      tick_pixel_window_size, tick_pixel_window_size + 500 / ang_res,
+                      tick_pixel_window_size + 1000 / ang_res]
+        tick_arcsec = [-1000, -500, 0, 500, 1000]
+
         cx = int(hdu[1].header['CRPIX1'])
         cy = int(hdu[1].header['CRPIX2'])
         current_filename = rsm_path.split('/')[-1]
