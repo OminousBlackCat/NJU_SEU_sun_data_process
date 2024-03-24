@@ -7,25 +7,20 @@
 @author: seu_wxy
 """
 
-import copy
 import multiprocessing as mp
-from concurrent.futures.process import ProcessPoolExecutor
 import datetime
-import os
 from math import pi, sqrt, acos, atan, ceil, floor
 from sympy.external.tests.test_scipy import scipy
 
 import header
 import sim
 import suntools
-import time
 import numpy as np
 from astropy.io import fits
 import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
 import save_png_video
-import sys
 import traceback
 import sys
 import os
@@ -226,7 +221,13 @@ significant_point_list = []
 symmetry_axis_list = []
 # 以150为分界线寻找对称轴 记录这些关键点
 # 标记0为上升点 标记1为下降点
+# plt.plot(np.array(global_wave_line_strength_list[0: 3000]))
+# plt.savefig(os.path.join(OUT_DIR, "fig.png"))
+# suntools.log("输出plot")
 for i in range(len(global_wave_line_strength_list)):
+    if last_wave_line_strength != 0 and abs(global_wave_line_strength_list[i] - last_wave_line_strength) > 50:
+        suntools.log("出现异常波动值, 已跳过")
+        continue
     if global_wave_line_strength_list[i] >= CENTER_MEAN_THRESHOLD >= last_wave_line_strength:
         significant_point_list.append([i, 0])
     if global_wave_line_strength_list[i] <= CENTER_MEAN_THRESHOLD <= last_wave_line_strength:
@@ -277,6 +278,8 @@ for axis in symmetry_axis_list:
     step_start = int(data_file_lst[temp_start_file_index].split('-')[-1].split('.')[0])
     step_mid = int(step_start) + 2312 / config.bin_count  # 对非binning模式的数据，需要修改
     step_end = int(step_start) + floor(4625 / config.bin_count)  # 对非binning模式的数据，需要修改
+    if step_start > axis:
+        continue
     if current_scan_index == 0:
         head_series_of_track[current_track_index] = data_file_lst[temp_start_file_index]
     if str(current_scan_index).zfill(4) == '0000':
@@ -1010,7 +1013,7 @@ def multiprocess_task(parameter_dic: dict):
         fe_hdu_list.writeto(OUT_DIR + 'RSM' + parameter_dic['start_time'].strftime('%Y%m%dT%H%M%S') + '_' +
                             parameter_dic['scan_index'] + '_FE.fits', overwrite=True)
     except BaseException as uniformException:
-        suntools.log(traceback.print_exc())
+        traceback.print_exc()
         suntools.log("当前序列输出错误, 已跳过")
 
 

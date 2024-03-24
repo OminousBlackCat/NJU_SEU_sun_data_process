@@ -9,9 +9,13 @@
 import cv2
 import os
 import argparse
+import suntools
+import config
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import video_config
+import os
+import subprocess
 
 
 def monographNJU(target_path: str, color_map, image_dpi = 100):
@@ -37,6 +41,17 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
                 fe_fits_list.append(os.path.join(target_path, filename))
 
     for rsm_path in ha_fits_list:
+        # 从路径内获取文件名
+        current_filename = rsm_path.split('/')[-1]
+        current_file_datetime = current_filename[3:7] + '-' + current_filename[7:9] + '-' + current_filename[9:11] + \
+                   ' UT ' + current_filename[12:14] + ':' + current_filename[14:16] + ':' + current_filename[16:18]
+
+        # 查看png是否存在
+        if os.path.exists(target_path + current_filename.split('.')[0]  + ".png"):
+            # 如果存在 直接跳过
+            continue
+
+
         hdu = fits.open(rsm_path)
         # 读取bin mode
         bin_mode = int(hdu[1].header['BIN'])
@@ -56,9 +71,7 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
 
         cx = int(hdu[1].header['CRPIX1'])
         cy = int(hdu[1].header['CRPIX2'])
-        current_filename = rsm_path.split('/')[-1]
-        current_file_datetime = current_filename[3:7] + '-' + current_filename[7:9] + '-' + current_filename[9:11] + \
-                   ' UT ' + current_filename[12:14] + ':' + current_filename[14:16] + ':' + current_filename[16:18]
+
         plt.figure(figsize=(20, 20))
         plt.imshow(hacore[cy - window_scale:cy + window_scale, cx - window_scale:cx + window_scale], origin='lower', vmin=0, vmax=3 * hacore.mean(),
                    cmap=color_map)
@@ -74,6 +87,18 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
 
 
     for rsm_path in fe_fits_list:
+        # 从路径内获取文件名
+        current_filename = rsm_path.split('/')[-1]
+        current_file_datetime = current_filename[3:7] + '-' + current_filename[7:9] + '-' + current_filename[9:11] + \
+                                ' UT ' + current_filename[12:14] + ':' + current_filename[
+                                                                         14:16] + ':' + current_filename[16:18]
+
+        # 查看png是否存在
+        if os.path.exists(target_path + current_filename.split('.')[0] + ".png"):
+            # 如果存在 直接跳过
+            continue
+
+
         hdu = fits.open(rsm_path)
         # 读取bin mode
         bin_mode = int(hdu[1].header['BIN'])
@@ -88,9 +113,7 @@ def monographNJU(target_path: str, color_map, image_dpi = 100):
 
         cx = int(hdu[1].header['CRPIX1'])
         cy = int(hdu[1].header['CRPIX2'])
-        current_filename = rsm_path.split('/')[-1]
-        current_file_datetime = current_filename[3:7] + '-' + current_filename[7:9] + '-' + current_filename[9:11] + \
-                                ' UT ' + current_filename[12:14] + ':' + current_filename[14:16] + ':' + current_filename[16:18]
+
         plt.figure(figsize=(20, 20))
         plt.imshow(hacore[cy - window_scale:cy + window_scale, cx - window_scale:cx + window_scale], origin='lower', vmin=0, vmax=3 * hacore.mean(),
                    cmap=color_map)
@@ -158,13 +181,24 @@ def createVideoNJU(target_dir: str, save_dir: str):
     createVideoMp4(target_dir, fe_list, save_dir + FE_filename)
     return HA_filename, FE_filename
 
+def scpVideoToRemote(remote_ssh_url: str, source_file: str):
+    """
+    通过scp传送单个目标视频文件至远端服务器
+    @param remote_ssh_url: 远端服务器sshURL 具有格式 username@ipaddr:PATH/filename
+    @param source_file: 目标文件路径
+    """
+    current_filename = source_file.split("/")[-1]
+    subprocess.run(["scp", source_file, remote_ssh_url])
+
+
 # def test_monoGraphNJU():
 #     suntools.log("重新输出png中")
 #     png_target_dir = config.save_dir_path
 #     color_map = suntools.get_color_map(config.color_camp_name)
-#     monographNJU(png_target_dir, color_map, bin_count=1)
+#     monographNJU(png_target_dir, color_map)
 
 if __name__ == '__main__':
+    # test_monoGraphNJU()
     png_target_dir = video_config.path_to_target_png
     video_save_dir = video_config.path_to_video_save
 

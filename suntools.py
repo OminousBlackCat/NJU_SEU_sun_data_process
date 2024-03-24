@@ -1039,7 +1039,7 @@ def non_head_distortion_correction(spec_win, se00xx_data, se0000_center, se00xx_
     se00xx_hacore2 = sim.imshift(se00xx_hacore, [int(dy), int(dx)])  # 刚性对齐
 
     se00xx_flow = cv2.calcOpticalFlowFarneback(hacore0, se00xx_hacore2, flow=None, pyr_scale=0.5, \
-                                               levels=3, winsize=config.winsize, iterations=5, poly_n=5, \
+                                               levels=3, winsize=config.winsize * 2 // bin_count, iterations=5, poly_n=5, \
                                                poly_sigma=1.2, flags=0)  # 计算畸变
 
     se00xx_x1, se00xx_y1 = np.meshgrid(np.arange(width), np.arange(height))
