@@ -46,8 +46,8 @@ copy_header_items = [
         'typeOfValue': 'number'
     },
     {
-        'key': 'ORID',
-        'typeOfValue': 'string'
+         'key': 'ORID',
+         'typeOfValue': 'string'
     }
 ]
 

@@ -221,9 +221,14 @@ significant_point_list = []
 symmetry_axis_list = []
 # 以150为分界线寻找对称轴 记录这些关键点
 # 标记0为上升点 标记1为下降点
-# plt.plot(np.array(global_wave_line_strength_list[0: 3000]))
-# plt.savefig(os.path.join(OUT_DIR, "fig.png"))
-# suntools.log("输出plot")
+plt.plot(np.array(global_wave_line_strength_list[0: 15000]))
+ax = plt.subplot()
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+plt.xlabel("frame")
+plt.ylabel("average strength")
+plt.savefig(os.path.join(OUT_DIR, "fig.png"))
+suntools.log("输出plot")
 for i in range(len(global_wave_line_strength_list)):
     if last_wave_line_strength != 0 and abs(global_wave_line_strength_list[i] - last_wave_line_strength) > 50:
         suntools.log("出现异常波动值, 已跳过")
@@ -276,9 +281,12 @@ for axis in symmetry_axis_list:
         temp_last_file_index = len(data_file_lst) - 1
         continue
     step_start = int(data_file_lst[temp_start_file_index].split('-')[-1].split('.')[0])
+    step_start = int(data_file_lst[temp_start_file_index].split('-')[-1].split('.')[0])
     step_mid = int(step_start) + 2312 / config.bin_count  # 对非binning模式的数据，需要修改
     step_end = int(step_start) + floor(4625 / config.bin_count)  # 对非binning模式的数据，需要修改
-    if step_start > axis:
+    # if step_start > axis:
+    #     continue
+    if abs(step_mid-current_axis_frame_index) > 50:
         continue
     if current_scan_index == 0:
         head_series_of_track[current_track_index] = data_file_lst[temp_start_file_index]

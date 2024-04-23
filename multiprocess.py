@@ -20,7 +20,7 @@ import urllib.error as uEr
 import config
 import matplotlib.pyplot as plt
 import ctypes as c
-import save_png_video
+import createVideo
 import sys
 
 
@@ -427,8 +427,8 @@ def main():
             OBS_Radius = radius * PIXEL_RESOLUTION * GLOBAL_BINNING
             wavelength_calibrate_input = global_shared_array[:, int(R_y) - 100: int(R_y) + 99, int(R_x) - 100: int(R_x) + 99]
             cdel_t3, crval_l3_ha, crval_l3_fe = suntools.cal_center_mean(wavelength_calibrate_input)
-            temp_dict['header'].set('CRPIX1', R_y)
-            temp_dict['header'].set('CRPIX2', R_x)
+            temp_dict['header'].set('CRPIX1', R_x)
+            temp_dict['header'].set('CRPIX2', R_y)
             temp_dict['header'].set('R_SUN', radius)
             temp_dict['header'].set('RSUN_OBS', OBS_Radius)
             temp_dict['header'].set('CDELT1', PIXEL_RESOLUTION * GLOBAL_BINNING)
@@ -517,8 +517,7 @@ def main():
     time_end = time.time()
     suntools.log('并行进度已完成，所花费时间为：', (time_end - time_start) / 60, 'min(分钟)')
     suntools.log('生成视频中...')
-    save_png_video.monographNJU(OUT_DIR, image_dpi=config.png_dpi_value)
-    save_png_video.createVideoNJU(SUM_DIR, config.video_dir_path, global_multiprocess_list[0]['start_time'])
+    createVideo.createVideo(global_multiprocess_list[0]['start_time'])
     suntools.log('程序结束！')
 
 

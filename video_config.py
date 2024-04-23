@@ -8,12 +8,12 @@
 # 目标png文件所在的文件夹 绝对路径
 # 结尾请带"/"
 # 示例: /data/chase/Chase/Lev1/2023/11/23/
-path_to_target_png = "/"
+path_to_target_png = "/data/chase/Chase/Lev1/2024/4/15/"
 
 # 存放视频的文件夹 绝对路径
 # 结尾请记得带"/"
 # 示例: /data/chase/Chase/Lev1/2023/11/movie/
-path_to_video_save = "/"
+path_to_video_save = "/data/chase/Chase/Lev1/2024/4/movie/"
 
 # 帧大小, 元组(width, height)
 # 均为int
@@ -30,4 +30,10 @@ video_frame_per_sec = 6
 # png写入帧的频率
 # 默认为1 即所有png都写入视频
 # 若为n 则所有n的倍数的png会写入视频
-target_png_interval = 2
+target_png_interval = 1
+
+remote_host = "114.212.184.2"
+
+user = "root"
+
+remote_path = "/home/aiocloud/oradiag_aiocloud/app/bg/ui-console/ui/ui-console/src/main/resources/static/video/dailyVideo"

@@ -9,8 +9,8 @@
 # 文件夹最后的结尾需要带'/'
 # TODO: 在运行程序前一定要修改此目录, 此目录应精确到当日的扫描序列文件夹
 # 例: /data/chase/Chase/2021/12/16-428/
-data_dir_path = "/data/chase/cyctest/Chase/2022/10/14/"
-
+# data_dir_path = "/data/chase/cyctest/Chase/2022/10/14/"
+data_dir_path = "/data/chase/Chase/2024/3/24-013528-1/"
 
 # 数据输出的存放文件夹, 相对路径与绝对路径均可, 需精确到天数
 # 请确保此文件夹存在并拥有写入权限ls
@@ -18,19 +18,22 @@ data_dir_path = "/data/chase/cyctest/Chase/2022/10/14/"
 # 文件夹最后的结尾需要带'/'
 # 例: /data/chase/Chase/Lev1/2021/12/16/
 # TODO: 在程序运行前需要修改此目录
-save_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/10/14/"
+# save_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/10/14/"
+save_dir_path = "/data/chase/cyctest/Chase/Lev1/2024/3/24/"
 
 # 存储视频的文件夹, 相对路径与绝对路径均可
 # 请确保此文件夹存在并拥有写入权限
 # 可以不需要手动创建文件夹  会自动创建文件夹
 # 文件夹最后的结尾需要带'/'
 # TODO: 每个月需要修改此目录
-video_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/10/14/video/"
+# video_dir_path = "/data/chase/cyctest/Chase/Lev1/2022/10/14/video/"
+video_dir_path = "/data/chase/cyctest/Chase/Lev1/2024/3/7/"
 
 
 # 是否bin
 # 修改此参数的时候记得修改sun_row_index
-# TODO: bin_count务必在程序运行前要确认
+# 程序已添加自动判断bin的功能
+# 此处的参数将作为默认值保存
 bin_count = 2
 
 # 摆扫模式时翻转的序列 序号标号模式为: 0, 1, 2, 3, ...
@@ -162,9 +165,7 @@ Ha_Upper = 172
 Fe_lower = 38
 Fe_Upper = 84
 
-# 在bin模式下的默认值, 非bin模式下应 乘以 2
-# 畸变窗口大小,值越大，对畸变的改正效果越差，但太阳本身的运动的影响越小
-winsize = 32
+winsize = 32 # 畸变窗口大小,值越大，对畸变的改正效果越差，但太阳本身的运动的影响越小
 
 
 # # TODO: 暂时弃用
